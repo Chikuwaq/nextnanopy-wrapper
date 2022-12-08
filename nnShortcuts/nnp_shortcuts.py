@@ -1,17 +1,20 @@
 """
 Created: 2022/03/24
-Updated: 2022/08/10
 
 Useful shortcut functions for nextnano++ postprocessing.
 
 @author: takuma.sato@nextnano.com
 """
 
+# Python includes
 import os
 import numpy as np
+import matplotlib.pyplot as plt
+
+# nextnanopy includes
 import nextnanopy as nn
 import common
-import matplotlib.pyplot as plt
+
 
 software = 'nextnano++'
 model_names = ['Gamma', 'L', 'X', 'Delta', 'HH', 'LH', 'SO', 'kp6', 'kp8']

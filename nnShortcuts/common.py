@@ -7,15 +7,19 @@ Applicable to all nextnano products.
 @author: takuma.sato@nextnano.com
 """
 
+# Python includes
 from decimal import getcontext
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-import nextnanopy as nn
-from nextnanopy.utils.misc import mkdir_if_not_exist
 # from PIL import Image   # for gif
 # from celluloid import Camera   # for gif
 # from IPython.display import HTML   # for HTML display of gif
+
+# nextnanopy includes
+import nextnanopy as nn
+from nextnanopy.utils.misc import mkdir_if_not_exist
+
 
 
 # -------------------------------------------------------

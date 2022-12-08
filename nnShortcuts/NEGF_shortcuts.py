@@ -12,8 +12,8 @@ animate_NEGF method generates animation
 
 # Python includes
 import os
-import matplotlib.pyplot as plt
 import numpy as np
+import matplotlib.pyplot as plt
 
 # nextnanopy includes
 import nextnanopy as nn

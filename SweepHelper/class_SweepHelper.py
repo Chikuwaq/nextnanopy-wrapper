@@ -1,6 +1,5 @@
 """
 Created on 2022/05/21
-Modified on 2022/12/08
 
 SweepHelper facilitates postprocessing of nextnano simulations 
 when single or multiple input variables are swept.
@@ -9,15 +8,18 @@ An object-oriented user interface which internally & automatically invokes nnSho
 
 @author: takuma.sato@nextnano.com
 """
+
+# Python includes
 import os
 import numpy as np
 import matplotlib.pyplot as plt
 import itertools
 import pandas as pd
 
+# nextnanopy includes
 import nextnanopy as nn
-import common
-import nnp_shortcuts as nnp
+import nnShortcuts.common as common
+import nnShortcuts.nnp_shortcuts as nnp
 
 
 
