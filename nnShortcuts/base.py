@@ -1,8 +1,8 @@
 """
 Created: 2021/05/27
-Updated: 2022/11/11
 
-Basic toolbox (shortcut, module) for nextnanopy. Basis of nnp_shortcuts and NEGF_shortcuts.
+Basic toolbox (shortcut, module) for nextnanopy. 
+Applicable to all nextnano products.
 
 @author: takuma.sato@nextnano.com
 """
@@ -17,7 +17,11 @@ from nextnanopy.utils.misc import mkdir_if_not_exist
 # from celluloid import Camera   # for gif
 # from IPython.display import HTML   # for HTML display of gif
 
-# fundamental physical constants https://physics.nist.gov/cgi-bin/cuu
+
+# -------------------------------------------------------
+# fundamental physical constants 
+# https://physics.nist.gov/cgi-bin/cuu
+# -------------------------------------------------------
 Planck = 6.62607015E-34  # Planck constant [J.s]
 hbar = 1.054571817E-34   # Planck constant / 2Pi in [J.s]
 electron_mass = 9.1093837015E-31   # in [kg]
@@ -36,6 +40,10 @@ scale1ToPico = 1e12
 scale_Angstrom_to_nm = 0.1
 scale_eV_to_J = elementary_charge
 
+
+# -------------------------------------------------------
+# Output default formats
+# -------------------------------------------------------
 figFormat_list = ['.pdf', '.png', '.jpg', '.svg']
 figFormat_list_display = ['pdf', 'png', 'jpg', 'svg']
 
@@ -53,6 +61,9 @@ labelsize_default = 16
 ticksize_default = 14
 
 
+# -------------------------------------------------------
+# Exceptions
+# -------------------------------------------------------
 class NextnanopyScriptError(Exception):
     """ Exception when the user's Python script contains issue """
     pass

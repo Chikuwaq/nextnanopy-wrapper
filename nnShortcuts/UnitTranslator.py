@@ -1,6 +1,5 @@
 """
 Created: 2022/03/25
-Updated: 2022/03/25
 
 @author: takuma.sato
 """
