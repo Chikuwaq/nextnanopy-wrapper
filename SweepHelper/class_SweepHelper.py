@@ -1,9 +1,11 @@
 """
 Created on 2022/05/21
-Modified on 2022/11/28
+Modified on 2022/12/08
 
-Class SweepHelper facilitates postprocessing of nextnano simulations 
+SweepHelper facilitates postprocessing of nextnano simulations 
 when single or multiple input variables are swept.
+
+An object-oriented user interface which internally & automatically invokes nnShortcuts.
 
 @author: takuma.sato@nextnano.com
 """
