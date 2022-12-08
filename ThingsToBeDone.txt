@@ -1,7 +1,5 @@
 [nnShortcuts]
-- UnitTranslator should be absorbed to base.py
 - rename base.py to common.py
-- delete modified date
 - implement Python warnings
 - NextnanopyScriptError really needed? used?
 - Following David Stark's code, 

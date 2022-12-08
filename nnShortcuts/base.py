@@ -19,7 +19,7 @@ from nextnanopy.utils.misc import mkdir_if_not_exist
 
 
 # -------------------------------------------------------
-# fundamental physical constants 
+# Fundamental physical constants 
 # https://physics.nist.gov/cgi-bin/cuu
 # -------------------------------------------------------
 Planck = 6.62607015E-34  # Planck constant [J.s]
@@ -30,15 +30,6 @@ speed_of_light = 2.99792458E8   # [m/s]
 vacuum_permittivity = 8.854187e-12   # [F/m] 1F = 1 kg^{-1} m^{-2} s^2 C^2 = 1 C^2 / J
 Boltzmann = 1.380649e-23   # [J/K]
 
-scale1ToKilo = 1e-3
-scale1ToCenti = 1e2
-scale1ToMilli = 1e3
-scale1ToMicro = 1e6
-scale1ToNano = 1e9
-scale1ToPico = 1e12
-
-scale_Angstrom_to_nm = 0.1
-scale_eV_to_J = elementary_charge
 
 
 # -------------------------------------------------------
@@ -75,17 +66,6 @@ class NextnanoInputFileError(Exception):
 # -------------------------------------------------------
 # Math
 # -------------------------------------------------------
-def electronvolt_to_micron(E):
-    """
-    Convert energy in eV to micrometer.
-
-    E : array-like
-        energy in eV
-    """
-    energy_in_J = E * elementary_charge   # eV to J
-    wavelength_in_meter = Planck * speed_of_light / energy_in_J   # J to m
-    return wavelength_in_meter * scale1ToMicro   # m to micron
-
 def get_num_of_decimals(x : float):
     from math import floor
     from decimal import Decimal
@@ -163,6 +143,40 @@ def find_minimum(arr):
 
 def absolute_squared(x):
     return np.abs(x)**2
+
+
+# -------------------------------------------------------
+# Conversion
+# -------------------------------------------------------
+scale1ToKilo = 1e-3
+scale1ToCenti = 1e2
+scale1ToMilli = 1e3
+scale1ToMicro = 1e6
+scale1ToNano = 1e9
+scale1ToPico = 1e12
+
+scale_Angstrom_to_nm = 0.1
+scale_eV_to_J = elementary_charge
+
+def electronvolt_to_micron(E):
+    """
+    Convert energy in eV to micrometer.
+
+    E : array-like
+        energy in eV
+    """
+    energy_in_J = E * elementary_charge   # eV to J
+    wavelength_in_meter = Planck * speed_of_light / energy_in_J   # J to m
+    return wavelength_in_meter * scale1ToMicro   # m to micron
+
+def wavenumber_to_energy(sound_velocity, k_in_inverseMeter):
+    """
+    For linear dispersion, convert wavenumber in [1/m] to energy [eV].
+    E = hbar * omega = hbar * c * k
+    """
+    E_in_Joules = hbar * sound_velocity * k_in_inverseMeter
+    return E_in_Joules * scale_eV_to_J**(-1)
+
 
 
 # -------------------------------------------------------
