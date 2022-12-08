@@ -379,7 +379,7 @@ class SweepHelper:
             Maximum number of parallel execution
 
         """
-        # raise warning if many serial simulations are requested
+        # warn the user if many serial simulations are requested
         num_of_simulations = self.data['sweep_coords'].size
         if parallel_limit == 1:
             if (num_of_simulations > 100 and self.software == 'nextnano++') or (num_of_simulations > 10 and self.software == 'nextnano.NEGF'):

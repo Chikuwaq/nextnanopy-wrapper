@@ -12,6 +12,7 @@ from decimal import getcontext
 import os
 import numpy as np
 import matplotlib.pyplot as plt
+import warnings
 # from PIL import Image   # for gif
 # from celluloid import Camera   # for gif
 # from IPython.display import HTML   # for HTML display of gif
@@ -59,10 +60,6 @@ ticksize_default = 14
 # -------------------------------------------------------
 # Exceptions
 # -------------------------------------------------------
-class NextnanopyScriptError(Exception):
-    """ Exception when the user's Python script contains issue """
-    pass
-
 class NextnanoInputFileError(Exception):
     """ Exception when the user's nextnano input file contains issue """
     pass
@@ -779,7 +776,7 @@ def getDataFiles_in_folder(keywords, folder_path, software, exclude_keywords=Non
     if len(list_of_files) == 0:
         raise FileNotFoundError(f"No output file found!")
     elif len(list_of_files) == 1:
-        print(f"WARNING: Only one output file found!")
+        warnings.warn("getDataFiles_in_folder(): Only one output file found!")
 
     if __debug__: print("Found:\n", list_of_files)
 
@@ -960,7 +957,7 @@ def getRowColumnForDisplay(num_elements):
 
 def get_maximum_points(quantity_arr, position_arr):
     if isinstance(quantity_arr, int) or isinstance(quantity_arr, float):
-        print("\nWARNING: get_maximum_points(): Only one point exists in the array: ", quantity_arr)
+        warnings.warn("get_maximum_points(): Only one point exists in the array: ", quantity_arr)
         return position_arr[0], quantity_arr
 
     if len(quantity_arr) != len(position_arr):
