@@ -829,6 +829,7 @@ def convert_grid(arr, old_grid, new_grid):
 def cutOff_edges1D(arr, x_grid, start_position, end_position):
     """
     Cut off the edges of 1D real space array.
+    If the specified limits extend beyond the original grid, no cut-off is performed.
 
     Parameters
     ----------
@@ -855,12 +856,12 @@ def cutOff_edges1D(arr, x_grid, start_position, end_position):
     if len(arr) != num_gridPoints:  # 'averaged = yes' 'boxed = yes' may lead to inconsistent number of grid points
         print(len(arr), num_gridPoints)
         raise ValueError('Array size does not match the number of real space grid points')
-    if start_position < x_grid[0]:
-        raise ValueError('start_position out of simulation region!')
-    if end_position > x_grid[-1]:
-        raise ValueError('end_position out of simulation region!')
+    if end_position < start_position:
+        raise ValueError('Illegal start and end positions!')
 
     # find start & end index
+    start_index = 0
+    end_index = num_gridPoints - 1
     for i in range(num_gridPoints-1):
         if x_grid[i] <= start_position < x_grid[i + 1]:
             start_index = i

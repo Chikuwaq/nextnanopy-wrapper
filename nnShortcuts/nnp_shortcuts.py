@@ -405,12 +405,12 @@ def plot_dispersion(
 
 def plot_patched_dispersions(
         name,
-        startIdx=0, stopIdx=0,
-        left_k_label="1", right_k_label="2",
-        labelsize=common.labelsize_default,
-        ticksize=common.ticksize_default,
-        savePDF=False,
-        savePNG=False
+        startIdx = 0, stopIdx = 0,
+        left_k_label = "1", right_k_label = "2",
+        labelsize = common.labelsize_default,
+        ticksize = common.ticksize_default,
+        savePDF = False,
+        savePNG = False
         ):
     """
     Plot two in-plane dispersions from 1D simulation patched at the zone center in one graph.
@@ -750,8 +750,8 @@ def plot_probabilities(
         input_file,
         states_range_dict   = None,
         states_list_dict    = None,
-        start_position      = 0.0,
-        end_position        = 0.0,
+        start_position      = -10000.,
+        end_position        = 10000.,
         hide_tails          = False,
         only_k0             = True,
         show_spinor         = False,
@@ -782,9 +782,9 @@ def plot_probabilities(
         Alternatively, strings 'lowestElectron', 'highestHole' and 'occupied' are accepted. For 'occupied', another key 'cutoff_occupation' must be set in this dict.
         The default is None.
     start_position : real, optional
-        left edge of the plotting region. The default is 0.0.
+        left edge of the plotting region. The default is -10000.
     end_position : real, optional
-        right edge of the plotting region. The default is 0.0.
+        right edge of the plotting region. The default is 10000.
     hide_tails : bool, optional
         hide the probability tails. The default is False.
     only_k0 : bool, optional
@@ -861,22 +861,18 @@ def plot_probabilities(
 
 
     # chop off edges of the simulation region
-    # TODO: if only start_position is given, extend the plot to the end of sim region
-    # TODO: if only end_position is given, extend the plot to the start of sim region
-    plotFullRegion = (start_position == 0.0) and (end_position == 0.0)  # default
-    if not plotFullRegion:
-        CBBandedge = common.cutOff_edges1D(CBBandedge, x, start_position, end_position)
-        HHBandedge = common.cutOff_edges1D(HHBandedge, x, start_position, end_position)
-        LHBandedge = common.cutOff_edges1D(LHBandedge, x, start_position, end_position)
-        SOBandedge = common.cutOff_edges1D(SOBandedge, x, start_position, end_position)
+    CBBandedge = common.cutOff_edges1D(CBBandedge, x, start_position, end_position)
+    HHBandedge = common.cutOff_edges1D(HHBandedge, x, start_position, end_position)
+    LHBandedge = common.cutOff_edges1D(LHBandedge, x, start_position, end_position)
+    SOBandedge = common.cutOff_edges1D(SOBandedge, x, start_position, end_position)
 
 
-        for model in states_toBePlotted:
-            for cnt, stateIndex in enumerate(states_toBePlotted[model]):
-                for kIndex in range(num_kPoints[model]):
-                    psiSquared[model][cnt][kIndex] = common.cutOff_edges1D(psiSquared[model][cnt][kIndex], x, start_position, end_position)   # chop off edges of the simulation region
+    for model in states_toBePlotted:
+        for cnt, stateIndex in enumerate(states_toBePlotted[model]):
+            for kIndex in range(num_kPoints[model]):
+                psiSquared[model][cnt][kIndex] = common.cutOff_edges1D(psiSquared[model][cnt][kIndex], x, start_position, end_position)   # chop off edges of the simulation region
 
-        x = common.cutOff_edges1D(x, x, start_position, end_position)
+    x = common.cutOff_edges1D(x, x, start_position, end_position)
     simLength = x[-1]-x[0]   # (nm)
 
 
@@ -1063,8 +1059,8 @@ def plot_probabilities(
 def plot_carrier_densities(
         input_file,
         scale_factor        = 1.0,
-        start_position      = 0.0,
-        end_position        = 0.0,
+        start_position      = -10000,
+        end_position        = 10000,
         plot_title          = '',
         labelsize           = common.labelsize_default,
         ticksize            = common.ticksize_default,
@@ -1080,9 +1076,9 @@ def plot_carrier_densities(
     scale_factor : real, optional
         Scaling factor for density. The default is 1.0.
     start_position : real, optional
-        left edge of the plotting region. The default is 0.0.
+        left edge of the plotting region. The default is -10000.
     end_position : real, optional
-        right edge of the plotting region. The default is 0.0.
+        right edge of the plotting region. The default is 10000.
     plot_title : str, optional
         title of the plot. By default, title is not displayed.
     PDFfilename : str, optional
@@ -1115,15 +1111,13 @@ def plot_carrier_densities(
 
 
     # chop off edges of the simulation region
-    plotFullRegion = (start_position == 0.0) and (end_position == 0.0)  # default
-    if not plotFullRegion:
-        CBBandedge = common.cutOff_edges1D(CBBandedge, x, start_position, end_position)
-        HHBandedge = common.cutOff_edges1D(HHBandedge, x, start_position, end_position)
-        LHBandedge = common.cutOff_edges1D(LHBandedge, x, start_position, end_position)
-        SOBandedge = common.cutOff_edges1D(SOBandedge, x, start_position, end_position)
-        densityEl  = common.cutOff_edges1D(densityEl, x, start_position, end_position)
-        densityHl  = common.cutOff_edges1D(densityHl, x, start_position, end_position)
-        x = common.cutOff_edges1D(x, x, start_position, end_position)
+    CBBandedge = common.cutOff_edges1D(CBBandedge, x, start_position, end_position)
+    HHBandedge = common.cutOff_edges1D(HHBandedge, x, start_position, end_position)
+    LHBandedge = common.cutOff_edges1D(LHBandedge, x, start_position, end_position)
+    SOBandedge = common.cutOff_edges1D(SOBandedge, x, start_position, end_position)
+    densityEl  = common.cutOff_edges1D(densityEl, x, start_position, end_position)
+    densityHl  = common.cutOff_edges1D(densityHl, x, start_position, end_position)
+    x = common.cutOff_edges1D(x, x, start_position, end_position)
 
     # plot k points
     inplaneK_dict = getKPointsData1D(input_file)
@@ -1474,16 +1468,14 @@ def kp_density_analysis(
 
 
 #     # chop off edges of the simulation region
-#     plotFullRegion = (start_position == 0.0) and (end_position == 0.0)  # default
-#     if not plotFullRegion:
-#         CBBandedge = common.cutOff_edges1D(CBBandedge, x, start_position, end_position)
-#         LHBandedge = common.cutOff_edges1D(LHBandedge, x, start_position, end_position)
-#         HHBandedge = common.cutOff_edges1D(HHBandedge, x, start_position, end_position)
+    # CBBandedge = common.cutOff_edges1D(CBBandedge, x, start_position, end_position)
+    # LHBandedge = common.cutOff_edges1D(LHBandedge, x, start_position, end_position)
+    # HHBandedge = common.cutOff_edges1D(HHBandedge, x, start_position, end_position)
 
-#         for stateIndex in states_toBePlotted[model]:
-#             for kIndex in range(num_kPoints[model]):
-#                 psiSquared[model][stateIndex][kIndex] = common.cutOff_edges1D(psiSquared[model][stateIndex][kIndex], x, start_position, end_position)   # chop off edges of the simulation region
-#         x = common.cutOff_edges1D(x, x, start_position, end_position)
+    # for stateIndex in states_toBePlotted[model]:
+    #     for kIndex in range(num_kPoints[model]):
+    #         psiSquared[model][stateIndex][kIndex] = common.cutOff_edges1D(psiSquared[model][stateIndex][kIndex], x, start_position, end_position)   # chop off edges of the simulation region
+    # x = common.cutOff_edges1D(x, x, start_position, end_position)
 
 #     simLength = x[-1]-x[0]   # (nm)
 

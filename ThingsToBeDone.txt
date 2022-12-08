@@ -3,11 +3,10 @@
   1. support interpolated colormaps (using contourf in python) + adding a line which indicates the waveguide losses
   2. plot oscillator strengths for colored transitions
 - 10^19 instead of 1e+1 in ylabel of the charge density 
-- use common.labelsize_default in all nnp plot methods
 - use labelsize and ticsize also for plot_inplaneK()
 - use common.getDataFile() in nnp.getDataFile_probabilities_in_folder -> can profit from new features in common e.g. exclude_keywords
 - avoid output PDF filename conflict between plot_carrier_density() and plot_probabilities() 
-- NextnanoInputFileError may be useful if used in proper places.
+- NextnanoInputFileError may be useful if used in proper places. If nextnanopy can detect syntax validation error...
 
 [SweepHelper]
 - get generate_gif working

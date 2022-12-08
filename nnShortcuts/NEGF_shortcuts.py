@@ -196,9 +196,10 @@ def get_WannierStarkStates_atBias(input_file, bias):
 
 def plot_WannierStarkStates_init(
         name, 
-        start_position=None, end_position=None, 
-        labelsize=common.labelsize_default, 
-        ticksize=common.ticksize_default
+        start_position = -10000., 
+        end_position   = 10000., 
+        labelsize      = common.labelsize_default, 
+        ticksize       = common.ticksize_default
         ):
     """
     Plot Wannier-Stark states on top of the conduction bandedge.
@@ -217,15 +218,11 @@ def plot_WannierStarkStates_init(
     """
     position, CB, Psi_squareds = get_WannierStarkStates_init(name)
 
-    # store data arrays
-    if start_position is None and end_position is None:
-        conduction_bandedge = CB.value
-        WS_states = [Psi_squared.value for Psi_squared in Psi_squareds]
-        x = position.value
-    else: # cut off edges of the simulation region
-        conduction_bandedge = common.cutOff_edges1D(CB.value, position.value, start_position, end_position)
-        WS_states = [common.cutOff_edges1D(Psi_squared.value, position.value, start_position, end_position) for Psi_squared in Psi_squareds]
-        x = common.cutOff_edges1D(position.value, position.value, start_position, end_position)
+    # Store data arrays.
+    # Cut off edges of the simulation region if needed.
+    conduction_bandedge = common.cutOff_edges1D(CB.value, position.value, start_position, end_position)
+    WS_states           = [common.cutOff_edges1D(Psi_squared.value, position.value, start_position, end_position) for Psi_squared in Psi_squareds]
+    x                   = common.cutOff_edges1D(position.value, position.value, start_position, end_position)
 
     WS_states = [common.mask_part_of_array(WS_state) for WS_state in WS_states]   # hide flat tails
 
