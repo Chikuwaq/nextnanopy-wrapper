@@ -6,4 +6,4 @@ module_path = '../nnShortcuts'
 if not module_path in sys.path:
   sys.path.append(module_path)
 
-from nnShortcuts import base, nnp_shortcuts
+from nnShortcuts import common, nnp_shortcuts

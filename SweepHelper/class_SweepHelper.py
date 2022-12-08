@@ -16,7 +16,7 @@ import itertools
 import pandas as pd
 
 import nextnanopy as nn
-import base
+import common
 import nnp_shortcuts as nnp
 
 
@@ -125,15 +125,15 @@ class SweepHelper:
             self.sweep_space[var] = np.around(np.linspace(bounds[0], bounds[1], num_points), round_decimal)   # avoid lengthy filenames
 
         # detect software
-        self.software, extension = base.detect_software_new(master_input_file)
+        self.software, extension = common.detect_software_new(master_input_file)
         if self.software != 'nextnano++': raise NotImplementedError("class SweepHelper currently supports only nextnano++ simulations.")
 
         # store master input file object
         self.master_input_file = master_input_file
 
         # store parent output folder path of sweep simulations
-        input_file_name = base.separateFileExtension(self.master_input_file.fullpath)[0]
-        self.output_folder_path = base.getSweepOutputFolderPath(input_file_name, self.software, *self.sweep_space.keys())
+        input_file_name = common.separateFileExtension(self.master_input_file.fullpath)[0]
+        self.output_folder_path = common.getSweepOutputFolderPath(input_file_name, self.software, *self.sweep_space.keys())
 
         # instantiate nn.Sweep object
         self.sweep_obj = nn.Sweep(self.sweep_space, self.master_input_file.fullpath)
@@ -147,7 +147,7 @@ class SweepHelper:
         input_paths = [input_file.fullpath for input_file in self.sweep_obj.input_files]
         self.data = pd.DataFrame({
             'sweep_coords' : list(itertools.product(*self.sweep_space.values())),  # create cartesian coordinates in the sweep space. Consistent to nextnanopy implementation.
-            'output_subfolder' : [base.get_output_subfolder_path(self.output_folder_path, input_path) for input_path in input_paths],
+            'output_subfolder' : [common.get_output_subfolder_path(self.output_folder_path, input_path) for input_path in input_paths],
             'overlap' : None,
             'transition_energy' : None,
             'hole_energy_difference' : None
@@ -503,7 +503,7 @@ class SweepHelper:
         # Compute overlaps and store them in self.data
         print("\nCalculating overlap...")
         self.data['overlap'] = self.data['output_subfolder'].apply(nnp.calculate_overlap, force_lightHole=force_lightHole)
-        # self.data['overlap_squared'] = self.data['overlap'].apply(base.absolute_squared)   # BUG: somehow the results become complex128, not float --> cannot be plotted
+        # self.data['overlap_squared'] = self.data['overlap'].apply(common.absolute_squared)   # BUG: somehow the results become complex128, not float --> cannot be plotted
         
         # x- and y-axis coordinates and 2D array-like of overlap data
         x_values, y_values, overlap = self.__slice_data_for_colormap('overlap', x_axis, y_axis, datatype=np.cdouble)   # complex double = two double-precision floats
@@ -531,11 +531,11 @@ class SweepHelper:
         if figFilename is None or figFilename == "":
             name = os.path.split(self.output_folder_path)[1]
             figFilename = name + "_overlap"
-        base.export_figs(figFilename, "png", self.software, output_folder_path=self.output_folder_path, fig=fig)
+        common.export_figs(figFilename, "png", self.software, output_folder_path=self.output_folder_path, fig=fig)
 
 
         # write info to a file
-        max_val, indices = base.find_maximum(overlap_squared)  
+        max_val, indices = common.find_maximum(overlap_squared)  
         y_index, x_index = indices
         filepath = os.path.join(self.output_folder_path, os.path.join("nextnanopy", "info.txt"))
         print("Writing info to:\n", filepath)
@@ -595,11 +595,11 @@ class SweepHelper:
 
         # Align unit
         if unit == 'meV':
-            transition_energies_scaled = transition_energies * base.scale1ToMilli
+            transition_energies_scaled = transition_energies * common.scale1ToMilli
         elif unit == 'micron' or unit == 'um':
-            transition_energies_scaled = base.electronvolt_to_micron(transition_energies)
+            transition_energies_scaled = common.electronvolt_to_micron(transition_energies)
         elif unit == 'nm':
-            transition_energies_scaled = base.electronvolt_to_micron(transition_energies) * 1e3
+            transition_energies_scaled = common.electronvolt_to_micron(transition_energies) * 1e3
 
         
         # instantiate 2D color plot
@@ -634,7 +634,7 @@ class SweepHelper:
         if figFilename is None or figFilename == "":
             name = os.path.split(self.output_folder_path)[1]
             figFilename = name + "_transitionEnergies"
-        base.export_figs(figFilename, "png", self.software, output_folder_path=self.output_folder_path, fig=fig)
+        common.export_figs(figFilename, "png", self.software, output_folder_path=self.output_folder_path, fig=fig)
 
         return fig
 
@@ -698,9 +698,9 @@ class SweepHelper:
         if set_center_to_zero:
             from matplotlib import colors
             divnorm = colors.TwoSlopeNorm(vcenter=0.)
-            pcolor = ax.pcolormesh(x_values, y_values, transition_energies*base.scale1ToMilli, cmap=colormap, norm=divnorm, shading='auto')
+            pcolor = ax.pcolormesh(x_values, y_values, transition_energies*common.scale1ToMilli, cmap=colormap, norm=divnorm, shading='auto')
         else:
-            pcolor = ax.pcolormesh(x_values, y_values, transition_energies*base.scale1ToMilli, cmap=colormap, shading='auto')
+            pcolor = ax.pcolormesh(x_values, y_values, transition_energies*common.scale1ToMilli, cmap=colormap, shading='auto')
         
         cbar = fig.colorbar(pcolor)
         cbar.set_label("Hole energy difference HH-LH ($\mathrm{meV}$)")
@@ -710,7 +710,7 @@ class SweepHelper:
         if figFilename is None or figFilename == "":
             name = os.path.split(self.output_folder_path)[1]
             figFilename = name + "_holeEnergyDifference"
-        base.export_figs(figFilename, "png", self.software, output_folder_path=self.output_folder_path, fig=fig)
+        common.export_figs(figFilename, "png", self.software, output_folder_path=self.output_folder_path, fig=fig)
 
         return fig
 

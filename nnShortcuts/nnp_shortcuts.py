@@ -10,7 +10,7 @@ Useful shortcut functions for nextnano++ postprocessing.
 import os
 import numpy as np
 import nextnanopy as nn
-import base
+import common
 import matplotlib.pyplot as plt
 
 software = 'nextnano++'
@@ -21,17 +21,17 @@ model_names_valence    = ['HH', 'LH', 'SO', 'kp6']
 
 
 def get_bandgap_atPosition(filename, position):
-    df = base.getDataFile('bandgap.dat', filename, software)
+    df = common.getDataFile('bandgap.dat', filename, software)
     bandgap = df.variables['Bandgap_Gamma'].value
     x = df.coords['x'].value
-    Eg = base.getValueAtPosition(bandgap, x, position)
+    Eg = common.getValueAtPosition(bandgap, x, position)
     return Eg
 
 def get_deltaSO_atPosition(filename, position):
-    df = base.getDataFile('spin_orbit_coupling', filename, software)
+    df = common.getDataFile('spin_orbit_coupling', filename, software)
     spin_orbit_coupling = df.variables['Delta_so'].value
     x = df.coords['x'].value
-    deltaSO = base.getValueAtPosition(spin_orbit_coupling, x, position)
+    deltaSO = common.getValueAtPosition(spin_orbit_coupling, x, position)
     return deltaSO
 
 
@@ -69,7 +69,7 @@ def getKPointsData1D(input_file):
     """
 
     outputFolder = nn.config.get(software, 'outputdirectory')
-    filename_no_extension = base.separateFileExtension(input_file.fullpath)[0]
+    filename_no_extension = common.separateFileExtension(input_file.fullpath)[0]
     outputSubfolder = os.path.join(outputFolder, filename_no_extension)
     return getKPointsData1D_in_folder(outputSubfolder)
 
@@ -121,7 +121,7 @@ def plot_inplaneK(inplaneK_dict):
 
     RETURN:
         fig             matplotlib.figure.Figure object
-    TODO: this method can be moved to base. All software-dependency is filtered by getKPointsData1D_in_folder().
+    TODO: this method can be moved to common. All software-dependency is filtered by getKPointsData1D_in_folder().
     """
     if len(list(inplaneK_dict.values())[0]) == 2: return   # if only zone-center has been calculated
 
@@ -167,7 +167,7 @@ def getDataFile_probabilities_with_name(name):
     RETURN:
         dictionary { quantum model key: corresponding list of nn.DataFile() objects for probability_shift }
     """
-    filename_no_extension = base.separateFileExtension(name)[0]
+    filename_no_extension = common.separateFileExtension(name)[0]
     outputFolder = nn.config.get(software, 'outputdirectory')
     outputSubFolder = os.path.join(outputFolder, filename_no_extension)
 
@@ -218,7 +218,7 @@ def getDataFile_amplitudesK0_in_folder(folder_path):
     RETURN:
         dictionary { quantum model key: list of nn.DataFile() objects for amplitude data }
     """
-    datafiles = base.getDataFiles_in_folder('amplitudes', folder_path, software, exclude_keywords='shift')   # return a list of nn.DataFile
+    datafiles = common.getDataFiles_in_folder('amplitudes', folder_path, software, exclude_keywords='shift')   # return a list of nn.DataFile
 
     # amplitude_dict = {
     #     'Gamma': list(),
@@ -238,7 +238,7 @@ def getDataFile_amplitudesK0_in_folder(folder_path):
     amplitude_dict_trimmed = {model: amplitude_dict[model] for model in amplitude_dict if len(amplitude_dict[model]) > 0}
 
     if len(amplitude_dict_trimmed) == 0:
-        raise base.NextnanoInputFileError("Amplitudes are not output! Modify the input file.")
+        raise common.NextnanoInputFileError("Amplitudes are not output! Modify the input file.")
 
     return amplitude_dict_trimmed
 
@@ -249,7 +249,7 @@ def getDataFile_amplitudesK0_in_folder(folder_path):
 #         dictionary with keys interband, intraband, and dipole, each consisting of list of file paths for matrix_elements
 #     """
 #     filename = os.path.split(filename)[1]   # remove paths if present
-#     filename_no_extension = base.separateFileExtension(filename)[0]
+#     filename_no_extension = common.separateFileExtension(filename)[0]
 #     outputFolder = nn.config.get(software, 'outputdirectory')
 #     outputSubFolder = os.path.join(outputFolder, filename_no_extension)
 #     outputFiles = nn.DataFolder(outputSubFolder).find('matrix_elements', deep=True)  # nn.DataFolder.find() returns a list.
@@ -297,8 +297,8 @@ def plot_dispersion(
         startIdx=0,
         stopIdx=0,
         plot_title='',
-        labelsize=base.labelsize_default,
-        ticksize=base.ticksize_default,
+        labelsize=common.labelsize_default,
+        ticksize=common.ticksize_default,
         savePDF=False,
         savePNG=False,
         ):
@@ -345,9 +345,9 @@ def plot_dispersion(
 
     # load output data files
     try:
-        datafile_dispersion = base.getDataFile('dispersion_', name, software)
+        datafile_dispersion = common.getDataFile('dispersion_', name, software)
     except ValueError:
-        datafile_dispersion = base.getDataFile_in_folder('dispersion_', name, software)
+        datafile_dispersion = common.getDataFile_in_folder('dispersion_', name, software)
 
     # store data in arrays
     kPoints     = datafile_dispersion.coords['|k|'].value
@@ -365,11 +365,11 @@ def plot_dispersion(
     for index in states_toBePlotted:
         dispersions[index, ] = datafile_dispersion.variables[f'Band_{index+1}'].value
 
-    filename_no_extension = base.separateFileExtension(name)[0]
+    filename_no_extension = common.separateFileExtension(name)[0]
 
     # define plot title
     if plot_title:
-        title = base.getPlotTitle(plot_title)
+        title = common.getPlotTitle(plot_title)
     else:
         title = ''
 
@@ -389,8 +389,8 @@ def plot_dispersion(
     # Save the figure to an image file
     #-------------------------------------------
     export_filename = f'{filename_no_extension}_dispersion'
-    if savePDF: base.export_figs(export_filename, 'pdf', software)
-    if savePNG: base.export_figs(export_filename, 'png', software, fig=fig)
+    if savePDF: common.export_figs(export_filename, 'pdf', software)
+    if savePNG: common.export_figs(export_filename, 'png', software, fig=fig)
 
     # --- display in the GUI
     plt.show()
@@ -403,8 +403,8 @@ def plot_patched_dispersions(
         name,
         startIdx=0, stopIdx=0,
         left_k_label="1", right_k_label="2",
-        labelsize=base.labelsize_default,
-        ticksize=base.ticksize_default,
+        labelsize=common.labelsize_default,
+        ticksize=common.ticksize_default,
         savePDF=False,
         savePNG=False
         ):
@@ -452,14 +452,14 @@ def plot_patched_dispersions(
     # load output data files
     print("\nLoading 1st dispersion data (to be plotted on the left)...")
     try:
-        datafile_dispersion1 = base.getDataFile('dispersion_', name, software)
+        datafile_dispersion1 = common.getDataFile('dispersion_', name, software)
     except ValueError:
-        datafile_dispersion1 = base.getDataFile_in_folder('dispersion_', name, software)
+        datafile_dispersion1 = common.getDataFile_in_folder('dispersion_', name, software)
     print("\nLoading 2nd dispersion data (to be plotted on the right)...")
     try:
-        datafile_dispersion2 = base.getDataFile('dispersion_', name, software)
+        datafile_dispersion2 = common.getDataFile('dispersion_', name, software)
     except ValueError:
-        datafile_dispersion2 = base.getDataFile_in_folder('dispersion_', name, software)
+        datafile_dispersion2 = common.getDataFile_in_folder('dispersion_', name, software)
 
     # store data in arrays
     kPoints1     = datafile_dispersion1.coords['|k|'].value
@@ -488,7 +488,7 @@ def plot_patched_dispersions(
         for kIndex in range(num_kPoints1):
             dispersions[index, ] = np.append( np.flip(dispersions1[index,:]), dispersions2[index,:])
 
-    title = base.getPlotTitle(name)
+    title = common.getPlotTitle(name)
 
     # instantiate matplotlib subplot objects
     fig, ax = plt.subplots()
@@ -506,11 +506,11 @@ def plot_patched_dispersions(
     #-------------------------------------------
     # Plots - save all the figures to one PDF
     #-------------------------------------------
-    filename_no_extension = base.separateFileExtension(name)[0]
+    filename_no_extension = common.separateFileExtension(name)[0]
     export_filename = f'{filename_no_extension}_patched_dispersion'
 
-    if savePDF: base.export_figs(export_filename, 'pdf', software)
-    if savePNG: base.export_figs(export_filename, 'png', software, fig=fig)
+    if savePDF: common.export_figs(export_filename, 'pdf', software)
+    if savePNG: common.export_figs(export_filename, 'png', software, fig=fig)
 
     # --- display in the GUI
     plt.show()
@@ -532,16 +532,16 @@ def plot_dispersions_sweep(master_input_file, sweep_variable, list_of_values, st
     import numpy as np
     import matplotlib.pyplot as plt
 
-    inputfile_name = base.separateFileExtension(master_input_file.fullpath)[0]
-    output_folder_path = base.getSweepOutputFolderPath(inputfile_name, software, sweep_variable)
+    inputfile_name = common.separateFileExtension(master_input_file.fullpath)[0]
+    output_folder_path = common.getSweepOutputFolderPath(inputfile_name, software, sweep_variable)
     print('output folder path: ', output_folder_path)
 
     for value in list_of_values:
-        output_subfolderName = base.getSweepOutputSubfolderName(inputfile_name, {sweep_variable: value})
+        output_subfolderName = common.getSweepOutputSubfolderName(inputfile_name, {sweep_variable: value})
         output_folder = os.path.join(output_folder_path, output_subfolderName)
 
         # load output data files
-        datafile_dispersion = base.getDataFile_in_folder('dispersion_', output_folder, software)
+        datafile_dispersion = common.getDataFile_in_folder('dispersion_', output_folder, software)
 
         # store data in arrays
         kPoints     = datafile_dispersion.coords['|k|'].value
@@ -561,8 +561,8 @@ def plot_dispersions_sweep(master_input_file, sweep_variable, list_of_values, st
         ax.legend(loc='upper left')
 
     # save all the figures to one PDF
-    PDFfilename = base.separateFileExtension(inputfile_name)[0]
-    base.export_figs(PDFfilename, 'pdf', software, output_folder_path=output_folder_path)
+    PDFfilename = common.separateFileExtension(inputfile_name)[0]
+    common.export_figs(PDFfilename, 'pdf', software, output_folder_path=output_folder_path)
 
 
 def generate_gif(master_input_file, sweep_variable, list_of_values, states_toBePlotted):
@@ -580,13 +580,13 @@ def generate_gif(master_input_file, sweep_variable, list_of_values, states_toBeP
     import numpy as np
     import matplotlib.pyplot as plt
 
-    inputfile_name = base.separateFileExtension(master_input_file.fullpath)[0]
-    output_folder_path = base.getSweepOutputFolderPath(inputfile_name, software, sweep_variable)
+    inputfile_name = common.separateFileExtension(master_input_file.fullpath)[0]
+    output_folder_path = common.getSweepOutputFolderPath(inputfile_name, software, sweep_variable)
 
     # determine optimal plot range - x-axis
-    output_subfolderName = base.getSweepOutputSubfolderName(inputfile_name, {sweep_variable: list_of_values[0]})
+    output_subfolderName = common.getSweepOutputSubfolderName(inputfile_name, {sweep_variable: list_of_values[0]})
     output_folder        = os.path.join(output_folder_path, output_subfolderName)
-    datafile_dispersion  = base.getDataFile_in_folder('dispersion_', output_folder, software)
+    datafile_dispersion  = common.getDataFile_in_folder('dispersion_', output_folder, software)
     kPoints              = datafile_dispersion.coords['|k|'].value
     xrange = kPoints[-1] - kPoints[0]
     xmin = kPoints[0] - 0.05 * xrange
@@ -607,11 +607,11 @@ def generate_gif(master_input_file, sweep_variable, list_of_values, states_toBeP
     num_kPoints = len(kPoints)
 
     def plotDispersions(iSweep):
-        output_subfolderName = base.getSweepOutputSubfolderName(inputfile_name, {sweep_variable: list_of_values[iSweep]})
+        output_subfolderName = common.getSweepOutputSubfolderName(inputfile_name, {sweep_variable: list_of_values[iSweep]})
         output_folder = os.path.join(output_folder_path, output_subfolderName)
 
         # load output data files
-        datafile_dispersion = base.getDataFile_in_folder('dispersion_', output_folder, software)
+        datafile_dispersion = common.getDataFile_in_folder('dispersion_', output_folder, software)
 
         # store data in arrays
         dispersions = np.zeros((num_bands, num_kPoints), dtype=np.double)
@@ -728,7 +728,7 @@ def get_states_to_be_plotted(datafiles_probability_dict, states_range_dict=None,
                             raise ValueError("cutoff_occupation must be specified in 'states_list_dict'")
 
                         # WARNING: state selection based on k||=0 occupation
-                        df = base.getDataFile_in_folder(['occupation', model], outfolder, software)
+                        df = common.getDataFile_in_folder(['occupation', model], outfolder, software)
                         try:
                             cutoff_occupation = np.double(states_list_dict['cutoff_occupation'])
                         except ValueError:
@@ -753,8 +753,8 @@ def plot_probabilities(
         show_spinor         = False,
         show_state_index    = False,
         plot_title          = '',
-        labelsize           = base.labelsize_default,
-        ticksize            = base.ticksize_default,
+        labelsize           = common.labelsize_default,
+        ticksize            = common.ticksize_default,
         savePDF             = False,
         savePNG             = False,
         ):
@@ -809,7 +809,7 @@ def plot_probabilities(
     from matplotlib.gridspec import GridSpec
 
     # load output data files
-    datafile_bandedge = base.getDataFile('bandedges', input_file.fullpath, software)
+    datafile_bandedge = common.getDataFile('bandedges', input_file.fullpath, software)
     datafiles_probability_dict = getDataFile_probabilities_with_name(input_file.fullpath)
 
     for model, datafiles in datafiles_probability_dict.items():
@@ -818,7 +818,7 @@ def plot_probabilities(
         datafile_probability = datafiles[0]
         x_probability  = datafile_probability.coords['x'].value
     if not datafile_probability:
-        raise base.NextnanoInputFileError('Probabilities are not output!')
+        raise common.NextnanoInputFileError('Probabilities are not output!')
 
 
     # store data in arrays (independent of quantum models)
@@ -853,7 +853,7 @@ def plot_probabilities(
         for cnt, stateIndex in enumerate(states_toBePlotted[model]):
             for kIndex in range(num_kPoints[model]):
                 psiSquared_oldgrid = dfs[kIndex].variables[f'Psi^2_{stateIndex+1}'].value
-                psiSquared[model][cnt][kIndex] = base.convert_grid(psiSquared_oldgrid, x_probability, x)   # grid interpolation needed because of 'output_bandedges{ averaged=no }'
+                psiSquared[model][cnt][kIndex] = common.convert_grid(psiSquared_oldgrid, x_probability, x)   # grid interpolation needed because of 'output_bandedges{ averaged=no }'
 
 
     # chop off edges of the simulation region
@@ -861,18 +861,18 @@ def plot_probabilities(
     # TODO: if only end_position is given, extend the plot to the start of sim region
     plotFullRegion = (start_position == 0.0) and (end_position == 0.0)  # default
     if not plotFullRegion:
-        CBBandedge = base.cutOff_edges1D(CBBandedge, x, start_position, end_position)
-        HHBandedge = base.cutOff_edges1D(HHBandedge, x, start_position, end_position)
-        LHBandedge = base.cutOff_edges1D(LHBandedge, x, start_position, end_position)
-        SOBandedge = base.cutOff_edges1D(SOBandedge, x, start_position, end_position)
+        CBBandedge = common.cutOff_edges1D(CBBandedge, x, start_position, end_position)
+        HHBandedge = common.cutOff_edges1D(HHBandedge, x, start_position, end_position)
+        LHBandedge = common.cutOff_edges1D(LHBandedge, x, start_position, end_position)
+        SOBandedge = common.cutOff_edges1D(SOBandedge, x, start_position, end_position)
 
 
         for model in states_toBePlotted:
             for cnt, stateIndex in enumerate(states_toBePlotted[model]):
                 for kIndex in range(num_kPoints[model]):
-                    psiSquared[model][cnt][kIndex] = base.cutOff_edges1D(psiSquared[model][cnt][kIndex], x, start_position, end_position)   # chop off edges of the simulation region
+                    psiSquared[model][cnt][kIndex] = common.cutOff_edges1D(psiSquared[model][cnt][kIndex], x, start_position, end_position)   # chop off edges of the simulation region
 
-        x = base.cutOff_edges1D(x, x, start_position, end_position)
+        x = common.cutOff_edges1D(x, x, start_position, end_position)
     simLength = x[-1]-x[0]   # (nm)
 
 
@@ -881,7 +881,7 @@ def plot_probabilities(
         for model in states_toBePlotted:
             for cnt, stateIndex in enumerate(states_toBePlotted[model]):
                 for kIndex in range(num_kPoints[model]):
-                    psiSquared[model][cnt][kIndex] = base.mask_part_of_array(psiSquared[model][cnt][kIndex], 'flat', 1e-3)
+                    psiSquared[model][cnt][kIndex] = common.mask_part_of_array(psiSquared[model][cnt][kIndex], 'flat', 1e-3)
 
 
     if 'kp6' in datafiles_probability_dict.keys() or 'kp8' in datafiles_probability_dict.keys():
@@ -890,7 +890,7 @@ def plot_probabilities(
             'kp6': list(),
             'kp8': list()
         }
-        datafiles = base.getDataFiles(['spinor_composition', 'CbHhLhSo'], input_file.fullpath, software)
+        datafiles = common.getDataFiles(['spinor_composition', 'CbHhLhSo'], input_file.fullpath, software)
         datafiles = [df for cnt in range(len(datafiles)) for df in datafiles if str(cnt).zfill(5) + '_CbHhLhSo' in os.path.split(df.fullpath)[1]]   # sort spinor composition datafiles in ascending kIndex
         for df in datafiles:
             filename = os.path.split(df.fullpath)[1]
@@ -924,18 +924,18 @@ def plot_probabilities(
                     compositions[model][stateIndex, kIndex, 3] = datafiles_spinor[model][kIndex].variables['so1'].value[stateIndex] + datafiles_spinor[model][kIndex].variables['so2'].value[stateIndex]
 
     # define plot title
-    title = base.getPlotTitle(plot_title)
+    title = common.getPlotTitle(plot_title)
 
     def draw_bandedges(ax, model):
-        base.set_plot_labels(ax, 'Position (nm)', 'Energy (eV)', title)
+        common.set_plot_labels(ax, 'Position (nm)', 'Energy (eV)', title)
         if model == 'Gamma' or model == 'kp8':
-            ax.plot(x, CBBandedge, label='CB', linewidth=0.6, color=base.band_colors['CB'])
+            ax.plot(x, CBBandedge, label='CB', linewidth=0.6, color=common.band_colors['CB'])
         if model == 'HH' or model == 'kp6' or model == 'kp8':
-            ax.plot(x, LHBandedge, label='HH', linewidth=0.6, color=base.band_colors['HH'])
+            ax.plot(x, LHBandedge, label='HH', linewidth=0.6, color=common.band_colors['HH'])
         if model == 'LH' or model == 'kp6' or model == 'kp8':
-            ax.plot(x, HHBandedge, label='LH', linewidth=0.6, color=base.band_colors['LH'])
+            ax.plot(x, HHBandedge, label='LH', linewidth=0.6, color=common.band_colors['LH'])
         if model == 'SO' or model == 'kp6' or model == 'kp8':
-            ax.plot(x, SOBandedge, label='SO', linewidth=0.6, color=base.band_colors['SO'])
+            ax.plot(x, SOBandedge, label='SO', linewidth=0.6, color=common.band_colors['SO'])
 
     def draw_probabilities(ax, state_indices, model, kIndex, show_state_index):
         skip_annotation = False
@@ -945,17 +945,17 @@ def plot_probabilities(
                 plot_color = scalarmappable.to_rgba(compositions['kp8'][stateIndex, kIndex, 0])
             else:
                 # color according to the quantum model that yielded the solution
-                plot_color = base.band_colors[model]
+                plot_color = common.band_colors[model]
             ax.plot(x, psiSquared[model][cnt][kIndex], color=plot_color)
 
             if show_state_index:
-                xmax, ymax = base.get_maximum_points(psiSquared[model][cnt][kIndex], x)
+                xmax, ymax = common.get_maximum_points(psiSquared[model][cnt][kIndex], x)
                 if skip_annotation:   # if annotation was skipped in the previous iteration, annotate
                     # ax.annotate(f'n={stateIndex},{stateIndex+1}', xy=(xmax, ymax), xytext=(xmax-0.05*simLength, ymax+0.07))
                     ax.annotate(f'{stateIndex},{stateIndex+1}', xy=(xmax, ymax), xytext=(xmax, ymax+0.07))
                     skip_annotation = False   # wavefunction degeneracy is atmost 2
                 elif cnt < len(state_indices)-1:  # if not the last state
-                    xmax_next, ymax_next = base.get_maximum_points(psiSquared[model][cnt+1][kIndex], x)
+                    xmax_next, ymax_next = common.get_maximum_points(psiSquared[model][cnt+1][kIndex], x)
                     if abs(xmax_next - xmax) < 1.0 and abs(ymax_next - ymax) < 1e-1:
                         skip_annotation = True
                     else:
@@ -968,8 +968,8 @@ def plot_probabilities(
         ax.legend()
 
     def draw_spinor_pie_charts(gs_spinor, state_indices, model, stateIndex, kIndex, show_state_index):
-        num_rows, num_columns = base.getRowColumnForDisplay(len(state_indices))  # determine arrangement of spinor composition plots
-        list_of_colors = [base.band_colors[model] for model in ['CB', 'HH', 'LH', 'SO']]
+        num_rows, num_columns = common.getRowColumnForDisplay(len(state_indices))  # determine arrangement of spinor composition plots
+        list_of_colors = [common.band_colors[model] for model in ['CB', 'HH', 'LH', 'SO']]
         for i in range(num_rows):
             for j in range(num_columns):
                 subplotIndex = j + num_columns * i
@@ -987,7 +987,7 @@ def plot_probabilities(
             if only_k0 and kIndex > 0: break
 
             if show_spinor and (model == 'kp6' or model == 'kp8'):
-                num_rows, num_columns = base.getRowColumnForDisplay(len(state_indices))
+                num_rows, num_columns = common.getRowColumnForDisplay(len(state_indices))
 
                 fig = plt.figure(figsize=plt.figaspect(0.4))
                 grid_probability = GridSpec(1, 1, figure=fig, left=0.10, right=0.48, bottom=0.15, wspace=0.05)
@@ -996,9 +996,9 @@ def plot_probabilities(
             else:
                 fig, ax_probability = plt.subplots()
             if only_k0:
-                ax_probability.set_title(f'{title} (quantum model: {model})', color=base.band_colors[model])
+                ax_probability.set_title(f'{title} (quantum model: {model})', color=common.band_colors[model])
             else:
-                ax_probability.set_title(f'{title} (quantum model: {model}), k index: {kIndex}', color=base.band_colors[model])
+                ax_probability.set_title(f'{title} (quantum model: {model}), k index: {kIndex}', color=common.band_colors[model])
             draw_bandedges(ax_probability, model)
 
 
@@ -1043,11 +1043,11 @@ def plot_probabilities(
     # Plots --- save all the figures to one PDF
     #-------------------------------------------
     if savePDF:
-        export_filename = f'{base.separateFileExtension(input_file.fullpath)[0]}_probabilities'
-        base.export_figs(export_filename, 'pdf', software)
+        export_filename = f'{common.separateFileExtension(input_file.fullpath)[0]}_probabilities'
+        common.export_figs(export_filename, 'pdf', software)
     if savePNG:
-        export_filename = f'{base.separateFileExtension(input_file.fullpath)[0]}_probabilities'
-        base.export_figs(export_filename, 'png', software, fig=fig)   # NOTE: presumably only the last fig instance is exported
+        export_filename = f'{common.separateFileExtension(input_file.fullpath)[0]}_probabilities'
+        common.export_figs(export_filename, 'png', software, fig=fig)   # NOTE: presumably only the last fig instance is exported
 
     # --- display in the GUI
     plt.show()
@@ -1062,8 +1062,8 @@ def plot_carrier_densities(
         start_position      = 0.0,
         end_position        = 0.0,
         plot_title          = '',
-        labelsize           = base.labelsize_default,
-        ticksize            = base.ticksize_default,
+        labelsize           = common.labelsize_default,
+        ticksize            = common.ticksize_default,
         PDFfilename         = ''
         ):
     """
@@ -1092,9 +1092,9 @@ def plot_carrier_densities(
     """
 
     # load output data files
-    datafile_bandedge = base.getDataFile('bandedges', input_file.fullpath, software)
-    datafile_densityEl = base.getDataFile('density_electron', input_file.fullpath, software, exclude_keywords=['integrated'])
-    datafile_densityHl = base.getDataFile('density_hole', input_file.fullpath, software, exclude_keywords=['integrated'])
+    datafile_bandedge = common.getDataFile('bandedges', input_file.fullpath, software)
+    datafile_densityEl = common.getDataFile('density_electron', input_file.fullpath, software, exclude_keywords=['integrated'])
+    datafile_densityHl = common.getDataFile('density_hole', input_file.fullpath, software, exclude_keywords=['integrated'])
 
     # store data in arrays
     x           = datafile_bandedge.coords['x'].value
@@ -1106,20 +1106,20 @@ def plot_carrier_densities(
 
     densityEl_oldgrid   = datafile_densityEl.variables['Electron_density'].value # grid interpolation needed because of 'output_bandedges{ averaged=no }'
     densityHl_oldgrid   = datafile_densityHl.variables['Hole_density'].value
-    densityEl           = base.convert_grid(densityEl_oldgrid, x_density, x)
-    densityHl           = base.convert_grid(densityHl_oldgrid, x_density, x)
+    densityEl           = common.convert_grid(densityEl_oldgrid, x_density, x)
+    densityHl           = common.convert_grid(densityHl_oldgrid, x_density, x)
 
 
     # chop off edges of the simulation region
     plotFullRegion = (start_position == 0.0) and (end_position == 0.0)  # default
     if not plotFullRegion:
-        CBBandedge = base.cutOff_edges1D(CBBandedge, x, start_position, end_position)
-        HHBandedge = base.cutOff_edges1D(HHBandedge, x, start_position, end_position)
-        LHBandedge = base.cutOff_edges1D(LHBandedge, x, start_position, end_position)
-        SOBandedge = base.cutOff_edges1D(SOBandedge, x, start_position, end_position)
-        densityEl  = base.cutOff_edges1D(densityEl, x, start_position, end_position)
-        densityHl  = base.cutOff_edges1D(densityHl, x, start_position, end_position)
-        x = base.cutOff_edges1D(x, x, start_position, end_position)
+        CBBandedge = common.cutOff_edges1D(CBBandedge, x, start_position, end_position)
+        HHBandedge = common.cutOff_edges1D(HHBandedge, x, start_position, end_position)
+        LHBandedge = common.cutOff_edges1D(LHBandedge, x, start_position, end_position)
+        SOBandedge = common.cutOff_edges1D(SOBandedge, x, start_position, end_position)
+        densityEl  = common.cutOff_edges1D(densityEl, x, start_position, end_position)
+        densityHl  = common.cutOff_edges1D(densityHl, x, start_position, end_position)
+        x = common.cutOff_edges1D(x, x, start_position, end_position)
 
     # plot k points
     inplaneK_dict = getKPointsData1D(input_file)
@@ -1132,10 +1132,10 @@ def plot_carrier_densities(
 
     # --- plot charge density
     fig, ax = plt.subplots()
-    ax.plot(x, CBBandedge, label='CB', linewidth=0.6, color=base.band_colors['CB'])
-    ax.plot(x, HHBandedge, label='HH', linewidth=0.6, color=base.band_colors['HH'])
-    ax.plot(x, LHBandedge, label='LH', linewidth=0.6, color=base.band_colors['LH'])
-    ax.plot(x, SOBandedge, label='SO', linewidth=0.6, color=base.band_colors['SO'])
+    ax.plot(x, CBBandedge, label='CB', linewidth=0.6, color=common.band_colors['CB'])
+    ax.plot(x, HHBandedge, label='HH', linewidth=0.6, color=common.band_colors['HH'])
+    ax.plot(x, LHBandedge, label='LH', linewidth=0.6, color=common.band_colors['LH'])
+    ax.plot(x, SOBandedge, label='SO', linewidth=0.6, color=common.band_colors['SO'])
 
     ylabel_unit_str = "{:.0e}".format(1e18 / scale_factor)
     ax.plot(x, scale_factor * densityEl, 'r', label='electron')
@@ -1148,7 +1148,7 @@ def plot_carrier_densities(
 
     # define plot title
     if plot_title:
-        title = base.getPlotTitle(plot_title)
+        title = common.getPlotTitle(plot_title)
     else:
         title = ''
     ax.set_title(title)
@@ -1156,7 +1156,7 @@ def plot_carrier_densities(
 
     # --- save all the figures to one PDF
     if PDFfilename:
-        base.export_figs(PDFfilename, 'pdf', software)
+        common.export_figs(PDFfilename, 'pdf', software)
 
     # --- display in the GUI
     plt.show()
@@ -1166,7 +1166,7 @@ def plot_carrier_densities(
 
 def validate_input(plotOccupation, plotFillingFactors, cutoffOccupation, parameter_to_modify, newValue):
     if plotOccupation and plotFillingFactors:
-        base.NextnanopyScriptError('Occupation and filling factors are not output in one simulation!')
+        common.NextnanopyScriptError('Occupation and filling factors are not output in one simulation!')
 
     if plotOccupation:
         if cutoffOccupation == None:
@@ -1236,13 +1236,13 @@ def kp_density_analysis(
     #-------------------------------------------
     # load output data files
     # TODO: clean up
-    datafile_bandedge = base.getDataFile('bandedges', input_file.fullpath, software)
-    datafiles_probability = base.getDataFiles('probabilities_shift', input_file.fullpath, software)  # psi^2 at all in-plane k
-    datafiles_spinor = base.getDataFiles('CbHhLhSo', input_file.fullpath, software)  # spinor composition at all in-plane k
+    datafile_bandedge = common.getDataFile('bandedges', input_file.fullpath, software)
+    datafiles_probability = common.getDataFiles('probabilities_shift', input_file.fullpath, software)  # psi^2 at all in-plane k
+    datafiles_spinor = common.getDataFiles('CbHhLhSo', input_file.fullpath, software)  # spinor composition at all in-plane k
     if plotOccupation or plotProbAndSpinor_k:
-        datafile_occupation = base.getDataFile('occupation', input_file.fullpath, software)
+        datafile_occupation = common.getDataFile('occupation', input_file.fullpath, software)
     if plotFillingFactors:
-        datafile_filling = base.getDataFile('filling_factors', input_file.fullpath, software)
+        datafile_filling = common.getDataFile('filling_factors', input_file.fullpath, software)
 
     # store data in arrays
     x           = datafile_bandedge.coords['x'].value
@@ -1291,7 +1291,7 @@ def kp_density_analysis(
                 # store psi^2 data
                 psiSquared_oldgrid = datafiles_probability[kIndex].variables[f'Psi^2_{stateNo}'].value
                 x_probability      = datafiles_probability[kIndex].coords['x'].value
-                psiSquared[stateNo-1, kIndex, ] = base.convert_grid(psiSquared_oldgrid, x_probability, x)   # grid interpolation needed because of 'output_bandedges{ averaged=no }'
+                psiSquared[stateNo-1, kIndex, ] = common.convert_grid(psiSquared_oldgrid, x_probability, x)   # grid interpolation needed because of 'output_bandedges{ averaged=no }'
 
                 # store spinor composition data (for only occupied states)
                 if quantum_model == 'kp8':
@@ -1340,7 +1340,7 @@ def kp_density_analysis(
 
     # --- plot spinor compositions and probabilities for each k
     if plotProbAndSpinor_k:
-        num_rows, num_columns = base.getRowColumnForDisplay(len(occupiedStatesNo))  # determine arrangement of spinor composition plots
+        num_rows, num_columns = common.getRowColumnForDisplay(len(occupiedStatesNo))  # determine arrangement of spinor composition plots
 
         for kIndex in range(num_kPoints):
             # plot probabilities with labels
@@ -1390,7 +1390,7 @@ def kp_density_analysis(
         if len(datafiles_probability) == len(datafiles_spinor):
           num_kPoints = len(datafiles_probability)
         else:
-          base.NextnanoInputFileError('Number of k points is inconsistent between probabilities and spinor components! Spinor components in SXYZ basis are not allowed to exist in the output folder.')
+          common.NextnanoInputFileError('Number of k points is inconsistent between probabilities and spinor components! Spinor components in SXYZ basis are not allowed to exist in the output folder.')
 
         for stateNo in range(num_evs):
             fig, ax = plt.subplots()
@@ -1401,7 +1401,7 @@ def kp_density_analysis(
 
 
     # --- save all the figures to one PDF
-    if PDFfilename: base.export_figs(PDFfilename, 'pdf', software)
+    if PDFfilename: common.export_figs(PDFfilename, 'pdf', software)
 
     # --- display in the GUI
     plt.show()
@@ -1423,14 +1423,14 @@ def kp_density_analysis(
 #         final_states        list of state index
 #     """
 #     if kind not in matrix_elements_names:
-#         raise base.NextnanopyScriptError("Unrecognized matrix element requested.")
+#         raise common.NextnanopyScriptError("Unrecognized matrix element requested.")
 
 #     # load output data files
 #     files_matrix_elements      = getFilepaths_matrix_elements(input_file.fullpath)[kind]
 
 
 #     if len(files_matrix_elements) == 0:
-#         raise base.NextnanopyScriptError("Output of matrix elements not found!")
+#         raise common.NextnanopyScriptError("Output of matrix elements not found!")
 
 
 #     # store data in arrays and trim unnecessary data
@@ -1466,20 +1466,20 @@ def kp_density_analysis(
 #         for stateIndex in states_toBePlotted[model]:
 #             for kIndex in range(num_kPoints[model]):
 #                 psiSquared_oldgrid = datafiles_probability_dict[model][kIndex].variables[f'Psi^2_{stateIndex+1}'].value
-#                 psiSquared[model][stateIndex][kIndex] = base.convert_grid(psiSquared_oldgrid, x_probability, x)   # grid interpolation needed because of 'output_bandedges{ averaged=no }'
+#                 psiSquared[model][stateIndex][kIndex] = common.convert_grid(psiSquared_oldgrid, x_probability, x)   # grid interpolation needed because of 'output_bandedges{ averaged=no }'
 
 
 #     # chop off edges of the simulation region
 #     plotFullRegion = (start_position == 0.0) and (end_position == 0.0)  # default
 #     if not plotFullRegion:
-#         CBBandedge = base.cutOff_edges1D(CBBandedge, x, start_position, end_position)
-#         LHBandedge = base.cutOff_edges1D(LHBandedge, x, start_position, end_position)
-#         HHBandedge = base.cutOff_edges1D(HHBandedge, x, start_position, end_position)
+#         CBBandedge = common.cutOff_edges1D(CBBandedge, x, start_position, end_position)
+#         LHBandedge = common.cutOff_edges1D(LHBandedge, x, start_position, end_position)
+#         HHBandedge = common.cutOff_edges1D(HHBandedge, x, start_position, end_position)
 
 #         for stateIndex in states_toBePlotted[model]:
 #             for kIndex in range(num_kPoints[model]):
-#                 psiSquared[model][stateIndex][kIndex] = base.cutOff_edges1D(psiSquared[model][stateIndex][kIndex], x, start_position, end_position)   # chop off edges of the simulation region
-#         x = base.cutOff_edges1D(x, x, start_position, end_position)
+#                 psiSquared[model][stateIndex][kIndex] = common.cutOff_edges1D(psiSquared[model][stateIndex][kIndex], x, start_position, end_position)   # chop off edges of the simulation region
+#         x = common.cutOff_edges1D(x, x, start_position, end_position)
 
 #     simLength = x[-1]-x[0]   # (nm)
 
@@ -1488,9 +1488,9 @@ def kp_density_analysis(
 #     for model in datafiles_probability_dict:
 #         for stateIndex in states_toBePlotted[model]:
 #             for kIndex in range(num_kPoints[model]):
-#                 psiSquared[model][stateIndex][kIndex] = base.mask_part_of_array(psiSquared[model][stateIndex][kIndex], 'flat', 1e-3)
+#                 psiSquared[model][stateIndex][kIndex] = common.mask_part_of_array(psiSquared[model][stateIndex][kIndex], 'flat', 1e-3)
 
-#     title = base.getPlotTitle(input_file.fullpath)
+#     title = common.getPlotTitle(input_file.fullpath)
 
 #     # instantiate matplotlib subplot objects
 #     for model in datafiles_probability_dict:
@@ -1507,7 +1507,7 @@ def kp_density_analysis(
 #                 ax.plot(x, HHBandedge, label='HH', alpha=0.5)
 #             for stateIndex in states_toBePlotted[model]:
 #                 ax.plot(x, psiSquared[model][stateIndex][kIndex])
-#                 xmax, ymax = base.get_maximum_points(psiSquared[model][stateIndex][kIndex], x)
+#                 xmax, ymax = common.get_maximum_points(psiSquared[model][stateIndex][kIndex], x)
 #                 ax.annotate(f'n={stateIndex+1}', xy=(xmax, ymax), xytext=(xmax-0.05*simLength, ymax+0.07))
 #             ax.legend(loc='upper right')
 #     fig, ax = plt.subplots()
@@ -1521,7 +1521,7 @@ def kp_density_analysis(
 #     #-------------------------------------------
 
 #     # --- save all the figures to one PDF
-#     if PDFfilename: base.export_figs(PDFfilename, 'pdf', software)
+#     if PDFfilename: common.export_figs(PDFfilename, 'pdf', software)
 
 #     # --- display in the GUI
 #     plt.show()
@@ -1554,7 +1554,7 @@ def find_lowest_electron_state_atK0(output_folder, threshold=0.5):
     """
     # get nn.DataFile object
     try:
-        datafile = base.getDataFile_in_folder(['spinor', '00000_CbHhLhSo'], output_folder, software)   # spinor composition at in-plane k = 0
+        datafile = common.getDataFile_in_folder(['spinor', '00000_CbHhLhSo'], output_folder, software)   # spinor composition at in-plane k = 0
     except FileNotFoundError:
         print("\nWARNING: Spinor components output in CbHhLhSo basis is not found. Assuming decoupling of the conduction and valence bands...")
         return int(0)
@@ -1600,7 +1600,7 @@ def find_highest_hole_state_atK0(output_folder, threshold=0.5):
     """
     # get nn.DataFile object
     try:
-        datafile = base.getDataFile_in_folder(['spinor', '00000_CbHhLhSo'], output_folder, software)   # spinor composition at in-plane k = 0
+        datafile = common.getDataFile_in_folder(['spinor', '00000_CbHhLhSo'], output_folder, software)   # spinor composition at in-plane k = 0
     except FileNotFoundError:
         print("\nWARNING: Spinor components output in CbHhLhSo basis is not found. Assuming decoupling of the conduction and valence bands...")
         return int(0)
@@ -1635,7 +1635,7 @@ kp6_basis = ['hh1', 'hh2', 'lh1', 'lh2', 'so1', 'so2']
 #         list_of_overlaps = [calculate_overlap(folder) for folder in output_folders]
 #         overlaps = np.array(list_of_overlaps, dtype=np.cdouble)
 #     else:
-#         raise base.NextnanopyScriptError("Argument 'output_folders' must be either str or list of str!")
+#         raise common.NextnanopyScriptError("Argument 'output_folders' must be either str or list of str!")
 
 #     return overlaps
 
@@ -1692,8 +1692,8 @@ def calculate_overlap(output_folder, force_lightHole=False):
             h_state_basis = ['LH']
         else:
             # take the highest of HH and LH eigenstates
-            E_HH = base.getDataFile_in_folder(['energy_spectrum', '_HH'], output_folder, software).variables['Energy'].value[0]   # energy of the first eigenstate
-            E_LH = base.getDataFile_in_folder(['energy_spectrum', '_LH'], output_folder, software).variables['Energy'].value[0]   # energy of the first eigenstate
+            E_HH = common.getDataFile_in_folder(['energy_spectrum', '_HH'], output_folder, software).variables['Energy'].value[0]   # energy of the first eigenstate
+            E_LH = common.getDataFile_in_folder(['energy_spectrum', '_LH'], output_folder, software).variables['Energy'].value[0]   # energy of the first eigenstate
             if E_HH >= E_LH:
                 df_h = df_HH
                 h_state_basis = ['HH']
@@ -1750,7 +1750,7 @@ def get_transition_energy(output_folder, force_lightHole=False):
     Get the transition energy = energy separation between the lowest electron and highest hole states.
     Unit: eV
     """
-    datafiles = base.getDataFiles_in_folder(["transition_energies", ".fld"], output_folder, software)
+    datafiles = common.getDataFiles_in_folder(["transition_energies", ".fld"], output_folder, software)
 
     iLowestElectron = find_lowest_electron_state_atK0(output_folder, threshold=0.5)
     iHighestHole    = find_highest_hole_state_atK0(output_folder, threshold=0.5)
@@ -1767,8 +1767,8 @@ def get_transition_energy(output_folder, force_lightHole=False):
                 df = datafile
         dE = - df.variables[0].value[iHighestHole][iLowestElectron]
     else:  # single band
-        df_HH_Gamma = base.getDataFile_in_folder(["transition_energies", "HH_Gamma", ".fld"], output_folder, software)
-        df_LH_Gamma = base.getDataFile_in_folder(["transition_energies", "LH_Gamma", ".fld"], output_folder, software)
+        df_HH_Gamma = common.getDataFile_in_folder(["transition_energies", "HH_Gamma", ".fld"], output_folder, software)
+        df_LH_Gamma = common.getDataFile_in_folder(["transition_energies", "LH_Gamma", ".fld"], output_folder, software)
         dE_HH_Gamma = - df_HH_Gamma.variables[0].value[iHighestHole][iLowestElectron]
         dE_LH_Gamma = - df_LH_Gamma.variables[0].value[iHighestHole][iLowestElectron]
 
@@ -1794,8 +1794,8 @@ def get_hole_energy_difference(output_folder):
     Unit: eV
     """
     try:
-        E_HH = base.getDataFile_in_folder(['energy_spectrum', '_HH'], output_folder, software).variables['Energy'].value[0]   # energy of the first eigenstate
-        E_LH = base.getDataFile_in_folder(['energy_spectrum', '_LH'], output_folder, software).variables['Energy'].value[0]   # energy of the first eigenstate
+        E_HH = common.getDataFile_in_folder(['energy_spectrum', '_HH'], output_folder, software).variables['Energy'].value[0]   # energy of the first eigenstate
+        E_LH = common.getDataFile_in_folder(['energy_spectrum', '_LH'], output_folder, software).variables['Energy'].value[0]   # energy of the first eigenstate
     except FileNotFoundError:
         print("Energy spectrum for heavy- and light-hole states not found.")
         return 0

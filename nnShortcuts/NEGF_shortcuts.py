@@ -17,7 +17,7 @@ import numpy as np
 
 # nextnanopy includes
 import nextnanopy as nn
-import base
+import common
 
 
 software = 'nextnano.NEGF'
@@ -28,7 +28,7 @@ def get_IV(input_file_name):
     Get I-V curve.
     OUTPUT: 2 nn.DataFile() attributes for current & voltage
     """
-    datafile = base.getDataFile('Current_vs_Voltage', input_file_name, software)
+    datafile = common.getDataFile('Current_vs_Voltage', input_file_name, software)
     voltage = datafile.coords['Potential per period']
     current = datafile.variables['Current density']
     return voltage, current
@@ -48,15 +48,15 @@ def plot_IV(input_file_name):
 
     # export to an image file
     outputFolder = nn.config.get(software, 'outputdirectory')
-    filename_no_extension = base.separateFileExtension(input_file_name)[0]
+    filename_no_extension = common.separateFileExtension(input_file_name)[0]
     outputSubfolder = os.path.join(outputFolder, filename_no_extension)
-    base.export_figs("IV", "png", software, output_folder_path=outputSubfolder, fig=fig)
+    common.export_figs("IV", "png", software, output_folder_path=outputSubfolder, fig=fig)
 
 
 
 def getDataFile_NEGF_init(keywords, name):
     output_folder = nn.config.get(software, 'outputdirectory')
-    filename_no_extension = base.separateFileExtension(name)[0]
+    filename_no_extension = common.separateFileExtension(name)[0]
     subfolder = os.path.join(output_folder, filename_no_extension)
     d = nn.DataFolder(subfolder)
 
@@ -66,7 +66,7 @@ def getDataFile_NEGF_init(keywords, name):
             # listOfFiles = d.go_to(folder_name).find(keyword, deep=True)
             init_folder_path = d.go_to(folder_name).fullpath
 
-    return base.getDataFile_in_folder(keywords, init_folder_path, software)  # TODO: add options available
+    return common.getDataFile_in_folder(keywords, init_folder_path, software)  # TODO: add options available
 
 
 
@@ -89,10 +89,10 @@ def getDataFile_NEGF_atBias(keywords, name, bias):
 
     """
     output_folder = nn.config.get(software, 'outputdirectory')
-    filename_no_extension = base.separateFileExtension(name)[0]
+    filename_no_extension = common.separateFileExtension(name)[0]
     bias_subfolder = os.path.join(output_folder, filename_no_extension, str(bias) + 'mv')
 
-    return base.getDataFile_in_folder(keywords, bias_subfolder, software)
+    return common.getDataFile_in_folder(keywords, bias_subfolder, software)
 
 
 # def get_convergenceInfo(bias):
@@ -197,8 +197,8 @@ def get_WannierStarkStates_atBias(input_file, bias):
 def plot_WannierStarkStates_init(
         name, 
         start_position=None, end_position=None, 
-        labelsize=base.labelsize_default, 
-        ticksize=base.ticksize_default
+        labelsize=common.labelsize_default, 
+        ticksize=common.ticksize_default
         ):
     """
     Plot Wannier-Stark states on top of the conduction bandedge.
@@ -223,11 +223,11 @@ def plot_WannierStarkStates_init(
         WS_states = [Psi_squared.value for Psi_squared in Psi_squareds]
         x = position.value
     else: # cut off edges of the simulation region
-        conduction_bandedge = base.cutOff_edges1D(CB.value, position.value, start_position, end_position)
-        WS_states = [base.cutOff_edges1D(Psi_squared.value, position.value, start_position, end_position) for Psi_squared in Psi_squareds]
-        x = base.cutOff_edges1D(position.value, position.value, start_position, end_position)
+        conduction_bandedge = common.cutOff_edges1D(CB.value, position.value, start_position, end_position)
+        WS_states = [common.cutOff_edges1D(Psi_squared.value, position.value, start_position, end_position) for Psi_squared in Psi_squareds]
+        x = common.cutOff_edges1D(position.value, position.value, start_position, end_position)
 
-    WS_states = [base.mask_part_of_array(WS_state) for WS_state in WS_states]   # hide flat tails
+    WS_states = [common.mask_part_of_array(WS_state) for WS_state in WS_states]   # hide flat tails
 
     fig, ax = plt.subplots()
     ax.set_xlabel(position.label, fontsize=labelsize)
@@ -242,9 +242,9 @@ def plot_WannierStarkStates_init(
 
     # export to an image file
     outputFolder = nn.config.get(software, 'outputdirectory')
-    filename_no_extension = base.separateFileExtension(name)[0]
+    filename_no_extension = common.separateFileExtension(name)[0]
     outputSubfolder = os.path.join(outputFolder, filename_no_extension)
-    base.export_figs("WannierStarkStates_init", "png", software, output_folder_path=outputSubfolder, fig=fig)
+    common.export_figs("WannierStarkStates_init", "png", software, output_folder_path=outputSubfolder, fig=fig)
 
     return fig
 
@@ -281,8 +281,8 @@ def get_2Ddata_atBias(input_file_name, bias, data='carrier'):
 def plot_DOS(
         input_file_name, 
         bias, 
-        labelsize=base.labelsize_default, 
-        ticksize=base.ticksize_default
+        labelsize=common.labelsize_default, 
+        ticksize=common.ticksize_default
         ):
     """
     Overlay bandedge with local density of states. Loads the following output data:
@@ -315,14 +315,14 @@ def plot_DOS(
 
     # export to an image file
     outputFolder = nn.config.get(software, 'outputdirectory')
-    filename_no_extension = base.separateFileExtension(input_file_name)[0]
+    filename_no_extension = common.separateFileExtension(input_file_name)[0]
     outputSubfolder = os.path.join(outputFolder, filename_no_extension)
-    base.export_figs("DOS", "png", software, output_folder_path=outputSubfolder, fig=fig)
+    common.export_figs("DOS", "png", software, output_folder_path=outputSubfolder, fig=fig)
 
     return fig
 
 
-def plot_carrier_density(input_file_name, bias, labelsize=base.labelsize_default, ticksize=base.ticksize_default):
+def plot_carrier_density(input_file_name, bias, labelsize=common.labelsize_default, ticksize=common.ticksize_default):
     """
     Overlay bandedge with energy-resolved carrier density. Loads the following output data:
     CarrierDensity_energy_resolved.vtr
@@ -354,9 +354,9 @@ def plot_carrier_density(input_file_name, bias, labelsize=base.labelsize_default
 
     # export to an image file
     outputFolder = nn.config.get(software, 'outputdirectory')
-    filename_no_extension = base.separateFileExtension(input_file_name)[0]
+    filename_no_extension = common.separateFileExtension(input_file_name)[0]
     outputSubfolder = os.path.join(outputFolder, filename_no_extension)
-    base.export_figs("CarrierDensity", "png", software, output_folder_path=outputSubfolder, fig=fig)
+    common.export_figs("CarrierDensity", "png", software, output_folder_path=outputSubfolder, fig=fig)
 
     return fig
 
@@ -364,8 +364,8 @@ def plot_carrier_density(input_file_name, bias, labelsize=base.labelsize_default
 def plot_current_density(
         input_file_name, 
         bias, 
-        labelsize=base.labelsize_default, 
-        ticksize=base.ticksize_default
+        labelsize=common.labelsize_default, 
+        ticksize=common.ticksize_default
         ):
     """
     Overlay bandedge with energy-resolved current density. Loads the following output data:
@@ -398,9 +398,9 @@ def plot_current_density(
 
     # export to an image file
     outputFolder = nn.config.get(software, 'outputdirectory')
-    filename_no_extension = base.separateFileExtension(input_file_name)[0]
+    filename_no_extension = common.separateFileExtension(input_file_name)[0]
     outputSubfolder = os.path.join(outputFolder, filename_no_extension)
-    base.export_figs("CurrentDensity", "png", software, output_folder_path=outputSubfolder, fig=fig)
+    common.export_figs("CurrentDensity", "png", software, output_folder_path=outputSubfolder, fig=fig)
 
     return fig
 
@@ -417,8 +417,8 @@ def plot_current_density(
 #     - Gain_SelfConsistent_vs_Frequency.dat (2D)
 #     - Gain_SelfConsistent_vs_Wavelength.dat (2D)
 #     """
-#     # datafile = base.getDataFile(f'Gain_SelfConsistent_vs_{xaxis}.dat', input_file_name, software)
-#     datafile = base.getDataFile('Gain_vs_Voltage', input_file_name, software)
+#     # datafile = common.getDataFile(f'Gain_SelfConsistent_vs_{xaxis}.dat', input_file_name, software)
+#     datafile = common.getDataFile('Gain_vs_Voltage', input_file_name, software)
 #     voltage = datafile.variables['Potential per period']
 #     gain = datafile.variables['Maximum gain']
 #     return voltage, gain
@@ -442,7 +442,7 @@ def get_biases(name):
 
     """
     output_folder = nn.config.get(software, 'outputdirectory')
-    filename_no_extension = base.separateFileExtension(name)[0]
+    filename_no_extension = common.separateFileExtension(name)[0]
     datafolder = nn.DataFolder(os.path.join(output_folder, filename_no_extension))
 
     biases = [int(folder_name.replace('mV', '')) for folder_name in datafolder.folders.keys() if ('mV' in folder_name) and ('Init' not in folder_name)]
@@ -473,7 +473,7 @@ def animate_NEGF(input_file_name, leftFig='DOS', rightFig='carrier'):
     import numpy as np
     import matplotlib.pyplot as plt
 
-    input_file_name = base.separateFileExtension(input_file_name)[0]
+    input_file_name = common.separateFileExtension(input_file_name)[0]
 
     array_of_biases = np.array(get_biases(input_file_name))
 
@@ -554,7 +554,7 @@ def get_LIV(name):
 
     # find the output file
     outputFolder = nn.config.get(software, 'outputdirectory')
-    filename_no_extension = base.separateFileExtension(name)[0]
+    filename_no_extension = common.separateFileExtension(name)[0]
     outputSubfolder = os.path.join(outputFolder, filename_no_extension)
     print(f'Searching for output data with keyword {keyword}...')
     listOfFiles = nn.DataFolder(outputSubfolder).find(keyword, deep=True)
@@ -577,8 +577,8 @@ def plot_Light_Current_Voltage_characteristics(
         front_mirror_loss, 
         total_cavity_loss, 
         labels, 
-        labelsize=base.labelsize_default, 
-        ticksize=base.ticksize_default, 
+        labelsize=common.labelsize_default, 
+        ticksize=common.ticksize_default, 
         Imin=None, Imax=None, 
         Vmin=None, Vmax=None, 
         Pmin=None, Pmax=None
@@ -643,19 +643,19 @@ def plot_Light_Current_Voltage_characteristics(
 
     """
     # validate arguments
-    if len(names) != len(labels): raise base.NextnanopyScriptError(f"Number of input files ({len(names)}) do not match that of plot labels ({len(labels)})")
+    if len(names) != len(labels): raise common.NextnanopyScriptError(f"Number of input files ({len(names)}) do not match that of plot labels ({len(labels)})")
 
     # volume in [cm^3]
-    area_in_cm2 = area * pow(base.scale1ToCenti, 2)
-    volume = (period_length / base.scale1ToNano * base.scale1ToCenti) * num_periods * area_in_cm2
+    area_in_cm2 = area * pow(common.scale1ToCenti, 2)
+    volume = (period_length / common.scale1ToNano * common.scale1ToCenti) * num_periods * area_in_cm2
 
     def forward_conversion(I):
         """ convert current (A) to current density (kA/cm^2) """
-        return I / area_in_cm2 * base.scale1ToKilo
+        return I / area_in_cm2 * common.scale1ToKilo
 
     def backward_conversion(density):
         """ convert current density (kA/cm^2) to current (A) """
-        return density * area_in_cm2 / base.scale1ToKilo
+        return density * area_in_cm2 / common.scale1ToKilo
 
 
     # list of data for sweeping temperature
@@ -666,16 +666,16 @@ def plot_Light_Current_Voltage_characteristics(
 
     for i, name in enumerate(names):
         # I-V data, units adjusted
-        datafile_IV = base.getDataFile('Current_vs_Voltage.dat', name, software)
-        density = datafile_IV.variables['Current density'].value * base.scale1ToKilo
-        V = datafile_IV.coords['Potential per period'].value * num_periods / base.scale1ToMilli
+        datafile_IV = common.getDataFile('Current_vs_Voltage.dat', name, software)
+        density = datafile_IV.variables['Current density'].value * common.scale1ToKilo
+        V = datafile_IV.coords['Potential per period'].value * num_periods / common.scale1ToMilli
         current_densities_IV.append(density)
         voltages.append(V)
 
         # L-V data, units adjusted
         current_density_LV, potential_drop, power_density = get_LIV(name)
-        density = current_density_LV * base.scale1ToKilo
-        P = (power_density * volume * base.scale1ToMilli) * front_mirror_loss / total_cavity_loss   # external output power
+        density = current_density_LV * common.scale1ToKilo
+        P = (power_density * volume * common.scale1ToMilli) * front_mirror_loss / total_cavity_loss   # external output power
         current_densities_LV.append(density)
         output_powers.append(P)
 

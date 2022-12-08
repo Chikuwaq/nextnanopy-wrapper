@@ -10,7 +10,7 @@ Useful shortcut functions for nextnano3 postprocessing.
 import os
 import numpy as np
 import nextnanopy as nn
-import base
+import common
 import matplotlib.pyplot as plt
 
 software = 'nextnano3'
@@ -91,7 +91,7 @@ def plot_inplaneK(inplaneK_dict):
 
     RETURN:
         fig             matplotlib.figure.Figure object
-    TODO: this method can be moved to base. All software-dependency is filtered by getKPointsData1D_in_folder().
+    TODO: this method can be moved to common. All software-dependency is filtered by getKPointsData1D_in_folder().
     """
     if len(list(inplaneK_dict.values())[0]) == 2: return   # if only zone-center has been calculated
 
@@ -158,7 +158,7 @@ def getDataFile_amplitudesK0_in_folder(folder_path):
     RETURN:
         dictionary { quantum model key: list of nn.DataFile() objects for amplitude data }
     """
-    datafiles = base.getDataFiles_in_folder('psi', folder_path, software, exclude_keywords='shift')   # return a list of nn.DataFile
+    datafiles = common.getDataFiles_in_folder('psi', folder_path, software, exclude_keywords='shift')   # return a list of nn.DataFile
 
     # amplitude_dict = {
     #     'Gamma': list(),
@@ -178,7 +178,7 @@ def getDataFile_amplitudesK0_in_folder(folder_path):
     amplitude_dict_trimmed = {model: amplitude_dict[model] for model in amplitude_dict if len(amplitude_dict[model]) > 0}
 
     if len(amplitude_dict_trimmed) == 0:
-        raise base.NextnanoInputFileError("Amplitudes are not output! Modify the input file.")
+        raise common.NextnanoInputFileError("Amplitudes are not output! Modify the input file.")
 
     return amplitude_dict_trimmed
 
@@ -275,7 +275,7 @@ def get_states_to_be_plotted(datafiles_probability_dict, states_range_dict=None,
                             raise ValueError("cutoff_occupation must be specified in 'states_list_dict'")
 
                         # WARNING: state selection based on k||=0 occupation
-                        df = base.getDataFile_in_folder(['occupation', model], outfolder, software)
+                        df = common.getDataFile_in_folder(['occupation', model], outfolder, software)
                         try:
                             cutoff_occupation = np.double(states_list_dict['cutoff_occupation'])
                         except ValueError:
@@ -319,7 +319,7 @@ def find_lowest_electron_state_atK0(output_folder, threshold=0.5):
     """
     # get nn.DataFile object   # TODO: where is the output of spinor composition in nn3?
     try:
-        datafile = base.getDataFile_in_folder(['eigenvalues', '_info'], output_folder, software)   # spinor composition at in-plane k = 0
+        datafile = common.getDataFile_in_folder(['eigenvalues', '_info'], output_folder, software)   # spinor composition at in-plane k = 0
     except FileNotFoundError:
         print("\nWARNING: Spinor components output in CbHhLhSo basis is not found. Assuming decoupling of the conduction and valence bands...")
         return int(0)
@@ -327,7 +327,7 @@ def find_lowest_electron_state_atK0(output_folder, threshold=0.5):
     # check if it is an 8-band k.p simulation result
     filename = os.path.split(datafile.fullpath)[1]
     if detect_quantum_model(filename) != 'kp8':
-        raise base.NextnanopyScriptError("This method only applies to 8-band k.p model!")
+        raise common.NextnanopyScriptError("This method only applies to 8-band k.p model!")
 
     # find the lowest electron state
     num_evs = len(datafile.variables['cb1'].value)
@@ -368,7 +368,7 @@ def find_highest_hole_state_atK0(output_folder, threshold=0.5):
     """
     # get nn.DataFile object  # TODO: where is the output of spinor composition in nn3?
     try:
-        datafile = base.getDataFile_in_folder(['eigenvalues', '_info'], output_folder, software)   # spinor composition at in-plane k = 0
+        datafile = common.getDataFile_in_folder(['eigenvalues', '_info'], output_folder, software)   # spinor composition at in-plane k = 0
     except FileNotFoundError:
         print("\nWARNING: Spinor components output in CbHhLhSo basis is not found. Assuming decoupling of the conduction and valence bands...")
         return int(0)
@@ -376,7 +376,7 @@ def find_highest_hole_state_atK0(output_folder, threshold=0.5):
     # check if it is an 8-band k.p simulation result
     filename = os.path.split(datafile.fullpath)[1]
     if detect_quantum_model(filename) != 'kp8':
-        raise base.NextnanopyScriptError("This method only applies to 8-band k.p model!")
+        raise common.NextnanopyScriptError("This method only applies to 8-band k.p model!")
 
     # find the highest hole state
     num_evs = len(datafile.variables['cb1'].value)
@@ -445,8 +445,8 @@ def calculate_overlap(output_folder, force_lightHole=False):
             h_state_basis = ['LH']
         else:
             # take the highest of HH and LH eigenstates
-            E_HH = base.getDataFile_in_folder(['energy_spectrum', '_HH'], output_folder, software).variables['Energy'].value[0]   # energy of the first eigenstate
-            E_LH = base.getDataFile_in_folder(['energy_spectrum', '_LH'], output_folder, software).variables['Energy'].value[0]   # energy of the first eigenstate
+            E_HH = common.getDataFile_in_folder(['energy_spectrum', '_HH'], output_folder, software).variables['Energy'].value[0]   # energy of the first eigenstate
+            E_LH = common.getDataFile_in_folder(['energy_spectrum', '_LH'], output_folder, software).variables['Energy'].value[0]   # energy of the first eigenstate
             if E_HH >= E_LH:
                 df_h = df_HH
                 h_state_basis = ['HH']
@@ -505,8 +505,8 @@ def get_transition_energy(output_folder, force_lightHole=False):
     """
     # TODO: make it compatible with single-band & kp6 models. See nnp implementation
     # NOTE: nn3 has two output files '_el' and '_hl' also in 8kp calculation.
-    datafile_el = base.getDataFile_in_folder(["eigenvalues", "el"], output_folder, software, exclude_keywords=["info", "pos"])
-    datafile_hl = base.getDataFile_in_folder(["eigenvalues", "hl"], output_folder, software, exclude_keywords=["info", "pos"])
+    datafile_el = common.getDataFile_in_folder(["eigenvalues", "el"], output_folder, software, exclude_keywords=["info", "pos"])
+    datafile_hl = common.getDataFile_in_folder(["eigenvalues", "hl"], output_folder, software, exclude_keywords=["info", "pos"])
     if 'kp8' not in datafile_el.fullpath or 'kp8' not in datafile_hl.fullpath:
         raise NotImplementedError("This method is currently limited to kp8!")
 
@@ -528,7 +528,7 @@ def get_hole_energy_difference(output_folder):
     Get the hole energy difference = energy separation between the highest HH and highest LH states.
     Unit: eV
     """
-    E_HH = base.getDataFile_in_folder(['energy_spectrum', '_HH'], output_folder, software).variables['Energy'].value[0]   # energy of the first eigenstate
-    E_LH = base.getDataFile_in_folder(['energy_spectrum', '_LH'], output_folder, software).variables['Energy'].value[0]   # energy of the first eigenstate
+    E_HH = common.getDataFile_in_folder(['energy_spectrum', '_HH'], output_folder, software).variables['Energy'].value[0]   # energy of the first eigenstate
+    E_LH = common.getDataFile_in_folder(['energy_spectrum', '_LH'], output_folder, software).variables['Energy'].value[0]   # energy of the first eigenstate
         
     return E_HH - E_LH

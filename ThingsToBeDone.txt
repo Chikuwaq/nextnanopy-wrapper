@@ -1,14 +1,13 @@
 [nnShortcuts]
-- rename base.py to common.py
 - implement Python warnings
 - NextnanopyScriptError really needed? used?
 - Following David Stark's code, 
   1. support interpolated colormaps (using contourf in python) + adding a line which indicates the waveguide losses
   2. plot oscillator strengths for colored transitions
 - 10^19 instead of 1e+1 in ylabel of the charge density 
-- use base.labelsize_default in all nnp plot methods
+- use common.labelsize_default in all nnp plot methods
 - use labelsize and ticsize also for plot_inplaneK()
-- use base.getDataFile() in nnp.getDataFile_probabilities_in_folder -> can profit from new features in base e.g. exclude_keywords
+- use common.getDataFile() in nnp.getDataFile_probabilities_in_folder -> can profit from new features in common e.g. exclude_keywords
 - avoid output PDF filename conflict between plot_carrier_density() and plot_probabilities() 
 
 [SweepHelper]
