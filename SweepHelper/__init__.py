@@ -6,4 +6,6 @@ module_path = '../nnShortcuts'
 if not module_path in sys.path:
   sys.path.append(module_path)
 
-from nnShortcuts import common, nnp_shortcuts
+import nnShortcuts.common as common
+import nnShortcuts.nnp_shortcuts as nnp
+import class_SweepHelper
