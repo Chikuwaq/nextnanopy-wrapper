@@ -25,12 +25,19 @@ import nnShortcuts.nnp_shortcuts as nnp
 
 class SweepHelper:
     """
-        This class stores and manipulates the results of nextnanopy.Sweep() execution, i.e. multiple nextnano simulation data obtained by sweeping variable(s) in the input file.
+        This class bridges the input and output of the nextnanopy.Sweep() simulations to facilitate postprocessing of multiple simulation data obtained by sweeping variable(s) in the input file.
 
         The initialization of the class will detect the software to use and construct a table of sweep information which is useful for postprocessing.
 
         Running sweep simulation may take long time. If the output data already exists for the identical input file and sweep values, this class allows postprocessing without running simulations.
         WARNING: Plots do not always guarantee that the data is up-to-date, e.g. when you modify the input file but do not change the file name and sweep range.
+
+        Notes
+        -----
+            - You can sweep as many variables as you like in one go, unless the file paths exceed the limit of the system.
+            - The sweep data can be exported to a CSV file by:
+              SweepHelper.data.to_csv()
+              For the available options, see pandas.DataFrame.
 
         Attributes
         ----------
@@ -87,11 +94,6 @@ class SweepHelper:
         plot_inplaneK()
             Plot the in-plane k points at which the Schroedinger equation has been solved.
 
-        Notes
-        -----
-        The sweep data can be exported to a CSV file by:
-        SweepHelper.data.to_csv()
-        For the available options, see pandas.DataFrame.
     """
 
     def __init__(self, sweep_ranges, master_input_file, eigenstate_range=None, round_decimal=8):
