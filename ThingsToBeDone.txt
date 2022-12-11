@@ -9,5 +9,6 @@
 - NextnanoInputFileError may be useful if used in proper places. If nextnanopy can detect syntax validation error...
 
 [SweepHelper]
+- add an example to demonstrate usage
 - get generate_gif working
 - add plot_probabilities

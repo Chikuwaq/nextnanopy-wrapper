@@ -14,7 +14,7 @@ import warnings
 
 # nextnanopy includes
 import nextnanopy as nn
-import common
+import nnShortcuts.common as common
 
 
 software = 'nextnano++'
