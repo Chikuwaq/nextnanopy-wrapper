@@ -64,6 +64,10 @@ class NextnanoInputFileError(Exception):
     """ Exception when the user's nextnano input file contains issue """
     pass
 
+class NextnanoInputFileWarning(Warning):
+    """ Warns when the user's nextnano input file contains potential issue """
+    pass
+
 # -------------------------------------------------------
 # Math
 # -------------------------------------------------------
@@ -776,7 +780,7 @@ def getDataFiles_in_folder(keywords, folder_path, software, exclude_keywords=Non
     if len(list_of_files) == 0:
         raise FileNotFoundError(f"No output file found!")
     elif len(list_of_files) == 1:
-        warnings.warn("getDataFiles_in_folder(): Only one output file found!")
+        warnings.warn("getDataFiles_in_folder(): Only one output file found!", category=RuntimeWarning)
 
     if __debug__: print("Found:\n", list_of_files)
 
@@ -958,7 +962,7 @@ def getRowColumnForDisplay(num_elements):
 
 def get_maximum_points(quantity_arr, position_arr):
     if isinstance(quantity_arr, int) or isinstance(quantity_arr, float):
-        warnings.warn("get_maximum_points(): Only one point exists in the array: ", quantity_arr)
+        warnings.warn(f"get_maximum_points(): Only one point exists in the array {quantity_arr}", category=RuntimeWarning)
         return position_arr[0], quantity_arr
 
     if len(quantity_arr) != len(position_arr):

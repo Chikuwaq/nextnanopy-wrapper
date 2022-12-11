@@ -1552,13 +1552,13 @@ def find_lowest_electron_state_atK0(output_folder, threshold=0.5):
     try:
         datafile = common.getDataFile_in_folder(['spinor', '00000_CbHhLhSo'], output_folder, software)   # spinor composition at in-plane k = 0
     except FileNotFoundError:
-        warnings.warn("Spinor components output in CbHhLhSo basis is not found. Assuming decoupling of the conduction and valence bands...")
+        warnings.warn("Spinor components output in CbHhLhSo basis is not found. Assuming decoupling of the conduction and valence bands...", category=common.NextnanoInputFileWarning)
         return int(0)
 
     # check if it is an 8-band k.p simulation result
     filename = os.path.split(datafile.fullpath)[1]
     if detect_quantum_model(filename) != 'kp8':
-        warnings.warn("This is not a 8-band k.p simulation. Assuming decoupling of the conduction and valence bands...")
+        warnings.warn("This is not a 8-band k.p simulation. Assuming decoupling of the conduction and valence bands...", category=common.NextnanoInputFileWarning)
         return int(0)
 
     # find the lowest electron state
@@ -1598,13 +1598,13 @@ def find_highest_hole_state_atK0(output_folder, threshold=0.5):
     try:
         datafile = common.getDataFile_in_folder(['spinor', '00000_CbHhLhSo'], output_folder, software)   # spinor composition at in-plane k = 0
     except FileNotFoundError:
-        warnings.warn("Spinor components output in CbHhLhSo basis is not found. Assuming decoupling of the conduction and valence bands...")
+        warnings.warn("Spinor components output in CbHhLhSo basis is not found. Assuming decoupling of the conduction and valence bands...", category=common.NextnanoInputFileWarning)
         return int(0)
 
     # check if it is an 8-band k.p simulation result
     filename = os.path.split(datafile.fullpath)[1]
     if detect_quantum_model(filename) != 'kp8':
-        warnings.warn("This is not a 8-band k.p simulation. Assuming decoupling of the conduction and valence bands...")
+        warnings.warn("This is not a 8-band k.p simulation. Assuming decoupling of the conduction and valence bands...", category=common.NextnanoInputFileWarning)
         return int(0)
 
     # find the highest hole state
