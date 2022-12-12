@@ -1,10 +1,10 @@
 """
 Created on 2022/05/21
 
-SweepHelper facilitates postprocessing of nextnano simulations 
+The SweepHelper class facilitates postprocessing of nextnano simulations 
 when single or multiple input variables are swept.
 
-An object-oriented user interface which internally & automatically invokes nnShortcuts.
+This object-oriented user interface internally & automatically invokes nnShortcuts.
 
 @author: takuma.sato@nextnano.com
 """
@@ -35,8 +35,9 @@ class SweepHelper:
         Notes
         -----
             - You can sweep as many variables as you like in one go, unless the file paths exceed the limit of the system.
-            - The sweep data can be exported to a CSV file by:
+            - The sweep data can be exported to a CSV or an Excel file by:
               SweepHelper.data.to_csv()
+              SweepHelper.data.to_excel()
               For the available options, see pandas.DataFrame.
 
         Attributes
