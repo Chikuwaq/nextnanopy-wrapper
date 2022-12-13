@@ -194,17 +194,10 @@ def separateFileExtension(filename):
     Returns the original filename and empty string if extension is absent.
     """
     filename = os.path.split(filename)[1]   # remove paths if present
+    filename_no_extension, extension = os.path.splitext(filename)
 
-    if filename[-3:] == '.in':
-        extension = '.in'
-    elif filename[-4:] == '.xml':
-        extension = '.xml'
-    elif filename[-5:] == '.negf':
-        extension = '.negf'
-    else:
-        extension = ''
+    if extension not in ['', '.in', '.xml', '.negf']: raise RuntimeError(f"File extension {extension} is not supported by nextnano.")
 
-    filename_no_extension = filename.replace(extension, '')
     return filename_no_extension, extension
 
 
@@ -247,7 +240,7 @@ def detect_software(folder_path, filename):
                     software = 'nextnano++'
                     software_short = '_nnp'
                     break
-                elif '<nextnano.NEGF' in line or 'nextnano.NEGF{' in line:
+                elif ('<nextnano.QCL' in line) or ('<nextnano.NEGF' in line) or ('nextnano.NEGF{' in line):
                     software = 'nextnano.NEGF'
                     software_short = '_nnNEGF'
                     break
@@ -1146,7 +1139,7 @@ def export_figs(figFilename, figFormat, software, outputSubfolderName='nextnanop
         raise ValueError("Argument 'fig' must be specified to export non-PDF images!")
 
     if isinstance(fig, list) and len(fig) > 1 and not figFormat == '.pdf':
-        raise RuntimeError("Non-PDF formats cannot generate multiple pages.")
+        raise NotImplementedError("Non-PDF formats cannot generate multiple pages.")
 
     # prepare output subfolder path
     if output_folder_path:
