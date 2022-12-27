@@ -13,6 +13,7 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 import warnings
+import logging
 # from PIL import Image   # for gif
 # from celluloid import Camera   # for gif
 # from IPython.display import HTML   # for HTML display of gif
@@ -247,13 +248,13 @@ def detect_software(folder_path, filename):
                 elif '<nextnano.MSB' in line or 'nextnano.MSB{' in line:
                     software = 'nextnano.MSB'
                     software_short = '_nnMSB'
-    except FileNotFoundError:
-        raise FileNotFoundError(f'Input file {InputPath} not found!')
+    except FileNotFoundError as e:
+        raise Exception(f'Input file {InputPath} not found!') from e
 
     if not software:   # if the variable is empty
         raise NextnanoInputFileError('Software cannot be detected! Please check your input file.')
     else:
-        print('\nSoftware detected: ', software)
+        logging.info('\nSoftware detected: ', software)
 
     return software, software_short, extension
 
@@ -293,13 +294,13 @@ def detect_software_new(inputfile):
                 elif 'nextnano.MSB{' in line:
                     software = 'nextnano.MSB'
                     extension = '.negf'
-    except FileNotFoundError:
-        raise FileNotFoundError(f'Input file {inputfile.fullpath} not found!')
+    except FileNotFoundError as e:
+        raise Exception(f'Input file {inputfile.fullpath} not found!') from e
 
     if not software:   # if the variable is empty
         raise NextnanoInputFileError('Software cannot be detected! Please check your input file.')
     else:
-        print('\nSoftware detected: ', software)
+        logging.info('\nSoftware detected: ', software)
 
     return software, extension
 
@@ -317,19 +318,19 @@ def prepareInputFile(folderPath, originalFilename, modifiedParamString='', newVa
     input_file    = nn.InputFile(InputPath)
 
     if modifiedParamString == '':
-        print('\nUsing the default parameters in the input file...\n')
+        logging.info('\nUsing the default parameters in the input file...\n')
         return originalFilename, input_file
 
     input_file.set_variable(modifiedParamString, value=newValue)
     name = input_file.get_variable(modifiedParamString).name
     value = input_file.get_variable(modifiedParamString).value
-    print(f'\nUsing modified input parameter:\t${name} = {value}')
+    logging.info(f'\nUsing modified input parameter:\t${name} = {value}')
 
     filename_no_extension, extension = separateFileExtension(originalFilename)
     if extension == '':
         raise ValueError('Include file extension to the input file name!')
     newFilename = filename_no_extension + filename_appendix + extension
-    print(f'Saving input file as:\t{newFilename}\n')
+    logging.info(f'Saving input file as:\t{newFilename}\n')
     input_file.save(os.path.join(folderPath, newFilename), overwrite=True)   # update input file name
 
     return newFilename, input_file
@@ -574,9 +575,8 @@ def getSweepOutputSubfolderName(filename, sweepCoordinates):
             raise TypeError('key must be a string!')
         try:
             val = str(value)
-        except ValueError:
-            print('value cannot be converted to string!')
-            raise
+        except ValueError as e:
+            raise Exception('value cannot be converted to string!') from e
         else:
             output_subfolderName +=  sweepVar + '_' + val + '_'
 
@@ -642,7 +642,7 @@ def getDataFile_in_folder(keywords, folder_path, software, exclude_keywords=None
     else:
         message = " '" + "', '".join(keywords) + "', excluding keyword(s) '" + "', '".join(exclude_keywords) + "'"
 
-    print(f'\nSearching for output data {message}...')
+    logging.info(f'\nSearching for output data {message}...')
 
     # Search output data using nn.DataFolder.find(). If multiple keywords are provided, find the intersection of files found with each keyword.
     list_of_sets = [set(nn.DataFolder(folder_path).find(keyword, deep=True)) for keyword in keywords]
@@ -665,7 +665,7 @@ def getDataFile_in_folder(keywords, folder_path, software, exclude_keywords=None
     elif len(list_of_files) == 1:
         file = list_of_files[0]
     else:
-        print(f"More than one output files found!")
+        logging.warning(f"More than one output files found!")
         for count, file in enumerate(list_of_files):
             filename = os.path.split(file)[1]
             print(f"Choice {count}: {filename}")
@@ -687,7 +687,7 @@ def getDataFile_in_folder(keywords, folder_path, software, exclude_keywords=None
                     determined = True
         file = list_of_files[choice]
 
-    if __debug__: print("Found:\n", file)
+    logging.debug("Found:\n", file)
 
     try:
         return nn.DataFile(file, product=software)
@@ -753,7 +753,7 @@ def getDataFiles_in_folder(keywords, folder_path, software, exclude_keywords=Non
     else:
         message = "with keyword(s) '" + "', '".join(keywords) + "', excluding '" + "', '".join(exclude_keywords) + "'"
 
-    print(f'\nSearching for output data {message}...')
+    logging.info(f'\nSearching for output data {message}...')
 
     # Search output data using nn.DataFolder.find(). If multiple keywords are provided, find the intersection of files found with each keyword.
     list_of_sets = [set(nn.DataFolder(folder_path).find(keyword, deep=True)) for keyword in keywords]
@@ -775,7 +775,7 @@ def getDataFiles_in_folder(keywords, folder_path, software, exclude_keywords=Non
     elif len(list_of_files) == 1:
         warnings.warn("getDataFiles_in_folder(): Only one output file found!", category=RuntimeWarning)
 
-    if __debug__: print("Found:\n", list_of_files)
+    logging.debug("Found:\n", list_of_files)
 
     try:
         datafiles = [nn.DataFile(file, product=software) for file in list_of_files]
@@ -851,8 +851,7 @@ def cutOff_edges1D(arr, x_grid, start_position, end_position):
 
     # input validation
     if len(arr) != num_gridPoints:  # 'averaged = yes' 'boxed = yes' may lead to inconsistent number of grid points
-        print(len(arr), num_gridPoints)
-        raise ValueError('Array size does not match the number of real space grid points')
+        raise ValueError(f'Array size {len(arr)} does not match the number of real space grid points {num_gridPoints}')
     if end_position < start_position:
         raise ValueError('Illegal start and end positions!')
 
@@ -934,19 +933,19 @@ def getRowColumnForDisplay(num_elements):
     # if not n % 2 == 0: n = n+1   # avoid failure of display when n is odd
     num_rows = int(n)
     num_columns = 1
-    # if __debug__: print(num_rows, num_columns)
+    # logging.debug(num_rows, num_columns)
 
     if n < 3: return num_rows, num_columns
 
     while (np.double(num_columns) / np.double(num_rows) < 0.7):   # try to make it as square as possible
-        # if __debug__: print('n=', n)
+        # logging.debug('n=', n)
         k = math.floor(math.sqrt(n))
 
         while not n % k == 0: k -= 1
-        # if __debug__: print('k=', k)
+        # logging.debug('k=', k)
         num_rows    = int(n / k)
         num_columns = int(k)
-        # if __debug__: print(num_rows, num_columns)
+        # logging.debug(num_rows, num_columns)
         n += 1
 
     return num_rows, num_columns
@@ -962,7 +961,7 @@ def get_maximum_points(quantity_arr, position_arr):
         raise ValueError('Array size does not match!')
     ymax = np.amax(quantity_arr)
     if np.size(ymax) > 1:
-        print("Multiple maxima found. Taking the first...")
+        warnings.warn("Multiple maxima found. Taking the first...")
         ymax = ymax[0]
     xmaxIndex = np.where(quantity_arr == ymax)[0]
     xmax = position_arr[xmaxIndex.item(0)]             # type(xmaxIndex.item(0)) is 'int'
@@ -1150,7 +1149,7 @@ def export_figs(figFilename, figFormat, software, outputSubfolderName='nextnanop
 
     mkdir_if_not_exist(outputSubfolder)
     export_fullpath = os.path.join(outputSubfolder, figFilename + figFormat)
-    print(f'\nExporting figure to: \n{export_fullpath}\n')
+    logging.info(f'\nExporting figure to: \n{export_fullpath}\n')
 
     if figFormat == '.pdf':
         with backendPDF.PdfPages(export_fullpath, False) as pdf:

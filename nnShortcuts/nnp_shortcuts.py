@@ -11,6 +11,7 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 import warnings
+import logging
 
 # nextnanopy includes
 import nextnanopy as nn
@@ -81,13 +82,13 @@ def getKPointsData1D(input_file):
 def getKPointsData1D_in_folder(folder_path):
 
     keyword = 'k_points'
-    print(f'\nSearching for output data with keyword {keyword}...')
+    logging.info(f'\nSearching for output data with keyword {keyword}...')
     listOfFiles = nn.DataFolder(folder_path).find(keyword, deep=True)
 
     if len(listOfFiles) == 0:
         raise FileNotFoundError(f"No output file found with keyword '{keyword}'!")
 
-    if __debug__: print("Found:\n", listOfFiles)
+    logging.debug("Found:\n", listOfFiles)
 
     # inplaneK_dict = {
     #     'Gamma': list(),
@@ -289,7 +290,7 @@ def get_num_evs(probability_dict):
         else:
             df = datafiles[0]
             num_evs[model] = sum(1 for var in df.variables if ('Psi^2' in var.name))   # this conditional counting is necessary because probability_shift file may contain also eigenvalues.
-            if '__debug__': print(f"\nNumber of eigenvalues for {model}: {num_evs[model]}")
+            logging.debug(f"\nNumber of eigenvalues for {model}: {num_evs[model]}")
     return num_evs
 
 
@@ -356,7 +357,7 @@ def plot_dispersion(
     # store data in arrays
     kPoints     = datafile_dispersion.coords['|k|'].value
     num_bands   = len(datafile_dispersion.variables)
-    print('num_bands = ', num_bands)
+    logging.debug(f'num_bands = {num_bands}')
     num_kPoints = len(kPoints)
 
     # determine which states to plot   # TODO: bug: the last index isn't plotted if startIdx==0 and stopIdx==0!
@@ -454,12 +455,12 @@ def plot_patched_dispersions(
 
     """
     # load output data files
-    print("\nLoading 1st dispersion data (to be plotted on the left)...")
+    logging.info("\nLoading 1st dispersion data (to be plotted on the left)...")
     try:
         datafile_dispersion1 = common.getDataFile('dispersion_', name, software)
     except ValueError:
         datafile_dispersion1 = common.getDataFile_in_folder('dispersion_', name, software)
-    print("\nLoading 2nd dispersion data (to be plotted on the right)...")
+    logging.info("\nLoading 2nd dispersion data (to be plotted on the right)...")
     try:
         datafile_dispersion2 = common.getDataFile('dispersion_', name, software)
     except ValueError:
@@ -469,7 +470,7 @@ def plot_patched_dispersions(
     kPoints1     = datafile_dispersion1.coords['|k|'].value
     kPoints2     = datafile_dispersion2.coords['|k|'].value
     num_bands   = len(datafile_dispersion1.variables)
-    print('num_bands = ', num_bands)
+    logging.debug(f'num_bands = {num_bands}')
     num_kPoints1 = len(kPoints1)
     num_kPoints2 = len(kPoints2)
 
@@ -538,7 +539,7 @@ def plot_dispersions_sweep(master_input_file, sweep_variable, list_of_values, st
 
     inputfile_name = common.separateFileExtension(master_input_file.fullpath)[0]
     output_folder_path = common.getSweepOutputFolderPath(inputfile_name, software, sweep_variable)
-    print('output folder path: ', output_folder_path)
+    logging.info('output folder path: ', output_folder_path)
 
     for value in list_of_values:
         output_subfolderName = common.getSweepOutputSubfolderName(inputfile_name, {sweep_variable: value})
@@ -649,7 +650,7 @@ def generate_gif(master_input_file, sweep_variable, list_of_values, states_toBeP
 
     cwd = os.getcwd()
     os.chdir(output_folder_path)
-    print(f'Exporting GIF animation to: {output_folder_path}\n')
+    logging.info(f'Exporting GIF animation to: {output_folder_path}\n')
     num_sweeps  = len(list_of_values)
     ani = animation.FuncAnimation(fig, animate, frames=num_sweeps, interval=700)
     ani.save(f'{inputfile_name}.gif', writer='pillow')
@@ -1446,7 +1447,7 @@ def kp_density_analysis(
 
 
 #         matrix_elements = data[to_be_kept]   # delete unnecessary transitions
-#         print(matrix_elements)
+#         logging.debug(matrix_elements)
 
 
 
@@ -1777,7 +1778,7 @@ def get_transition_energy(output_folder, force_lightHole=False):
             else:
                 dE = dE_LH_Gamma
 
-    # if __debug__: print("get_transition_energy: using data ", df.fullpath)
+    # logging.debug(f"get_transition_energy: using data {df.fullpath}")
 
     return dE
 
@@ -1791,7 +1792,7 @@ def get_hole_energy_difference(output_folder):
         E_HH = common.getDataFile_in_folder(['energy_spectrum', '_HH'], output_folder, software).variables['Energy'].value[0]   # energy of the first eigenstate
         E_LH = common.getDataFile_in_folder(['energy_spectrum', '_LH'], output_folder, software).variables['Energy'].value[0]   # energy of the first eigenstate
     except FileNotFoundError:
-        print("Energy spectrum for heavy- and light-hole states not found.")
+        warnings.warn("Energy spectrum for heavy- and light-hole states not found.")
         return 0
     else:
         return E_HH - E_LH 

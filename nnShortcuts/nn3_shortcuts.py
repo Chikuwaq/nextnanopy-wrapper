@@ -11,6 +11,7 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 import warnings
+import logging
 
 # nextnanopy includes
 import nextnanopy as nn
@@ -52,13 +53,13 @@ def detect_quantum_model(filename):
 def getKPointsData1D_in_folder(folder_path):
 
     keyword = 'k_points'
-    print(f'\nSearching for output data with keyword {keyword}...')
+    logging.info(f'\nSearching for output data with keyword {keyword}...')
     listOfFiles = nn.DataFolder(folder_path).find(keyword, deep=True)
 
     if len(listOfFiles) == 0:
         raise FileNotFoundError(f"No output file found with keyword '{keyword}'!")
 
-    if __debug__: print("Found:\n", listOfFiles)
+    logging.debug("Found:\n", listOfFiles)
 
     # inplaneK_dict = {
     #     'Gamma': list(),
@@ -196,7 +197,7 @@ def get_num_evs(probability_dict):
         else:
             df = datafiles[0]
             num_evs[model] = sum(1 for var in df.variables if ('Psi^2' in var.name))   # this conditional counting is necessary because probability_shift file may contain also eigenvalues.
-            if '__debug__': print(f"\nNumber of eigenvalues for {model}: {num_evs[model]}")
+            logging.debug(f"\nNumber of eigenvalues for {model}: {num_evs[model]}")
     return num_evs
 
 
@@ -522,7 +523,7 @@ def get_transition_energy(output_folder, force_lightHole=False):
     E_hl = datafile_hl.variables['energy'].value[iHighestHole]
     dE = E_el - E_hl
 
-    # if __debug__: print("get_transition_energy: using data ", df.fullpath)
+    # logging.debug(f"get_transition_energy: using data {df.fullpath}")
 
     return dE
 

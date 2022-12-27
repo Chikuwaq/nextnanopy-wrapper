@@ -15,6 +15,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import itertools
 import pandas as pd
+import logging
 
 # nextnanopy includes
 import nextnanopy as nn
@@ -97,7 +98,7 @@ class SweepHelper:
 
     """
 
-    def __init__(self, sweep_ranges, master_input_file, eigenstate_range=None, round_decimal=8):
+    def __init__(self, sweep_ranges, master_input_file, eigenstate_range=None, round_decimal=8, loglevel=logging.INFO):
         """
         Parameters
         ----------
@@ -113,6 +114,10 @@ class SweepHelper:
         round_decimal : int, optional
             maximum number of decimals for swept variables. Default is 8 (consistent to nextnanopy)
 
+        loglevel : logging level, optional
+            determines to which extent internal process should be printed to console. 
+            Available options are DEBUG/INFO/WARNING/ERROR/CRITICAL. See logging module for details.
+
         """
         # validate arguments
         if not isinstance(sweep_ranges, dict): raise TypeError("__init__(): argument 'sweep_ranges' must be a dict")
@@ -122,6 +127,10 @@ class SweepHelper:
             for model, plot_range in eigenstate_range.items():
                 if model not in nnp.model_names: raise KeyError(f"__init__(): Illegal quantum model '{model}'")
                 if len(plot_range) != 2: raise ValueError("__init__(): argument 'eigenstate_range' must be of the form 'quantum model': [min, max]")
+
+        # log setting
+        fmt = '[%(levelname)s] %(message)s'
+        logging.basicConfig(level=loglevel, format=fmt)
 
         # generate self.sweep_space
         self.sweep_space = dict()
@@ -144,9 +153,8 @@ class SweepHelper:
         self.sweep_obj = nn.Sweep(self.sweep_space, self.master_input_file.fullpath)
         self.sweep_obj.save_sweep(round_decimal=round_decimal)  # ensure the same decimals for self.sweep_space and input file names
 
-        if '__debug__':
-            print("\nSweep space axes:")
-            print(f"{ [ key for key in self.sweep_space.keys() ] }")
+        logging.debug("\nSweep space axes:")
+        logging.debug(f"{ [ key for key in self.sweep_space.keys() ] }")
 
         # instantiate pandas.DataFrame to store sweep data
         input_paths = [input_file.fullpath for input_file in self.sweep_obj.input_files]
@@ -157,8 +165,7 @@ class SweepHelper:
             'transition_energy' : None,
             'hole_energy_difference' : None
             })
-        print("\nInitialized data table:")
-        print(self.data)
+        logging.info(f"\nInitialized data table: {self.data}")
         assert len(self.data) == len(self.sweep_obj.input_files)
 
 
@@ -334,7 +341,7 @@ class SweepHelper:
                 else:
                     break
             sweep_space_reduced[var] = [array[int(choice)]]   # only one element, but has to be an Iterable for the use below
-        # print("Extracted sweep_space", sweep_space_reduced)
+        logging.debug("Extracted sweep_space", sweep_space_reduced)
         return sweep_space_reduced
 
 
@@ -391,7 +398,7 @@ class SweepHelper:
                     if choice == 'y': break
                     elif choice == 'n': raise RuntimeError('Nextnanopy terminated.')
 
-        print(f"\nRunning {num_of_simulations} simulations with max. {parallel_limit} parallelization ...")
+        logging.info(f"\nRunning {num_of_simulations} simulations with max. {parallel_limit} parallelization ...")
 
         # execute sweep simulations
         self.sweep_obj.execute_sweep(
@@ -506,7 +513,7 @@ class SweepHelper:
         self.__validate_sweep_variables(y_axis)      
 
         # Compute overlaps and store them in self.data
-        print("\nCalculating overlap...")
+        logging.info("\nCalculating overlap...")
         self.data['overlap'] = self.data['output_subfolder'].apply(nnp.calculate_overlap, force_lightHole=force_lightHole)
         # self.data['overlap_squared'] = self.data['overlap'].apply(common.absolute_squared)   # BUG: somehow the results become complex128, not float --> cannot be plotted
         
@@ -543,7 +550,7 @@ class SweepHelper:
         max_val, indices = common.find_maximum(overlap_squared)  
         y_index, x_index = indices
         filepath = os.path.join(self.output_folder_path, os.path.join("nextnanopy", "info.txt"))
-        print("Writing info to:\n", filepath)
+        logging.info("Writing info to:\n", filepath)
         f = open(filepath, "w")  # w = write = overwrite existing content
         f.write(f"Overlap squared maximum {max_val} at:\n")
         f.write(f"{x_axis} = {x_values[x_index]}\n")
