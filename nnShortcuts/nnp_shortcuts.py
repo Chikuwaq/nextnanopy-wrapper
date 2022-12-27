@@ -1167,13 +1167,13 @@ def validate_input(plotOccupation, plotFillingFactors, cutoffOccupation, paramet
         common.NextnanopyScriptError('Occupation and filling factors are not output in one simulation!')
 
     if plotOccupation:
-        if cutoffOccupation == None:
+        if cutoffOccupation is None:
             TypeError('Cutoff occupation not specified!')
         if cutoffOccupation < 0:
             ValueError('Cutoff occupation out of range (occupation >= 0)')
 
     if parameter_to_modify:
-        if newValue == None:
+        if newValue is None:
             TypeError('Specify new value for the modified input parameter!')
 
 
@@ -1223,8 +1223,6 @@ def kp_density_analysis(
 
     PDFfilename:          output PDF file name. By default, no PDF is generated.
     """
-    import time
-
     validate_input(plotOccupation, plotFillingFactors, cutoffOccupation, parameter_to_modify, newValue)
 
     input_file = nn.InputFile(os.path.join(folderPath, originalFilename))

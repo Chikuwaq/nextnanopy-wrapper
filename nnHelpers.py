@@ -294,7 +294,7 @@ class SweepHelper:
                     raise RuntimeError('Nextnanopy terminated.')
                 try:
                     iChoice = int(choice)
-                except:
+                except ValueError:
                     print("Invalid input. (Type 'q' to quit)")
                     continue
                 if iChoice not in range(len(array)):
@@ -326,7 +326,7 @@ class SweepHelper:
                     raise RuntimeError('Nextnanopy terminated.')
                 try:
                     iChoice = int(choice)
-                except:
+                except ValueError:
                     print("Invalid input. (Type 'q' to quit)")
                     continue
                 if iChoice not in range(len(array)):

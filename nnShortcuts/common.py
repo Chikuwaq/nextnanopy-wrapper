@@ -467,7 +467,7 @@ def check_if_simulation_has_run(input_file):
     """
     try:
         folder = input_file.folder_output
-    except:
+    except KeyError:
         determined = False
         while not determined:
             choice = input('Simulation has not been executed. Continue? [y/n]')
