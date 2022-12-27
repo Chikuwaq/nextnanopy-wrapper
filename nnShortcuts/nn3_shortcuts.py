@@ -283,13 +283,15 @@ def get_states_to_be_plotted(datafiles_probability_dict, states_range_dict=None,
                         df = common.getDataFile_in_folder(['occupation', model], outfolder, software)
                         try:
                             cutoff_occupation = np.double(states_list_dict['cutoff_occupation'])
-                        except ValueError:
-                            raise ValueError("cutoff_occupation must be a real number!")
-                        if cutoff_occupation < 0: raise ValueError("cutoff_occupation must be positive!")
+                        except ValueError as e:
+                            raise Exception("cutoff_occupation must be a real number!") from e
+                        if cutoff_occupation < 0: 
+                            raise ValueError("cutoff_occupation must be positive!")
 
                         states_toBePlotted[model] += [int(stateNo) - 1 for stateNo, occupation in zip(df.coords['no.'].value, df.variables['Occupation'].value) if occupation >= cutoff_occupation]
                     elif isinstance(stateNo, int):
-                        if stateNo > num_evs[model]: raise ValueError("State index greater than number of eigenvalues calculated!")
+                        if stateNo > num_evs[model]: 
+                            raise ValueError("State index greater than number of eigenvalues calculated!")
                         states_toBePlotted[model].append(stateNo - 1)
     return states_toBePlotted, num_evs
 

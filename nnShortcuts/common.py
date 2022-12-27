@@ -61,8 +61,15 @@ ticksize_default = 14
 # -------------------------------------------------------
 # Exceptions
 # -------------------------------------------------------
+class NextnanopyScriptError(Exception):
+    """ 
+    Exception when the user's nextnanopy script contains an issue
+    Should only be raised when the cause is certainly in the user's Python script/command and not in nextnanopy or its wrapper libraries.
+    """
+    pass
+
 class NextnanoInputFileError(Exception):
-    """ Exception when the user's nextnano input file contains issue """
+    """ Exception when the user's nextnano input file contains an issue """
     pass
 
 class NextnanoInputFileWarning(Warning):
@@ -110,7 +117,7 @@ def find_maximum(arr):
     arr[indices] = max_val holds.
     """
     if not isinstance(arr, np.ndarray):
-        raise ValueError("Input is not numpy.ndarray!")
+        raise TypeError("Input must be numpy.ndarray!")
 
     max_val = np.amax(arr)
     indices = np.unravel_index(np.argmax(arr), np.shape(arr))  # get index of the maximum
@@ -139,7 +146,7 @@ def find_minimum(arr):
     arr[indices] = min_val holds.
     """
     if not isinstance(arr, np.ndarray):
-        raise ValueError("Input is not numpy.ndarray!")
+        raise TypeError("Input must be numpy.ndarray!")
 
     min_val = np.amin(arr)
     indices = np.unravel_index(np.argmin(arr), np.shape(arr))  # get index of the minimum
@@ -197,7 +204,8 @@ def separateFileExtension(filename):
     filename = os.path.split(filename)[1]   # remove paths if present
     filename_no_extension, extension = os.path.splitext(filename)
 
-    if extension not in ['', '.in', '.xml', '.negf']: raise RuntimeError(f"File extension {extension} is not supported by nextnano.")
+    if extension not in ['', '.in', '.xml', '.negf']: 
+        raise RuntimeError(f"File extension {extension} is not supported by nextnano.")
 
     return filename_no_extension, extension
 
@@ -306,7 +314,7 @@ def detect_software_new(inputfile):
 
 
 
-def prepareInputFile(folderPath, originalFilename, modifiedParamString='', newValue=0, filename_appendix=''):
+def prepareInputFile(folderPath, originalFilename, modifiedParamString=None, newValue=0, filename_appendix=''):
     """
     Modify parameter in the input file, append specified string to the file name, save the file.
 
@@ -317,7 +325,7 @@ def prepareInputFile(folderPath, originalFilename, modifiedParamString='', newVa
     InputPath     = os.path.join(folderPath, originalFilename)
     input_file    = nn.InputFile(InputPath)
 
-    if modifiedParamString == '':
+    if modifiedParamString is None:
         logging.info('\nUsing the default parameters in the input file...\n')
         return originalFilename, input_file
 
@@ -328,7 +336,7 @@ def prepareInputFile(folderPath, originalFilename, modifiedParamString='', newVa
 
     filename_no_extension, extension = separateFileExtension(originalFilename)
     if extension == '':
-        raise ValueError('Include file extension to the input file name!')
+        raise ValueError('Input file name must include file extension!')
     newFilename = filename_no_extension + filename_appendix + extension
     logging.info(f'Saving input file as:\t{newFilename}\n')
     input_file.save(os.path.join(folderPath, newFilename), overwrite=True)   # update input file name
@@ -473,7 +481,7 @@ def check_if_simulation_has_run(input_file):
         while not determined:
             choice = input('Simulation has not been executed. Continue? [y/n]')
             if choice == 'n':
-                raise RuntimeError('Terminated nextnanopy.')
+                raise RuntimeError('Terminated nextnanopy.') from None
             elif choice == 'y':
                 determined = True
             else:
@@ -576,7 +584,7 @@ def getSweepOutputSubfolderName(filename, sweepCoordinates):
         try:
             val = str(value)
         except ValueError as e:
-            raise Exception('value cannot be converted to string!') from e
+            raise Exception(f'value {value} cannot be converted to string!') from e
         else:
             output_subfolderName +=  sweepVar + '_' + val + '_'
 
@@ -673,7 +681,7 @@ def getDataFile_in_folder(keywords, folder_path, software, exclude_keywords=None
         while not determined:
             choice = input('Enter the index of data you need: ')
             if choice == 'q':
-                raise RuntimeError('Terminated nextnanopy.')
+                raise RuntimeError('Terminated nextnanopy.') from None
             try:
                 choice = int(choice)
             except ValueError:
@@ -691,8 +699,8 @@ def getDataFile_in_folder(keywords, folder_path, software, exclude_keywords=None
 
     try:
         return nn.DataFile(file, product=software)
-    except NotImplementedError:
-        raise NotImplementedError(f'Nextnanopy does not support datafile for {file}')
+    except NotImplementedError as e:
+        raise Exception(f'Nextnanopy does not support datafile for {file}') from e
 
 
 def getDataFiles(keywords, name, software, exclude_keywords=None):
@@ -779,8 +787,8 @@ def getDataFiles_in_folder(keywords, folder_path, software, exclude_keywords=Non
 
     try:
         datafiles = [nn.DataFile(file, product=software) for file in list_of_files]
-    except NotImplementedError:
-        raise NotImplementedError('Nextnanopy does not support datafile')
+    except NotImplementedError as e:
+        raise Exception('Nextnanopy does not support datafile') from e
 
     return datafiles
 
@@ -845,7 +853,8 @@ def cutOff_edges1D(arr, x_grid, start_position, end_position):
         arr without edges
 
     """
-    if np.ndim(arr) != 1: raise ValueError("Array must be one-dimensional!")
+    if np.ndim(arr) != 1: 
+        raise ValueError("Array must be one-dimensional!")
 
     num_gridPoints = len(x_grid)
 
@@ -882,7 +891,7 @@ def findCell(arr, wanted_value):
             cnt = cnt + 1
 
     if cnt == 0:
-        raise RuntimeError('No grid cells found that contain the point x = {wanted_value}')
+        raise RuntimeError(f'No grid cells found that contain the point x = {wanted_value}')
     if cnt > 1:
         raise RuntimeError(f'Multiple grid cells found that contain the point x = {wanted_value}')
     return start_index, end_index
@@ -993,7 +1002,7 @@ def mask_part_of_array(arr, string='flat', tolerance=1e-4, cut_range=[]):
 
     """
     if not isinstance(arr, np.ndarray):
-        raise TypeError('Given array is not numpy.ndarray')
+        raise TypeError('Array must be numpy.ndarray')
 
     arr_size = len(arr)
     new_arr = np.ma.array(arr, mask = [0 for i in range(arr_size)])   # non-masked np.ma.array with given data arr

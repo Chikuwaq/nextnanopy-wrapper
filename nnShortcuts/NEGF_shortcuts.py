@@ -265,7 +265,7 @@ def get_2Ddata_atBias(input_file_name, bias, data='carrier'):
         file = 'CurrentDensity_energy_resolved.vtr'
         variableKey = 'Current Density'
     else:
-        raise KeyError('Illegal data requested!')
+        raise KeyError(f'Illegal data {data} requested!')
 
     datafile = getDataFile_NEGF_atBias(file, input_file_name, bias)
 
@@ -640,7 +640,8 @@ def plot_Light_Current_Voltage_characteristics(
 
     """
     # validate arguments
-    if len(names) != len(labels): raise common.NextnanopyScriptError(f"Number of input files ({len(names)}) do not match that of plot labels ({len(labels)})")
+    if len(names) != len(labels): 
+        raise common.NextnanopyScriptError(f"Number of input files ({len(names)}) do not match that of plot labels ({len(labels)})")
 
     # volume in [cm^3]
     area_in_cm2 = area * pow(common.scale1ToCenti, 2)

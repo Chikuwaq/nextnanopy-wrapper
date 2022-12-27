@@ -736,13 +736,15 @@ def get_states_to_be_plotted(datafiles_probability_dict, states_range_dict=None,
                         df = common.getDataFile_in_folder(['occupation', model], outfolder, software)
                         try:
                             cutoff_occupation = np.double(states_list_dict['cutoff_occupation'])
-                        except ValueError:
-                            raise ValueError("cutoff_occupation must be a real number!")
-                        if cutoff_occupation < 0: raise ValueError("cutoff_occupation must be positive!")
+                        except ValueError as e:
+                            raise Exception("cutoff_occupation must be a real number!") from e
+                        if cutoff_occupation < 0: 
+                            raise ValueError("cutoff_occupation must be positive!")
 
                         states_toBePlotted[model] += [int(stateNo) - 1 for stateNo, occupation in zip(df.coords['no.'].value, df.variables['Occupation'].value) if occupation >= cutoff_occupation]
                     elif isinstance(stateNo, int):
-                        if stateNo > num_evs[model]: raise ValueError("State index greater than number of eigenvalues calculated!")
+                        if stateNo > num_evs[model]: 
+                            raise ValueError("State index greater than number of eigenvalues calculated!")
                         states_toBePlotted[model].append(stateNo - 1)
     return states_toBePlotted, num_evs
 
@@ -823,7 +825,7 @@ def plot_probabilities(
         datafile_probability = datafiles[0]
         x_probability  = datafile_probability.coords['x'].value
     if not datafile_probability:
-        raise common.NextnanoInputFileError('Probabilities are not output!')
+        raise common.NextnanoInputFileError('Probabilities are not output! Modify the input file.')
 
 
     # store data in arrays (independent of quantum models)
@@ -1420,14 +1422,14 @@ def kp_density_analysis(
 #         final_states        list of state index
 #     """
 #     if kind not in matrix_elements_names:
-#         raise common.NextnanopyScriptError("Unrecognized matrix element requested.")
+#         raise KeyError("Unrecognized matrix element requested.")
 
 #     # load output data files
 #     files_matrix_elements      = getFilepaths_matrix_elements(input_file.fullpath)[kind]
 
 
 #     if len(files_matrix_elements) == 0:
-#         raise common.NextnanopyScriptError("Output of matrix elements not found!")
+#         raise RuntimeError("Output of matrix elements not found!")
 
 
 #     # store data in arrays and trim unnecessary data
@@ -1630,7 +1632,7 @@ kp6_basis = ['hh1', 'hh2', 'lh1', 'lh2', 'so1', 'so2']
 #         list_of_overlaps = [calculate_overlap(folder) for folder in output_folders]
 #         overlaps = np.array(list_of_overlaps, dtype=np.cdouble)
 #     else:
-#         raise common.NextnanopyScriptError("Argument 'output_folders' must be either str or list of str!")
+#         raise TypeError("Argument 'output_folders' must be either str or list of str!")
 
 #     return overlaps
 

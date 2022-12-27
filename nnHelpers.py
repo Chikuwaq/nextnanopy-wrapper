@@ -298,7 +298,7 @@ class SweepHelper:
             while True:
                 choice = input("Specify value for the plot with index: ")
                 if choice == 'q':
-                    raise RuntimeError('Nextnanopy terminated.')
+                    raise RuntimeError('Nextnanopy terminated.') from None
                 try:
                     iChoice = int(choice)
                 except ValueError:
@@ -330,7 +330,7 @@ class SweepHelper:
             while True:
                 choice = input("Specify value for the plot with index: ")
                 if choice == 'q':
-                    raise RuntimeError('Nextnanopy terminated.')
+                    raise RuntimeError('Nextnanopy terminated.') from None
                 try:
                     iChoice = int(choice)
                 except ValueError:
