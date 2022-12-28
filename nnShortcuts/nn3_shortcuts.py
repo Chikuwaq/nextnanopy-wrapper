@@ -52,14 +52,7 @@ def detect_quantum_model(filename):
 
 def getKPointsData1D_in_folder(folder_path):
 
-    keyword = 'k_points'
-    logging.info(f'\nSearching for output data with keyword {keyword}...')
-    listOfFiles = nn.DataFolder(folder_path).find(keyword, deep=True)
-
-    if len(listOfFiles) == 0:
-        raise FileNotFoundError(f"No output file found with keyword '{keyword}'!")
-
-    logging.debug("Found:\n", listOfFiles)
+    datafiles = common.getDataFiles_in_folder('k_points', folder_path, software)
 
     # inplaneK_dict = {
     #     'Gamma': list(),
@@ -68,10 +61,10 @@ def getKPointsData1D_in_folder(folder_path):
     # }
     inplaneK_dict = {model_name: list() for model_name in model_names}
     # TODO: adjustments needed
-    for f in listOfFiles:
-        filename = os.path.split(f)[1]
+    for df in datafiles:
+        filename = os.path.split(df.fullpath)[1]
         quantum_model = detect_quantum_model(filename)
-        data = np.loadtxt(f, skiprows=1)
+        data = np.loadtxt(df.fullpath, skiprows=1)
 
         if np.ndim(data) == 1:    # if only the zone-center is calculated
             inplaneK = [data[2], data[3]]
@@ -123,13 +116,16 @@ def getDataFile_probabilities_in_folder(folder_path):
     """
     Get single nextnanopy.DataFile of probability_shift data in the specified folder.
 
-    INPUT:
-        folder_path      output folder path in which the datafile should be sought
+    Parameters
+    ----------
+    folder_path : str
+        output folder path in which the datafile should be sought
 
-    RETURN:
-        dictionary { quantum model key: corresponding list of nn.DataFile() objects for probability_shift }
+    Returns
+    -------
+    dictionary { quantum model key: corresponding list of nn.DataFile() objects for probability_shift }
     """
-    outputFiles = nn.DataFolder(folder_path).find('_psi_squared', deep=True)  # nn.DataFolder.find() returns a list.  # TODO: is this finding the correct files?
+    datafiles = common.getDataFiles_in_folder('_psi_squared', folder_path, software)  # TODO: is this finding the correct files?
 
     # probability_dict = {
     #     'Gamma': list(),
@@ -137,9 +133,8 @@ def getDataFile_probabilities_in_folder(folder_path):
     #     'kp8': list()
     # }
     probability_dict = {model_name: list() for model_name in model_names}
-    for f in outputFiles:
-        df = nn.DataFile(f, product=software)
-        filename = os.path.split(f)[1]
+    for df in datafiles:
+        filename = os.path.split(df.fullpath)[1]
         quantum_model = detect_quantum_model(filename)
         probability_dict[quantum_model].append(df)
 

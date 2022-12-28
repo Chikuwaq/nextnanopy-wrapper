@@ -525,39 +525,36 @@ def animate_NEGF(input_file_name, leftFig='DOS', rightFig='carrier'):
 
 def get_LIV(name):
     """
-    Import power-current-voltage data from simulation output.
+    Load power-current-voltage data from simulation output.
 
     Parameters
     ----------
-    name : TYPE
-        DESCRIPTION.
+    name : str
+        input file name (= output subfolder name). May contain extensions and/or fullpath.
 
     Units (identical to nextnano.NEGF output)
-    ---------------------------------------
+    -----------------------------------------
     current density [A/cm^2]
     potential drop per period [mV]
     output power density [W/cm^3]
 
     Returns
     -------
-    current_density_LV : TYPE
+    current_density_LV : np.array
         DESCRIPTION.
-    output_power_density : TYPE
+    potential_drop_per_period : np.array
+        DESCRIPTION.
+    output_power_density : np.array
         DESCRIPTION.
 
     """
-
-    keyword = 'L-I-V.dat'
-
     # find the output file
     outputFolder = nn.config.get(software, 'outputdirectory')
     filename_no_extension = common.separateFileExtension(name)[0]
     outputSubfolder = os.path.join(outputFolder, filename_no_extension)
-    print(f'Searching for output data with keyword {keyword}...')
-    listOfFiles = nn.DataFolder(outputSubfolder).find(keyword, deep=True)
-    if len(listOfFiles) != 1: raise RuntimeError(f"Multiple or no L-I-V data found in the directory {outputSubfolder}")
-
-    data = np.loadtxt(listOfFiles[0], skiprows=1)
+    df = common.getDataFile_in_folder('L-I-V.dat', outputSubfolder, software)
+    
+    data = np.loadtxt(df.fullpath, skiprows=1)
 
     current_density_LV = np.array(data[:, 0])
     potential_drop_per_period = np.array(data[:, 1])

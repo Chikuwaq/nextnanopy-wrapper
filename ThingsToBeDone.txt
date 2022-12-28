@@ -6,9 +6,7 @@
   2. plot oscillator strengths for colored transitions
 - 10^19 instead of 1e+1 in ylabel of the charge density 
 - use labelsize and ticsize also for plot_inplaneK()
-- use common.getDataFile() in nnp.getDataFile_probabilities_in_folder -> can profit from new features in common e.g. exclude_keywords
 - avoid output PDF filename conflict between plot_carrier_density() and plot_probabilities() 
-- NextnanoInputFileError may be useful if used in proper places. If nextnanopy can detect syntax validation error...
 
 [SweepHelper]
 - add an example to demonstrate usage

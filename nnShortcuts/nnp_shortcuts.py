@@ -81,14 +81,7 @@ def getKPointsData1D(input_file):
 
 def getKPointsData1D_in_folder(folder_path):
 
-    keyword = 'k_points'
-    logging.info(f'\nSearching for output data with keyword {keyword}...')
-    listOfFiles = nn.DataFolder(folder_path).find(keyword, deep=True)
-
-    if len(listOfFiles) == 0:
-        raise FileNotFoundError(f"No output file found with keyword '{keyword}'!")
-
-    logging.debug("Found:\n", listOfFiles)
+    datafiles = common.getDataFiles_in_folder('k_points', folder_path, software)
 
     # inplaneK_dict = {
     #     'Gamma': list(),
@@ -96,10 +89,10 @@ def getKPointsData1D_in_folder(folder_path):
     #     'kp8': list()
     # }
     inplaneK_dict = {model_name: list() for model_name in model_names}
-    for f in listOfFiles:
-        filename = os.path.split(f)[1]
+    for df in datafiles:
+        filename = os.path.split(df.fullpath)[1]
         quantum_model = detect_quantum_model(filename)
-        data = np.loadtxt(f, skiprows=1)
+        data = np.loadtxt(df.fullpath, skiprows=1)
 
         if np.ndim(data) == 1:    # if only the zone-center is calculated
             inplaneK = [data[2], data[3]]
@@ -183,13 +176,17 @@ def getDataFile_probabilities_in_folder(folder_path):
     """
     Get single nextnanopy.DataFile of probability_shift data in the specified folder.
 
-    INPUT:
-        folder_path      output folder path in which the datafile should be sought
+    Parameters
+    ----------
+    folder_path : str
+        output folder path in which the datafile should be sought
 
-    RETURN:
-        dictionary { quantum model key: corresponding list of nn.DataFile() objects for probability_shift }
+    Returns
+    -------
+    dictionary { quantum model key: corresponding list of nn.DataFile() objects for probability_shift }
+
     """
-    outputFiles = nn.DataFolder(folder_path).find('probabilities_shift', deep=True)  # nn.DataFolder.find() returns a list.
+    datafiles = common.getDataFiles_in_folder('probabilities_shift', folder_path, software)
 
     # probability_dict = {
     #     'Gamma': list(),
@@ -197,9 +194,8 @@ def getDataFile_probabilities_in_folder(folder_path):
     #     'kp8': list()
     # }
     probability_dict = {model_name: list() for model_name in model_names}
-    for f in outputFiles:
-        df = nn.DataFile(f, product=software)
-        filename = os.path.split(f)[1]
+    for df in datafiles:
+        filename = os.path.split(df.fullpath)[1]
         quantum_model = detect_quantum_model(filename)
         probability_dict[quantum_model].append(df)
 
@@ -248,16 +244,17 @@ def getDataFile_amplitudesK0_in_folder(folder_path):
     return amplitude_dict_trimmed
 
 
-# def getFilepaths_matrix_elements(filename):
+# def getFilepaths_matrix_elements(name):
 #     """
-#     RETURN:
-#         dictionary with keys interband, intraband, and dipole, each consisting of list of file paths for matrix_elements
+#     Returns
+#     -------
+#     dictionary with keys interband, intraband, and dipole, each consisting of list of file paths for matrix_elements
 #     """
-#     filename = os.path.split(filename)[1]   # remove paths if present
-#     filename_no_extension = common.separateFileExtension(filename)[0]
+#     name = os.path.split(name)[1]   # remove paths if present
+#     filename_no_extension = common.separateFileExtension(name)[0]
 #     outputFolder = nn.config.get(software, 'outputdirectory')
 #     outputSubFolder = os.path.join(outputFolder, filename_no_extension)
-#     outputFiles = nn.DataFolder(outputSubFolder).find('matrix_elements', deep=True)  # nn.DataFolder.find() returns a list.
+#     datafiles = common.getDataFiles_in_folder(['matrix_elements', '.txt'], outputSubFolder, software)
 
 #     # matrix_elements_dict = {
 #     #     'interband': list(),
@@ -265,16 +262,15 @@ def getDataFile_amplitudesK0_in_folder(folder_path):
 #     #     'dipole': list()
 #     # }
 #     matrix_elements_dict = {kind_name: list() for kind_name in matrix_elements_names}
-#     for f in outputFiles:
-#         filename = os.path.split(f)[1]
+#     for df in datafiles:
+#         filename = os.path.split(df.fullpath)[1]
 
-#         if '.txt' not in filename: continue
 #         if 'interband' in filename or 'overlap' in filename:
-#             matrix_elements_dict['interband'].append(f)
+#             matrix_elements_dict['interband'].append(df.fullpath)
 #         elif 'intraband' in filename:
-#             matrix_elements_dict['intraband'].append(f)
+#             matrix_elements_dict['intraband'].append(df.fullpath)
 #         elif 'dipole' in filename:
-#             matrix_elements_dict['dipole'].append(f)
+#             matrix_elements_dict['dipole'].append(df.fullpath)
 #         else:
 #             raise RuntimeError(f'Matrix element type cannot be detected! Check {f}')
 
