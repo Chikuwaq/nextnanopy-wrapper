@@ -451,12 +451,12 @@ def plot_patched_dispersions(
 
     """
     # load output data files
-    logging.info("\nLoading 1st dispersion data (to be plotted on the left)...")
+    logging.info("Loading 1st dispersion data (to be plotted on the left)...")
     try:
         datafile_dispersion1 = common.getDataFile('dispersion_', name, software)
     except ValueError:
         datafile_dispersion1 = common.getDataFile_in_folder('dispersion_', name, software)
-    logging.info("\nLoading 2nd dispersion data (to be plotted on the right)...")
+    logging.info("Loading 2nd dispersion data (to be plotted on the right)...")
     try:
         datafile_dispersion2 = common.getDataFile('dispersion_', name, software)
     except ValueError:
@@ -535,7 +535,7 @@ def plot_dispersions_sweep(master_input_file, sweep_variable, list_of_values, st
 
     inputfile_name = common.separateFileExtension(master_input_file.fullpath)[0]
     output_folder_path = common.getSweepOutputFolderPath(inputfile_name, software, sweep_variable)
-    logging.info('output folder path: ', output_folder_path)
+    logging.info(f'output folder path: {output_folder_path}')
 
     for value in list_of_values:
         output_subfolderName = common.getSweepOutputSubfolderName(inputfile_name, {sweep_variable: value})
@@ -1555,7 +1555,7 @@ def find_lowest_electron_state_atK0(output_folder, threshold=0.5):
     # check if it is an 8-band k.p simulation result
     filename = os.path.split(datafile.fullpath)[1]
     if detect_quantum_model(filename) != 'kp8':
-        warnings.warn("This is not a 8-band k.p simulation. Assuming decoupling of the conduction and valence bands...", category=common.NextnanoInputFileWarning)
+        warnings.warn("This is not an 8-band k.p simulation. Assuming decoupling of the conduction and valence bands...", category=common.NextnanoInputFileWarning)
         return int(0)
 
     # find the lowest electron state
@@ -1601,7 +1601,7 @@ def find_highest_hole_state_atK0(output_folder, threshold=0.5):
     # check if it is an 8-band k.p simulation result
     filename = os.path.split(datafile.fullpath)[1]
     if detect_quantum_model(filename) != 'kp8':
-        warnings.warn("This is not a 8-band k.p simulation. Assuming decoupling of the conduction and valence bands...", category=common.NextnanoInputFileWarning)
+        warnings.warn("This is not an 8-band k.p simulation. Assuming decoupling of the conduction and valence bands...", category=common.NextnanoInputFileWarning)
         return int(0)
 
     # find the highest hole state

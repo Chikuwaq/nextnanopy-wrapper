@@ -262,7 +262,7 @@ def detect_software(folder_path, filename):
     if not software:   # if the variable is empty
         raise NextnanoInputFileError('Software cannot be detected! Please check your input file.')
     else:
-        logging.info('\nSoftware detected: ', software)
+        logging.info(f'Software detected: {software}')
 
     return software, software_short, extension
 
@@ -308,7 +308,7 @@ def detect_software_new(inputfile):
     if not software:   # if the variable is empty
         raise NextnanoInputFileError('Software cannot be detected! Please check your input file.')
     else:
-        logging.info('\nSoftware detected: ', software)
+        logging.info(f'Software detected: {software}')
 
     return software, extension
 
@@ -326,13 +326,13 @@ def prepareInputFile(folderPath, originalFilename, modifiedParamString=None, new
     input_file    = nn.InputFile(InputPath)
 
     if modifiedParamString is None:
-        logging.info('\nUsing the default parameters in the input file...\n')
+        logging.info('Using the default parameters in the input file...\n')
         return originalFilename, input_file
 
     input_file.set_variable(modifiedParamString, value=newValue)
     name = input_file.get_variable(modifiedParamString).name
     value = input_file.get_variable(modifiedParamString).value
-    logging.info(f'\nUsing modified input parameter:\t${name} = {value}')
+    logging.info(f'Using modified input parameter:\t${name} = {value}')
 
     filename_no_extension, extension = separateFileExtension(originalFilename)
     if extension == '':
@@ -650,7 +650,7 @@ def getDataFile_in_folder(keywords, folder_path, software, exclude_keywords=None
     else:
         message = " '" + "', '".join(keywords) + "', excluding keyword(s) '" + "', '".join(exclude_keywords) + "'"
 
-    logging.info(f'\nSearching for output data {message}...')
+    logging.info(f'Searching for output data {message}...')
 
     # Search output data using nn.DataFolder.find(). If multiple keywords are provided, find the intersection of files found with each keyword.
     list_of_sets = [set(nn.DataFolder(folder_path).find(keyword, deep=True)) for keyword in keywords]
@@ -761,7 +761,7 @@ def getDataFiles_in_folder(keywords, folder_path, software, exclude_keywords=Non
     else:
         message = "with keyword(s) '" + "', '".join(keywords) + "', excluding '" + "', '".join(exclude_keywords) + "'"
 
-    logging.info(f'\nSearching for output data {message}...')
+    logging.info(f'Searching for output data {message}...')
 
     # Search output data using nn.DataFolder.find(). If multiple keywords are provided, find the intersection of files found with each keyword.
     list_of_sets = [set(nn.DataFolder(folder_path).find(keyword, deep=True)) for keyword in keywords]
@@ -1158,7 +1158,7 @@ def export_figs(figFilename, figFormat, software, outputSubfolderName='nextnanop
 
     mkdir_if_not_exist(outputSubfolder)
     export_fullpath = os.path.join(outputSubfolder, figFilename + figFormat)
-    logging.info(f'\nExporting figure to: \n{export_fullpath}\n')
+    logging.info(f'Exporting figure to: \n{export_fullpath}\n')
 
     if figFormat == '.pdf':
         with backendPDF.PdfPages(export_fullpath, False) as pdf:

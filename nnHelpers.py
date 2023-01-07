@@ -15,6 +15,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import itertools
 import pandas as pd
+import warnings
 import logging
 
 # nextnanopy includes
@@ -131,6 +132,14 @@ class SweepHelper:
         # log setting
         fmt = '[%(levelname)s] %(message)s'
         logging.basicConfig(level=loglevel, format=fmt)
+        logging.captureWarnings(True)
+
+        # customize warning format
+        def warning_on_one_line(message, category, filename, lineno, file=None, line=None):
+            # return '%s:%s:\n%s: %s' % (filename, lineno, category.__name__, message)  # TODO: how to color the warning? Maybe useful https://github.com/Delgan/loguru
+            return f"{category.__name__}: {message} ({filename}:{lineno})"
+            # return "%(filename)s:%(lineno)d:\n %(category.__name__)s: %(message)s"
+        warnings.formatwarning = warning_on_one_line
 
         # generate self.sweep_space
         self.sweep_space = dict()
@@ -165,7 +174,7 @@ class SweepHelper:
             'transition_energy' : None,
             'hole_energy_difference' : None
             })
-        logging.info(f"\nInitialized data table: {self.data}")
+        logging.info(f"Initialized data table:\n{self.data}")
         assert len(self.data) == len(self.sweep_obj.input_files)
 
 
@@ -287,7 +296,7 @@ class SweepHelper:
         sweep_space_reduced = self.sweep_space
 
         # ask the values for other axes
-        print(f"\nTaking '{sweep_var}' for plot axis.")
+        logging.info(f"Taking '{sweep_var}' for plot axis.")
         for var, array in self.sweep_space.items():
             if var == sweep_var: continue
 
@@ -319,7 +328,7 @@ class SweepHelper:
         sweep_space_reduced = self.sweep_space
 
         # ask the values for other axes
-        print(f"\nTaking '{sweep_var1}' and '{sweep_var2}' for plot axes.")
+        logging.info(f"Taking '{sweep_var1}' and '{sweep_var2}' for plot axes.")
         for var, array in self.sweep_space.items():
             if var == sweep_var1 or var == sweep_var2: continue
 
@@ -398,7 +407,7 @@ class SweepHelper:
                     if choice == 'y': break
                     elif choice == 'n': raise RuntimeError('Nextnanopy terminated.')
 
-        logging.info(f"\nRunning {num_of_simulations} simulations with max. {parallel_limit} parallelization ...")
+        logging.info(f"Running {num_of_simulations} simulations with max. {parallel_limit} parallelization ...")
 
         # execute sweep simulations
         self.sweep_obj.execute_sweep(
@@ -513,7 +522,7 @@ class SweepHelper:
         self.__validate_sweep_variables(y_axis)      
 
         # Compute overlaps and store them in self.data
-        logging.info("\nCalculating overlap...")
+        logging.info("Calculating overlap...")
         self.data['overlap'] = self.data['output_subfolder'].apply(nnp.calculate_overlap, force_lightHole=force_lightHole)
         # self.data['overlap_squared'] = self.data['overlap'].apply(common.absolute_squared)   # BUG: somehow the results become complex128, not float --> cannot be plotted
         
@@ -550,7 +559,7 @@ class SweepHelper:
         max_val, indices = common.find_maximum(overlap_squared)  
         y_index, x_index = indices
         filepath = os.path.join(self.output_folder_path, os.path.join("nextnanopy", "info.txt"))
-        logging.info("Writing info to:\n", filepath)
+        logging.info(f"Writing info to:\n{filepath}")
         f = open(filepath, "w")  # w = write = overwrite existing content
         f.write(f"Overlap squared maximum {max_val} at:\n")
         f.write(f"{x_axis} = {x_values[x_index]}\n")

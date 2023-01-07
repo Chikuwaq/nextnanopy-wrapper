@@ -1,6 +1,9 @@
+[both]
+
+
 [nnShortcuts]
 - resolve TODOs in each file
-- add useage example of shortcuts
+- add usage example of shortcuts
 - Following David Stark's code, 
   1. support interpolated colormaps (using contourf in python) + adding a line which indicates the waveguide losses
   2. plot oscillator strengths for colored transitions
