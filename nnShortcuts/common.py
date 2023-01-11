@@ -12,6 +12,7 @@ from decimal import getcontext
 import os
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.colors import ListedColormap
 import warnings
 import logging
 # from PIL import Image   # for gif
@@ -36,6 +37,33 @@ speed_of_light = 2.99792458E8   # [m/s]
 vacuum_permittivity = 8.854187e-12   # [F/m] 1F = 1 kg^{-1} m^{-2} s^2 C^2 = 1 C^2 / J
 Boltzmann = 1.380649e-23   # [J/K]
 
+
+# -------------------------------------------------------
+# nextnano corporate colormap for matplotlib
+# -------------------------------------------------------
+"""
+@author: herbert, niklas.pichel, takuma.sato
+"""
+def get_nn_colormap(num: int = 90, bright_scheme=False):
+    """
+    Get nextnano corporate colormap for matplotlib
+    """
+    color_dark = np.empty([256,4])      # dark color scheme
+    color_bright = np.empty([256,4])    # bright color scheme
+    
+    for i in range(256):
+        if i <= num and num != 0:
+            color_dark[i,:] = np.array([17/256*i/num, 173/256*i/num, 181/256*i/num, 1])
+        else:
+            color_dark[i,:] = np.array([17/256, 173/256, 181/256, 1-(i-num)/(256-num)]) 
+    
+    for i in range(256):
+        color_bright[i,:] = np.array([17/256, 173/256, 181/256, i/256])
+   
+    if bright_scheme:
+        return ListedColormap(color_bright)
+    else:
+        return ListedColormap(color_dark)
 
 
 # -------------------------------------------------------

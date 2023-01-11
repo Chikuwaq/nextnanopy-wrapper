@@ -1,5 +1,5 @@
 [both]
-
+- use nextnano corporate colormap in 2D plot methods
 
 [nnShortcuts]
 - resolve TODOs in each file
