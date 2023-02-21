@@ -186,7 +186,7 @@ class SweepHelper:
         else:   # default
             if self.__output_subfolders_exist():   # if output data exists, set to all states in the output data
                 datafiles_probability = nnp.getDataFile_probabilities_in_folder(self.data.loc[0, 'output_subfolder'])
-                self.states_to_be_plotted, num_evs = nnp.get_states_to_be_plotted(datafiles_probability)   # states_range_dict=None -> all states are plotted
+                self.states_to_be_plotted, num_evs = common.get_states_to_be_plotted(datafiles_probability, self.software)   # states_range_dict=None -> all states are plotted
             else:
                 self.states_to_be_plotted = None   # self.states_to_be_plotted will be set up after sweep execution. See execute_sweep()
 
@@ -421,7 +421,7 @@ class SweepHelper:
         # If not given at the class instantiation, determine how many eigenstates to plot (states_to_be_plotted attribute)
         if self.states_to_be_plotted is None:   # by default, plot all states in the output data
             datafiles_probability = nnp.getDataFile_probabilities_in_folder(self.data.loc[0, 'output_subfolder'])
-            self.states_to_be_plotted, num_evs = nnp.get_states_to_be_plotted(datafiles_probability)   # states_range_dict=None -> all states are plotted
+            self.states_to_be_plotted, num_evs = common.get_states_to_be_plotted(datafiles_probability, self.software)   # states_range_dict=None -> all states are plotted
 
 
     ### Dispersion ###########################################################

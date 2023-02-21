@@ -10,6 +10,7 @@
 - 10^19 instead of 1e+1 in ylabel of the charge density 
 - use labelsize and ticsize also for plot_inplaneK()
 - avoid output PDF filename conflict between plot_carrier_density() and plot_probabilities() 
+- ultimately, clean if 'common' is the base class and 'nnp' 'nn3' 'negf' inherited classes
 
 [SweepHelper]
 - add an example to demonstrate usage
