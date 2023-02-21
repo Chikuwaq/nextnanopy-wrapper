@@ -14,10 +14,11 @@ animate_NEGF method generates animation
 import os
 import numpy as np
 import matplotlib.pyplot as plt
+import warnings
 
 # nextnanopy includes
 import nextnanopy as nn
-import common
+import nnShortcuts.common as common
 
 
 software = 'nextnano.NEGF'
@@ -1053,3 +1054,85 @@ def getDataFile_probabilities_in_folder(folder_path):
     probability_dict = {'kp8': list(datafiles)} # currently, wavefunctions are output only in 8-band models
 
     return probability_dict
+
+
+
+############### find ground states from kp8 result ############################
+def find_lowest_electron_state_atK0(output_folder, threshold=0.5):
+    """
+    From spinor composition data, determine the lowest electron state in an 8-band k.p simulation.
+    This method should be able to detect it properly even when the effective bandgap is negative,
+    i.e. when the lowest electron state is below the highest hole state.
+
+    Note
+    ----
+    Nonzero k points may become important for TI phase and camel-back dispersion.
+
+    Parameters
+    ----------
+    output_folder : str
+        output folder path
+    threshold : real, optional
+        If electron fraction in the spinor composition is greater than this value, the state is assumed to be an electron state.
+        The default is 0.5.
+
+    Returns
+    -------
+    state index (base 0) of the lowest electron state at in-plane k = 0
+
+    """
+    # get nn.DataFile object
+    try:
+        datafile = common.getDataFile_in_folder(['spinor'], output_folder, software)   # spinor composition at in-plane k = 0
+    except FileNotFoundError:
+        warnings.warn("Spinor components output in CbHhLhSo basis is not found. Assuming decoupling of the conduction and valence bands...", category=common.NextnanoInputFileWarning)
+        return int(0)
+
+    # find the lowest electron state
+    num_evs = len(datafile.variables['s1'].value)
+    for stateIndex in range(num_evs):
+        electronFraction = datafile.variables['s1'].value[stateIndex] + datafile.variables['s2'].value[stateIndex]
+        if electronFraction > threshold:
+            return stateIndex
+
+    raise RuntimeError(f"No electron states found in: {output_folder}")
+
+
+def find_highest_hole_state_atK0(output_folder, threshold=0.5):
+    """
+        From spinor composition data, determine the highest hole state in an 8-band k.p simulation.
+        This method should be able to detect it properly even when the effective bandgap is negative,
+        i.e. when the highest hole state is above the lowest electron state.
+
+        Note
+        ----
+        Nonzero k points may become important for TI phase and camel-back dispersion.
+
+        Parameters
+        ----------
+        output_folder : str
+            output folder path
+        threshold : real, optional
+            If electron fraction in the spinor composition is less than this value, the state is assumed to be a hole state.
+            The default is 0.5.
+
+        Returns
+        -------
+        state index (base 0) of the highest hole state at in-plane k = 0
+
+    """
+    # get nn.DataFile object
+    try:
+        datafile = common.getDataFile_in_folder(['spinor'], output_folder, software)   # spinor composition at in-plane k = 0
+    except FileNotFoundError:
+        warnings.warn("Spinor components output in CbHhLhSo basis is not found. Assuming decoupling of the conduction and valence bands...", category=common.NextnanoInputFileWarning)
+        return int(0)
+
+    # find the highest hole state
+    num_evs = len(datafile.variables['s1'].value)
+    for stateIndex in reversed(range(num_evs)):
+        electronFraction = datafile.variables['s1'].value[stateIndex] + datafile.variables['s2'].value[stateIndex]
+        if electronFraction < threshold:
+            return stateIndex
+
+    raise RuntimeError(f"No hole states found in: {output_folder}")
