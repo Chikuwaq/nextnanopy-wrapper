@@ -15,1662 +15,1683 @@ import logging
 
 # nextnanopy includes
 import nextnanopy as nn
-import nnShortcuts.common as common
+from nnShortcuts.common import CommonShortcuts
 
 
-software = 'nextnano++'
-model_names = ['Gamma', 'L', 'X', 'Delta', 'HH', 'LH', 'SO', 'kp6', 'kp8']
-model_names_conduction = ['Gamma', 'L', 'X', 'Delta']
-model_names_valence    = ['HH', 'LH', 'SO', 'kp6']
-# matrix_elements_names = ['interband', 'intraband', 'dipole']
+class nnpShortcuts(CommonShortcuts):
+    software = 'nextnano++'
+    model_names = ['Gamma', 'L', 'X', 'Delta', 'HH', 'LH', 'SO', 'kp6', 'kp8']
+    model_names_conduction = ['Gamma', 'L', 'X', 'Delta']
+    model_names_valence    = ['HH', 'LH', 'SO', 'kp6']
+    # matrix_elements_names = ['interband', 'intraband', 'dipole']
 
 
-def get_bandgap_atPosition(filename, position):
-    df = common.getDataFile('bandgap.dat', filename, software)
-    bandgap = df.variables['Bandgap_Gamma'].value
-    x = df.coords['x'].value
-    Eg = common.getValueAtPosition(bandgap, x, position)
-    return Eg
+    def get_bandgap_atPosition(self, filename, position):
+        df = self.getDataFile('bandgap.dat', filename, self.software)
+        bandgap = df.variables['Bandgap_Gamma'].value
+        x = df.coords['x'].value
+        Eg = self.getValueAtPosition(bandgap, x, position)
+        return Eg
 
-def get_deltaSO_atPosition(filename, position):
-    df = common.getDataFile('spin_orbit_coupling', filename, software)
-    spin_orbit_coupling = df.variables['Delta_so'].value
-    x = df.coords['x'].value
-    deltaSO = common.getValueAtPosition(spin_orbit_coupling, x, position)
-    return deltaSO
+    def get_deltaSO_atPosition(self, filename, position):
+        df = self.getDataFile('spin_orbit_coupling', filename, self.software)
+        spin_orbit_coupling = df.variables['Delta_so'].value
+        x = df.coords['x'].value
+        deltaSO = self.getValueAtPosition(spin_orbit_coupling, x, position)
+        return deltaSO
 
 
-def detect_quantum_model(filename):
-    """
-    Detect the quantum model from a file name.
+    def detect_quantum_model(self, filename):
+        """
+        Detect the quantum model from a file name.
 
-    INPUT:
-        filename    name of output data file
+        INPUT:
+            filename    name of output data file
 
-    RETURN:
-        quantum model string
-    """
-    found = False
+        RETURN:
+            quantum model string
+        """
+        found = False
+
+        for model in self.model_names:
+            if ('_' + model + '_' in filename) or ('_' + model + '.' in filename):
+                found = True
+                quantum_model = model
+                break
 
-    for model in model_names:
-        if ('_' + model + '_' in filename) or ('_' + model + '.' in filename):
-            found = True
-            quantum_model = model
-            break
+        if not found:
+            raise RuntimeError('Quantum model cannot be detected!')
 
-    if not found:
-        raise RuntimeError('Quantum model cannot be detected!')
+        return quantum_model
 
-    return quantum_model
+
+    def getKPointsData1D(self, input_file):
+        """
+        INPUT:
+            input_file      nn.InputFile object
 
+        RETURN:
+            dictionary { quantum model key: corresponding numpy.ndarray((num_kPoints, 2)) of in-plane k vector }
+        """
 
-def getKPointsData1D(input_file):
-    """
-    INPUT:
-        input_file      nn.InputFile object
+        outputFolder = nn.config.get(self.software, 'outputdirectory')
+        filename_no_extension = self.separateFileExtension(input_file.fullpath)[0]
+        outputSubfolder = os.path.join(outputFolder, filename_no_extension)
+        return self.getKPointsData1D_in_folder(outputSubfolder)
+
+
+    def getKPointsData1D_in_folder(self, folder_path):
+
+        datafiles = self.getDataFiles_in_folder('k_points', folder_path, self.software)
+
+        # inplaneK_dict = {
+        #     'Gamma': list(),
+        #     'kp6': list(),
+        #     'kp8': list()
+        # }
+        inplaneK_dict = {model_name: list() for model_name in self.model_names}
+        for df in datafiles:
+            filename = os.path.split(df.fullpath)[1]
+            quantum_model = self.detect_quantum_model(filename)
+            data = np.loadtxt(df.fullpath, skiprows=1)
 
-    RETURN:
-        dictionary { quantum model key: corresponding numpy.ndarray((num_kPoints, 2)) of in-plane k vector }
-    """
+            if np.ndim(data) == 1:    # if only the zone-center is calculated
+                inplaneK = [data[2], data[3]]
+                inplaneK_dict[quantum_model] = inplaneK
+                continue
 
-    outputFolder = nn.config.get(software, 'outputdirectory')
-    filename_no_extension = common.separateFileExtension(input_file.fullpath)[0]
-    outputSubfolder = os.path.join(outputFolder, filename_no_extension)
-    return getKPointsData1D_in_folder(outputSubfolder)
-
-
-def getKPointsData1D_in_folder(folder_path):
-
-    datafiles = common.getDataFiles_in_folder('k_points', folder_path, software)
-
-    # inplaneK_dict = {
-    #     'Gamma': list(),
-    #     'kp6': list(),
-    #     'kp8': list()
-    # }
-    inplaneK_dict = {model_name: list() for model_name in model_names}
-    for df in datafiles:
-        filename = os.path.split(df.fullpath)[1]
-        quantum_model = detect_quantum_model(filename)
-        data = np.loadtxt(df.fullpath, skiprows=1)
+            num_kPoints = len(data)
+            for kIndex in range(num_kPoints):
+                inplaneK = [data[kIndex, 2], data[kIndex, 3]]   # list representing 2D vector
+                inplaneK_dict[quantum_model].append(inplaneK)
+
+        # remove quantum model keys that are not simulated
+        inplaneK_dict = {key: lis for key, lis in inplaneK_dict.items() if len(lis) >= 1}
 
-        if np.ndim(data) == 1:    # if only the zone-center is calculated
-            inplaneK = [data[2], data[3]]
-            inplaneK_dict[quantum_model] = inplaneK
-            continue
-
-        num_kPoints = len(data)
-        for kIndex in range(num_kPoints):
-            inplaneK = [data[kIndex, 2], data[kIndex, 3]]   # list representing 2D vector
-            inplaneK_dict[quantum_model].append(inplaneK)
-
-    # remove quantum model keys that are not simulated
-    inplaneK_dict = {key: lis for key, lis in inplaneK_dict.items() if len(lis) >= 1}
-
-    return inplaneK_dict
-
-
-def plot_inplaneK(inplaneK_dict):
-    """
-    Plot the in-plane k vector (2D). Only applicable to 1D simulation.
-
-    INPUT:
-        inplaneK_dict   dictionary of in-plane k points generated by getKPointsData1D()
-
-    RETURN:
-        fig             matplotlib.figure.Figure object
-    TODO: this method can be moved to common. All software-dependency is filtered by getKPointsData1D_in_folder().
-    """
-    if len(list(inplaneK_dict.values())[0]) == 2: return   # if only zone-center has been calculated
-
-    for model, k_vectors in inplaneK_dict.items():
-        if np.ndim(k_vectors) == 1: continue    # skip if only the zone-center is calculated
-
-        fig, ax = plt.subplots()
-        ax.set_xlabel('$k_y$ [$\mathrm{nm}^{-1}$]')
-        ax.set_ylabel('$k_z$ [$\mathrm{nm}^{-1}$]')
-        ax.set_title(f'in-plane k points (quantum model: {model})')
-        for k_vector in k_vectors:
-            ax.scatter(k_vector[0], k_vector[1], color='green')
-        ax.axhline(color='grey', linewidth=1.0)
-        ax.axvline(color='grey', linewidth=1.0)
-
-        for kIndex, k_vector in enumerate(k_vectors):
-            ax.annotate(kIndex, (k_vector[0], k_vector[1]), xytext=(k_vector[0]+0.01, k_vector[1]))
-        plt.show()
-
-    return fig
-
-
-def get_num_kPoints(inplaneK_dict):
-    """ number of k-points for each quantum model """
-    num_kPoints = dict()
-    for model, k_vectors in inplaneK_dict.items():
-        if len(k_vectors) == 0:   # if no k-points are calculated
-            num_kPoints[model] = 0
-        elif np.ndim(k_vectors) == 1:   # if only the zone-center is calculated
-            num_kPoints[model] = 1
-        else:
-            num_kPoints[model] = len(k_vectors)
-    return num_kPoints
-
-
-def getDataFile_probabilities_in_folder(folder_path):
-    """
-    Get single nextnanopy.DataFile of probability_shift data in the specified folder.
-
-    Parameters
-    ----------
-    folder_path : str
-        output folder path in which the datafile should be sought
-
-    Returns
-    -------
-    dictionary { quantum model key: corresponding list of nn.DataFile() objects for probability_shift }
-
-    """
-    datafiles = common.getDataFiles_in_folder('probabilities_shift', folder_path, software)
-
-    # probability_dict = {
-    #     'Gamma': list(),
-    #     'kp6': list(),
-    #     'kp8': list()
-    # }
-    probability_dict = {model_name: list() for model_name in model_names}
-    for df in datafiles:
-        filename = os.path.split(df.fullpath)[1]
-        quantum_model = detect_quantum_model(filename)
-        probability_dict[quantum_model].append(df)
-
-    # delete quantum model keys whose probabilities do not exist in output folder
-    models_to_be_removed = [model for model, df in probability_dict.items() if len(df) == 0]
-
-    for model in models_to_be_removed:
-        probability_dict.pop(model)
-
-    return probability_dict
-
-
-def getDataFile_amplitudesK0_in_folder(folder_path):
-    """
-    Get single nextnanopy.DataFile of zone-center amplitude data in the folder of specified name.
-    Shifted data is avoided since non-shifted one is used to calculate overlap and matrix elements.
-
-    INPUT:
-        folder_path      output folder path in which the datafile should be sought
-
-    RETURN:
-        dictionary { quantum model key: list of nn.DataFile() objects for amplitude data }
-    """
-    datafiles = common.getDataFiles_in_folder('amplitudes', folder_path, software, exclude_keywords='shift')   # return a list of nn.DataFile
-
-    # amplitude_dict = {
-    #     'Gamma': list(),
-    #     'kp6': list(),
-    #     'kp8': list()
-    # }
-    amplitude_dict = {model_name: list() for model_name in model_names}
-    for df in datafiles:
-        filename = os.path.split(df.fullpath)[1]
-        quantum_model = detect_quantum_model(filename)
-
-        if quantum_model == 'kp8' or quantum_model == 'kp6':
-            if '_00000_' not in filename: continue   # exclude non k|| = 0 amplitudes
-        amplitude_dict[quantum_model].append(df)
-
-    # delete quantum model keys whose probabilities do not exist in output folder
-    amplitude_dict_trimmed = {model: amplitude_dict[model] for model in amplitude_dict if len(amplitude_dict[model]) > 0}
-
-    if len(amplitude_dict_trimmed) == 0:
-        raise common.NextnanoInputFileError("Amplitudes are not output! Modify the input file.")
-
-    return amplitude_dict_trimmed
-
-
-# def getFilepaths_matrix_elements(name):
-#     """
-#     Returns
-#     -------
-#     dictionary with keys interband, intraband, and dipole, each consisting of list of file paths for matrix_elements
-#     """
-#     name = os.path.split(name)[1]   # remove paths if present
-#     filename_no_extension = common.separateFileExtension(name)[0]
-#     outputFolder = nn.config.get(software, 'outputdirectory')
-#     outputSubFolder = os.path.join(outputFolder, filename_no_extension)
-#     datafiles = common.getDataFiles_in_folder(['matrix_elements', '.txt'], outputSubFolder, software)
-
-#     # matrix_elements_dict = {
-#     #     'interband': list(),
-#     #     'intraband': list(),
-#     #     'dipole': list()
-#     # }
-#     matrix_elements_dict = {kind_name: list() for kind_name in matrix_elements_names}
-#     for df in datafiles:
-#         filename = os.path.split(df.fullpath)[1]
-
-#         if 'interband' in filename or 'overlap' in filename:
-#             matrix_elements_dict['interband'].append(df.fullpath)
-#         elif 'intraband' in filename:
-#             matrix_elements_dict['intraband'].append(df.fullpath)
-#         elif 'dipole' in filename:
-#             matrix_elements_dict['dipole'].append(df.fullpath)
-#         else:
-#             raise RuntimeError(f'Matrix element type cannot be detected! Check {f}')
-
-#     return matrix_elements_dict
-
-
-
-############### dispersion shortcuts ################################
-
-def plot_dispersion(
-        name,
-        startIdx=0,
-        stopIdx=0,
-        plot_title='',
-        labelsize=common.labelsize_default,
-        ticksize=common.ticksize_default,
-        savePDF=False,
-        savePNG=False,
-        ):
-    """
-    Plot one in-plane dispersion from 1D simulation.
-
-    Parameters
-    ----------
-    name : str
-        input file name (= output subfolder name). May contain extensions and/or fullpath.
-
-    startIdx : int, optional
-        DESCRIPTION. The default is 0.
-
-    stopIdx : int, optional
-        DESCRIPTION. The default is 0.
-
-    plot_title : str, optional
-        title of the plot. The default is ''.
-
-    labelsize : int, optional
-        font size of xlabel and ylabel
-
-    ticksize : int, optional
-        font size of xtics and ytics
-
-    savePDF : bool, optional
-        save the plot in the PDF format. The default is False.
-
-    savePNG : bool, optional
-        save the plot in the PNG format. The default is False.
-
-
-
-    Returns
-    -------
-    fig: matplotlib.subplot object
-
-    Note
-    ----
-    If the user does not specify the start/stop state indices, all simulated states are plotted.
-
-    """
-
-    # load output data files
-    try:
-        datafile_dispersion = common.getDataFile('dispersion_', name, software)
-    except ValueError:
-        datafile_dispersion = common.getDataFile_in_folder('dispersion_', name, software)
-
-    # store data in arrays
-    kPoints     = datafile_dispersion.coords['|k|'].value
-    num_bands   = len(datafile_dispersion.variables)
-    logging.debug(f'num_bands = {num_bands}')
-    num_kPoints = len(kPoints)
-
-    # determine which states to plot   # TODO: bug: the last index isn't plotted if startIdx==0 and stopIdx==0!
-    if startIdx == 0: startIdx = 1
-    if stopIdx == 0: stopIdx = num_bands
-    states_toBePlotted = np.arange(startIdx-1, stopIdx, 1)
-
-    # store data in arrays
-    dispersions = np.zeros((num_bands, num_kPoints), dtype=np.double)
-    for index in states_toBePlotted:
-        dispersions[index, ] = datafile_dispersion.variables[f'Band_{index+1}'].value
-
-    filename_no_extension = common.separateFileExtension(name)[0]
-
-    # define plot title
-    if plot_title:
-        title = common.getPlotTitle(plot_title)
-    else:
-        title = ''
-
-    # instantiate matplotlib subplot object
-    fig, ax = plt.subplots()
-    ax.set_xlabel('In-plane $k$ ($\mathrm{nm}^{-1}$)', fontsize=labelsize)  # TODO: Ideally, it should detect the in-plane k-direction from input file. Note that multiple dispersions can be output.
-    ax.set_ylabel('Energy (eV)', fontsize=labelsize)
-    ax.set_title(f'{title}', fontsize=labelsize)
-    ax.tick_params(axis='x', labelsize=ticksize)
-    ax.tick_params(axis='y', labelsize=ticksize)
-    for index in states_toBePlotted:
-        ax.plot(kPoints, dispersions[index, ], marker='o', label=f'Band_{index+1}')
-    ax.legend(labels=states_toBePlotted+1, bbox_to_anchor=(1.05, 1))
-    fig.tight_layout()
-
-    #-------------------------------------------
-    # Save the figure to an image file
-    #-------------------------------------------
-    export_filename = f'{filename_no_extension}_dispersion'
-    if savePDF: common.export_figs(export_filename, 'pdf', software)
-    if savePNG: common.export_figs(export_filename, 'png', software, fig=fig)
-
-    # --- display in the GUI
-    plt.show()
-
-    return fig
-
-
-
-def plot_patched_dispersions(
-        name,
-        startIdx = 0, stopIdx = 0,
-        left_k_label = "1", right_k_label = "2",
-        labelsize = common.labelsize_default,
-        ticksize = common.ticksize_default,
-        savePDF = False,
-        savePNG = False
-        ):
-    """
-    Plot two in-plane dispersions from 1D simulation patched at the zone center in one graph.
-    Useful for investigation of dispersion anisotropy.
-
-    Parameters
-    ----------
-    name : str
-        input file name (= output subfolder name). May contain extensions and/or fullpath.
-
-    startIdx : int, optional
-        DESCRIPTION. The default is 0.
-
-    stopIdx : int, optional
-        DESCRIPTION. The default is 0.
-
-    left_k_label : str, optional
-        DESCRIPTION. The default is "1".
-
-    right_k_label : str, optional
-        DESCRIPTION. The default is "2".
-
-    labelsize : int, optional
-        font size of xlabel and ylabel
-    ticksize : int, optional
-        font size of xtics and ytics
-
-    savePDF : bool, optional
-        save the plot in the PDF format. The default is False.
-
-    savePNG : bool, optional
-        save the plot in the PNG format. The default is False.
-
-    Returns
-    -------
-    fig: matplotlib.subplot object
-
-    Note
-    ----
-    If the user does not specify the start/stop state indices, all simulated states are plotted.
-
-    """
-    # load output data files
-    logging.info("Loading 1st dispersion data (to be plotted on the left)...")
-    try:
-        datafile_dispersion1 = common.getDataFile('dispersion_', name, software)
-    except ValueError:
-        datafile_dispersion1 = common.getDataFile_in_folder('dispersion_', name, software)
-    logging.info("Loading 2nd dispersion data (to be plotted on the right)...")
-    try:
-        datafile_dispersion2 = common.getDataFile('dispersion_', name, software)
-    except ValueError:
-        datafile_dispersion2 = common.getDataFile_in_folder('dispersion_', name, software)
-
-    # store data in arrays
-    kPoints1     = datafile_dispersion1.coords['|k|'].value
-    kPoints2     = datafile_dispersion2.coords['|k|'].value
-    num_bands   = len(datafile_dispersion1.variables)
-    logging.debug(f'num_bands = {num_bands}')
-    num_kPoints1 = len(kPoints1)
-    num_kPoints2 = len(kPoints2)
-
-    # determine which states to plot   # TODO: bug: the last index isn't plotted if startIdx==0 and stopIdx==0!
-    if startIdx == 0: startIdx = 1
-    if stopIdx == 0: stopIdx = num_bands
-    states_toBePlotted = np.arange(startIdx-1, stopIdx, 1)
-
-    # store data in arrays
-    dispersions1 = np.zeros((num_bands, num_kPoints1), dtype=np.double)
-    dispersions2 = np.zeros((num_bands, num_kPoints2), dtype=np.double)
-    for index in states_toBePlotted:
-        dispersions1[index, ] = datafile_dispersion1.variables[f'Band_{index+1}'].value
-        dispersions2[index, ] = datafile_dispersion2.variables[f'Band_{index+1}'].value
-
-    # join two dispersion data
-    kPoints = np.append( np.flip(-kPoints1), kPoints2)
-    dispersions = np.zeros((num_bands, num_kPoints1 + num_kPoints2), dtype=np.double)
-    for index in states_toBePlotted:
-        for kIndex in range(num_kPoints1):
-            dispersions[index, ] = np.append( np.flip(dispersions1[index,:]), dispersions2[index,:])
-
-    title = common.getPlotTitle(name)
-
-    # instantiate matplotlib subplot objects
-    fig, ax = plt.subplots()
-    # ax.set_xlabel(f'$k^{(left_k_label)}$' + '($\mathrm{nm}^{-1}$)' + '\t\t' + f'$k^{(right_k_label)}$' + '($\mathrm{nm}^{-1}$)')  # TODO: I cannot put multiple letters in the superscript in a math expression for label! fr"{variable}" seems to eliminate the brackets {} necessary for latex superscript.
-    ax.set_xlabel(r'$k^{100}$' + '($\mathrm{nm}^{-1}$)' + '\t\t\t' + r'$k^{110}$' + '($\mathrm{nm}^{-1}$)', fontsize=labelsize)  # r with superscript works
-    ax.set_ylabel('energy (eV)', fontsize=labelsize)
-    ax.set_title(f'{title}', fontsize=labelsize)
-    ax.tick_params(axis='x', labelsize=ticksize)
-    ax.tick_params(axis='y', labelsize=ticksize)
-    for index in states_toBePlotted:
-        ax.plot(kPoints, dispersions[index, ], marker='o', label=f'Band_{index+1}')
-    ax.legend(labels=states_toBePlotted+1, bbox_to_anchor=(1.05, 1))
-    fig.tight_layout()
-
-    #-------------------------------------------
-    # Plots - save all the figures to one PDF
-    #-------------------------------------------
-    filename_no_extension = common.separateFileExtension(name)[0]
-    export_filename = f'{filename_no_extension}_patched_dispersion'
-
-    if savePDF: common.export_figs(export_filename, 'pdf', software)
-    if savePNG: common.export_figs(export_filename, 'png', software, fig=fig)
-
-    # --- display in the GUI
-    plt.show()
-    return fig
-
-
-def plot_dispersions_sweep(master_input_file, sweep_variable, list_of_values, states_toBePlotted):
-    """
-    Plot multiple dispersions from sweep output.
-    TODO: Currently, only 1D sweep is supported.
-
-    INPUT:
-        master_input_file       nn.InputFile object
-        sweep_variable          string of sweep variable name
-        list_of_values          list of values at which simulations have run
-        states_toBePlotted      list of eigenstate numbers to be plotted
-
-    """
-    import numpy as np
-    import matplotlib.pyplot as plt
-
-    inputfile_name = common.separateFileExtension(master_input_file.fullpath)[0]
-    output_folder_path = common.getSweepOutputFolderPath(inputfile_name, software, sweep_variable)
-    logging.info(f'output folder path: {output_folder_path}')
-
-    for value in list_of_values:
-        output_subfolderName = common.getSweepOutputSubfolderName(inputfile_name, {sweep_variable: value})
-        output_folder = os.path.join(output_folder_path, output_subfolderName)
+        return inplaneK_dict
+
+
+    def plot_inplaneK(inplaneK_dict):
+        """
+        Plot the in-plane k vector (2D). Only applicable to 1D simulation.
+
+        INPUT:
+            inplaneK_dict   dictionary of in-plane k points generated by getKPointsData1D()
+
+        RETURN:
+            fig             matplotlib.figure.Figure object
+        TODO: this method can be moved to common. All software-dependency is filtered by getKPointsData1D_in_folder().
+        """
+        if len(list(inplaneK_dict.values())[0]) == 2: return   # if only zone-center has been calculated
+
+        for model, k_vectors in inplaneK_dict.items():
+            if np.ndim(k_vectors) == 1: continue    # skip if only the zone-center is calculated
+
+            fig, ax = plt.subplots()
+            ax.set_xlabel('$k_y$ [$\mathrm{nm}^{-1}$]')
+            ax.set_ylabel('$k_z$ [$\mathrm{nm}^{-1}$]')
+            ax.set_title(f'in-plane k points (quantum model: {model})')
+            for k_vector in k_vectors:
+                ax.scatter(k_vector[0], k_vector[1], color='green')
+            ax.axhline(color='grey', linewidth=1.0)
+            ax.axvline(color='grey', linewidth=1.0)
+
+            for kIndex, k_vector in enumerate(k_vectors):
+                ax.annotate(kIndex, (k_vector[0], k_vector[1]), xytext=(k_vector[0]+0.01, k_vector[1]))
+            plt.show()
+
+        return fig
+
+
+    def get_num_kPoints(inplaneK_dict):
+        """ number of k-points for each quantum model """
+        num_kPoints = dict()
+        for model, k_vectors in inplaneK_dict.items():
+            if len(k_vectors) == 0:   # if no k-points are calculated
+                num_kPoints[model] = 0
+            elif np.ndim(k_vectors) == 1:   # if only the zone-center is calculated
+                num_kPoints[model] = 1
+            else:
+                num_kPoints[model] = len(k_vectors)
+        return num_kPoints
+
+
+    def getDataFile_probabilities_in_folder(self, folder_path):
+        """
+        Get single nextnanopy.DataFile of probability_shift data in the specified folder.
+
+        Parameters
+        ----------
+        folder_path : str
+            output folder path in which the datafile should be sought
+
+        Returns
+        -------
+        dictionary { quantum model key: corresponding list of nn.DataFile() objects for probability_shift }
+
+        """
+        datafiles = self.getDataFiles_in_folder('probabilities_shift', folder_path, self.software)
+
+        # probability_dict = {
+        #     'Gamma': list(),
+        #     'kp6': list(),
+        #     'kp8': list()
+        # }
+        probability_dict = {model_name: list() for model_name in self.model_names}
+        for df in datafiles:
+            filename = os.path.split(df.fullpath)[1]
+            quantum_model = self.detect_quantum_model(filename)
+            probability_dict[quantum_model].append(df)
+
+        # delete quantum model keys whose probabilities do not exist in output folder
+        models_to_be_removed = [model for model, df in probability_dict.items() if len(df) == 0]
+
+        for model in models_to_be_removed:
+            probability_dict.pop(model)
+
+        return probability_dict
+
+
+    def getDataFile_amplitudesK0_in_folder(self, folder_path):
+        """
+        Get single nextnanopy.DataFile of zone-center amplitude data in the folder of specified name.
+        Shifted data is avoided since non-shifted one is used to calculate overlap and matrix elements.
+
+        INPUT:
+            folder_path      output folder path in which the datafile should be sought
+
+        RETURN:
+            dictionary { quantum model key: list of nn.DataFile() objects for amplitude data }
+        """
+        datafiles = self.getDataFiles_in_folder('amplitudes', folder_path, self.software, exclude_keywords='shift')   # return a list of nn.DataFile
+
+        # amplitude_dict = {
+        #     'Gamma': list(),
+        #     'kp6': list(),
+        #     'kp8': list()
+        # }
+        amplitude_dict = {model_name: list() for model_name in self.model_names}
+        for df in datafiles:
+            filename = os.path.split(df.fullpath)[1]
+            quantum_model = self.detect_quantum_model(filename)
+
+            if quantum_model == 'kp8' or quantum_model == 'kp6':
+                if '_00000_' not in filename: continue   # exclude non k|| = 0 amplitudes
+            amplitude_dict[quantum_model].append(df)
+
+        # delete quantum model keys whose probabilities do not exist in output folder
+        amplitude_dict_trimmed = {model: amplitude_dict[model] for model in amplitude_dict if len(amplitude_dict[model]) > 0}
+
+        if len(amplitude_dict_trimmed) == 0:
+            raise self.NextnanoInputFileError("Amplitudes are not output! Modify the input file.")
+
+        return amplitude_dict_trimmed
+
+
+    # def getFilepaths_matrix_elements(self, name):
+    #     """
+    #     Returns
+    #     -------
+    #     dictionary with keys interband, intraband, and dipole, each consisting of list of file paths for matrix_elements
+    #     """
+    #     name = os.path.split(name)[1]   # remove paths if present
+    #     filename_no_extension = self.separateFileExtension(name)[0]
+    #     outputFolder = nn.config.get(self.software, 'outputdirectory')
+    #     outputSubFolder = os.path.join(outputFolder, filename_no_extension)
+    #     datafiles = self.getDataFiles_in_folder(['matrix_elements', '.txt'], outputSubFolder, self.software)
+
+    #     # matrix_elements_dict = {
+    #     #     'interband': list(),
+    #     #     'intraband': list(),
+    #     #     'dipole': list()
+    #     # }
+    #     matrix_elements_dict = {kind_name: list() for kind_name in matrix_elements_names}
+    #     for df in datafiles:
+    #         filename = os.path.split(df.fullpath)[1]
+
+    #         if 'interband' in filename or 'overlap' in filename:
+    #             matrix_elements_dict['interband'].append(df.fullpath)
+    #         elif 'intraband' in filename:
+    #             matrix_elements_dict['intraband'].append(df.fullpath)
+    #         elif 'dipole' in filename:
+    #             matrix_elements_dict['dipole'].append(df.fullpath)
+    #         else:
+    #             raise RuntimeError(f'Matrix element type cannot be detected! Check {f}')
+
+    #     return matrix_elements_dict
+
+
+
+    ############### dispersion shortcuts ################################
+
+    def plot_dispersion(self, 
+            name,
+            startIdx=0,
+            stopIdx=0,
+            plot_title='',
+            labelsize=None,
+            ticksize=None,
+            savePDF=False,
+            savePNG=False,
+            ):
+        """
+        Plot one in-plane dispersion from 1D simulation.
+
+        Parameters
+        ----------
+        name : str
+            input file name (= output subfolder name). May contain extensions and/or fullpath.
+
+        startIdx : int, optional
+            DESCRIPTION. The default is 0.
+
+        stopIdx : int, optional
+            DESCRIPTION. The default is 0.
+
+        plot_title : str, optional
+            title of the plot. The default is ''.
+
+        labelsize : int, optional
+            font size of xlabel and ylabel
+
+        ticksize : int, optional
+            font size of xtics and ytics
+
+        savePDF : bool, optional
+            save the plot in the PDF format. The default is False.
+
+        savePNG : bool, optional
+            save the plot in the PNG format. The default is False.
+
+
+
+        Returns
+        -------
+        fig: matplotlib.subplot object
+
+        Note
+        ----
+        If the user does not specify the start/stop state indices, all simulated states are plotted.
+
+        """
+        if labelsize is None: labelsize = self.labelsize_default
+        if ticksize is None: ticksize = self.ticksize_default
 
         # load output data files
-        datafile_dispersion = common.getDataFile_in_folder('dispersion_', output_folder, software)
+        try:
+            datafile_dispersion = self.getDataFile('dispersion_', name, self.software)
+        except ValueError:
+            datafile_dispersion = self.getDataFile_in_folder('dispersion_', name, self.software)
 
         # store data in arrays
         kPoints     = datafile_dispersion.coords['|k|'].value
         num_bands   = len(datafile_dispersion.variables)
+        logging.debug(f'num_bands = {num_bands}')
         num_kPoints = len(kPoints)
-        dispersions = np.zeros((num_bands, num_kPoints), dtype=np.double)
-        for index in states_toBePlotted:
-            dispersions[index, ] = datafile_dispersion.variables[f'Band_{index+1}'].value
 
-        # instantiate matplotlib subplot objects
-        fig, ax = plt.subplots()
-        ax.set_xlabel('in-plane k [/nm]')
-        ax.set_ylabel('energy [eV]')
-        ax.set_title('{}, {}={:.1f} nm'.format(inputfile_name, sweep_variable, value))
-        for index in states_toBePlotted:
-            ax.plot(kPoints, dispersions[index, ], marker='o', label=f'{index+1}th')
-        ax.legend(loc='upper left')
-
-    # save all the figures to one PDF
-    PDFfilename = common.separateFileExtension(inputfile_name)[0]
-    common.export_figs(PDFfilename, 'pdf', software, output_folder_path=output_folder_path)
-
-
-def generate_gif(master_input_file, sweep_variable, list_of_values, states_toBePlotted):
-    """
-    Generate GIF animation from multiple dispersions obtained from sweep.
-    Currently, only 1D sweep is supported.
-
-    INPUT:
-        master_input_file       nn.InputFile object
-        sweep_variable          string of sweep variable name
-        list_of_values          list of values at which simulations have been performed
-        states_toBePlotted      list of eigenstate numbers to be plotted
-
-    """
-    import numpy as np
-    import matplotlib.pyplot as plt
-
-    inputfile_name = common.separateFileExtension(master_input_file.fullpath)[0]
-    output_folder_path = common.getSweepOutputFolderPath(inputfile_name, software, sweep_variable)
-
-    # determine optimal plot range - x-axis
-    output_subfolderName = common.getSweepOutputSubfolderName(inputfile_name, {sweep_variable: list_of_values[0]})
-    output_folder        = os.path.join(output_folder_path, output_subfolderName)
-    datafile_dispersion  = common.getDataFile_in_folder('dispersion_', output_folder, software)
-    kPoints              = datafile_dispersion.coords['|k|'].value
-    xrange = kPoints[-1] - kPoints[0]
-    xmin = kPoints[0] - 0.05 * xrange
-    xmax = kPoints[-1] + 0.05 * xrange
-
-    # determine optimal plot range - y-axis
-    energy_min  = 0
-    energy_max  = 0
-    for index in states_toBePlotted:
-        energies = datafile_dispersion.variables[f'Band_{index+1}'].value
-        energy_min = min(energy_min, np.amin(energies))
-        energy_max = max(energy_max, np.amax(energies))
-    yrange = energy_max - energy_min
-    ymin = energy_min - 0.05 * yrange
-    ymax = energy_max + 0.05 * yrange
-
-    num_bands   = len(datafile_dispersion.variables)
-    num_kPoints = len(kPoints)
-
-    def plotDispersions(iSweep):
-        output_subfolderName = common.getSweepOutputSubfolderName(inputfile_name, {sweep_variable: list_of_values[iSweep]})
-        output_folder = os.path.join(output_folder_path, output_subfolderName)
-
-        # load output data files
-        datafile_dispersion = common.getDataFile_in_folder('dispersion_', output_folder, software)
+        # determine which states to plot   # TODO: bug: the last index isn't plotted if startIdx==0 and stopIdx==0!
+        if startIdx == 0: startIdx = 1
+        if stopIdx == 0: stopIdx = num_bands
+        states_toBePlotted = np.arange(startIdx-1, stopIdx, 1)
 
         # store data in arrays
         dispersions = np.zeros((num_bands, num_kPoints), dtype=np.double)
         for index in states_toBePlotted:
             dispersions[index, ] = datafile_dispersion.variables[f'Band_{index+1}'].value
 
-        ax.set_title('{}, {}={:.1f} nm'.format(inputfile_name, sweep_variable, list_of_values[iSweep]))
+        filename_no_extension = self.separateFileExtension(name)[0]
 
-        for i, index in enumerate(states_toBePlotted):
-            lines[i].set_data(kPoints, dispersions[index, ])
-            lines[i].set_label(f'{index+1}th')
-        ax.legend(loc='upper left')
+        # define plot title
+        if plot_title:
+            title = self.getPlotTitle(plot_title)
+        else:
+            title = ''
 
+        # instantiate matplotlib subplot object
+        fig, ax = plt.subplots()
+        ax.set_xlabel('In-plane $k$ ($\mathrm{nm}^{-1}$)', fontsize=labelsize)  # TODO: Ideally, it should detect the in-plane k-direction from input file. Note that multiple dispersions can be output.
+        ax.set_ylabel('Energy (eV)', fontsize=labelsize)
+        ax.set_title(f'{title}', fontsize=labelsize)
+        ax.tick_params(axis='x', labelsize=ticksize)
+        ax.tick_params(axis='y', labelsize=ticksize)
+        for index in states_toBePlotted:
+            ax.plot(kPoints, dispersions[index, ], marker='o', label=f'Band_{index+1}')
+        ax.legend(labels=states_toBePlotted+1, bbox_to_anchor=(1.05, 1))
+        fig.tight_layout()
 
-    fig, ax = plt.subplots()
-    ax.set_xlabel('in-plane k [/nm]')
-    ax.set_ylabel('energy [eV]')
-    ax.set_xlim(xmin, xmax)
-    ax.set_ylim(ymin, ymax)
+        #-------------------------------------------
+        # Save the figure to an image file
+        #-------------------------------------------
+        export_filename = f'{filename_no_extension}_dispersion'
+        if savePDF: self.export_figs(export_filename, 'pdf', self.software)
+        if savePNG: self.export_figs(export_filename, 'png', self.software, fig=fig)
 
-    lines = []
-    for index in states_toBePlotted:
-        line, = plt.plot([], [], marker='o')   # empty plot
-        lines.append(line)
+        # --- display in the GUI
+        plt.show()
 
-    def animate(iSweep):
-        plotDispersions(iSweep)
-
-    # generate GIF animation
-    from matplotlib import animation
-
-    cwd = os.getcwd()
-    os.chdir(output_folder_path)
-    logging.info(f'Exporting GIF animation to: {output_folder_path}\n')
-    num_sweeps  = len(list_of_values)
-    ani = animation.FuncAnimation(fig, animate, frames=num_sweeps, interval=700)
-    ani.save(f'{inputfile_name}.gif', writer='pillow')
-    os.chdir(cwd)
-
+        return fig
 
 
-############### plot probabilities ##################################
-def plot_probabilities(
-        input_file,
-        states_range_dict   = None,
-        states_list_dict    = None,
-        start_position      = -10000.,
-        end_position        = 10000.,
-        hide_tails          = False,
-        only_k0             = True,
-        show_spinor         = False,
-        show_state_index    = False,
-        plot_title          = '',
-        labelsize           = common.labelsize_default,
-        ticksize            = common.ticksize_default,
-        savePDF             = False,
-        savePNG             = False,
-        ):
-    """
-    Plot probability distribution on top of bandedges.
-    Properly distinguishes the results from the single band effective mass model, 6- and 8-band k.p models.
-    If both electrons and holes have been simulated, also plot both probabilities in one figure.
 
-    The probability distributions are coloured according to
-    quantum model that yielded the solution (for single-band effective mass and kp6 models) or
-    electron fraction (for kp8 model).
+    def plot_patched_dispersions(self, 
+            name,
+            startIdx = 0, stopIdx = 0,
+            left_k_label = "1", right_k_label = "2",
+            labelsize = None,
+            ticksize = None,
+            savePDF = False,
+            savePNG = False
+            ):
+        """
+        Plot two in-plane dispersions from 1D simulation patched at the zone center in one graph.
+        Useful for investigation of dispersion anisotropy.
 
-    Parameters
-    ----------
-    input_file : nextnanopy.InputFile object
-        nextnano++ input file.
-    states_range_dict : dict, optional
-        range of state indices to be plotted for each quantum model. The default is None.
-    states_list_dict : dict, optional
-        list of state indices to be plotted for each quantum model.
-        Alternatively, strings 'lowestElectron', 'highestHole' and 'occupied' are accepted. For 'occupied', another key 'cutoff_occupation' must be set in this dict.
-        The default is None.
-    start_position : real, optional
-        left edge of the plotting region. The default is -10000.
-    end_position : real, optional
-        right edge of the plotting region. The default is 10000.
-    hide_tails : bool, optional
-        hide the probability tails. The default is False.
-    only_k0 : bool, optional
-        suppress the output of nonzero in-plane k states. The default is True.
-    show_spinor : bool, optional
-        plot pie chart of spinor composition for all eigenvalues and k points. The default is False.
-    show_state_index : bool, optional
-        indicate eigenstate indices on top of probability plot. The default is False.
-    plot_title : str, optional
-        title of the probability plot. The default is ''.
-    labelsize : int, optional
-        font size of xlabel, ylabel and colorbar label
-    ticksize : int, optional
-        font size of xtics, ytics and colorbar tics
-    savePDF : str, optional
-        save the plot in the PDF format. The default is False.
-    savePNG : str, optional
-        save the plot in the PNG format. The default is False.
+        Parameters
+        ----------
+        name : str
+            input file name (= output subfolder name). May contain extensions and/or fullpath.
 
-    Returns
-    -------
-    None.
+        startIdx : int, optional
+            DESCRIPTION. The default is 0.
 
-    """
-    from matplotlib import colors
-    from matplotlib.gridspec import GridSpec
+        stopIdx : int, optional
+            DESCRIPTION. The default is 0.
 
-    # load output data files
-    datafile_bandedge = common.getDataFile('bandedges', input_file.fullpath, software)
-    datafiles_probability_dict = common.getDataFile_probabilities_with_name(input_file.fullpath, software)
+        left_k_label : str, optional
+            DESCRIPTION. The default is "1".
 
-    for model, datafiles in datafiles_probability_dict.items():
-        if len(datafiles) == 0: continue
+        right_k_label : str, optional
+            DESCRIPTION. The default is "2".
 
-        datafile_probability = datafiles[0]
-        x_probability  = datafile_probability.coords['x'].value
-    if not datafile_probability:
-        raise common.NextnanoInputFileError('Probabilities are not output! Modify the input file.')
+        labelsize : int, optional
+            font size of xlabel and ylabel
+        ticksize : int, optional
+            font size of xtics and ytics
+
+        savePDF : bool, optional
+            save the plot in the PDF format. The default is False.
+
+        savePNG : bool, optional
+            save the plot in the PNG format. The default is False.
+
+        Returns
+        -------
+        fig: matplotlib.subplot object
+
+        Note
+        ----
+        If the user does not specify the start/stop state indices, all simulated states are plotted.
+
+        """
+        if labelsize is None: labelsize = self.labelsize_default
+        if ticksize is None: ticksize = self.ticksize_default
+
+        # load output data files
+        logging.info("Loading 1st dispersion data (to be plotted on the left)...")
+        try:
+            datafile_dispersion1 = self.getDataFile('dispersion_', name, self.software)
+        except ValueError:
+            datafile_dispersion1 = self.getDataFile_in_folder('dispersion_', name, self.software)
+        logging.info("Loading 2nd dispersion data (to be plotted on the right)...")
+        try:
+            datafile_dispersion2 = self.getDataFile('dispersion_', name, self.software)
+        except ValueError:
+            datafile_dispersion2 = self.getDataFile_in_folder('dispersion_', name, self.software)
+
+        # store data in arrays
+        kPoints1     = datafile_dispersion1.coords['|k|'].value
+        kPoints2     = datafile_dispersion2.coords['|k|'].value
+        num_bands   = len(datafile_dispersion1.variables)
+        logging.debug(f'num_bands = {num_bands}')
+        num_kPoints1 = len(kPoints1)
+        num_kPoints2 = len(kPoints2)
+
+        # determine which states to plot   # TODO: bug: the last index isn't plotted if startIdx==0 and stopIdx==0!
+        if startIdx == 0: startIdx = 1
+        if stopIdx == 0: stopIdx = num_bands
+        states_toBePlotted = np.arange(startIdx-1, stopIdx, 1)
+
+        # store data in arrays
+        dispersions1 = np.zeros((num_bands, num_kPoints1), dtype=np.double)
+        dispersions2 = np.zeros((num_bands, num_kPoints2), dtype=np.double)
+        for index in states_toBePlotted:
+            dispersions1[index, ] = datafile_dispersion1.variables[f'Band_{index+1}'].value
+            dispersions2[index, ] = datafile_dispersion2.variables[f'Band_{index+1}'].value
+
+        # join two dispersion data
+        kPoints = np.append( np.flip(-kPoints1), kPoints2)
+        dispersions = np.zeros((num_bands, num_kPoints1 + num_kPoints2), dtype=np.double)
+        for index in states_toBePlotted:
+            for kIndex in range(num_kPoints1):
+                dispersions[index, ] = np.append( np.flip(dispersions1[index,:]), dispersions2[index,:])
+
+        title = self.getPlotTitle(name)
+
+        # instantiate matplotlib subplot objects
+        fig, ax = plt.subplots()
+        # ax.set_xlabel(f'$k^{(left_k_label)}$' + '($\mathrm{nm}^{-1}$)' + '\t\t' + f'$k^{(right_k_label)}$' + '($\mathrm{nm}^{-1}$)')  # TODO: I cannot put multiple letters in the superscript in a math expression for label! fr"{variable}" seems to eliminate the brackets {} necessary for latex superscript.
+        ax.set_xlabel(r'$k^{100}$' + '($\mathrm{nm}^{-1}$)' + '\t\t\t' + r'$k^{110}$' + '($\mathrm{nm}^{-1}$)', fontsize=labelsize)  # r with superscript works
+        ax.set_ylabel('energy (eV)', fontsize=labelsize)
+        ax.set_title(f'{title}', fontsize=labelsize)
+        ax.tick_params(axis='x', labelsize=ticksize)
+        ax.tick_params(axis='y', labelsize=ticksize)
+        for index in states_toBePlotted:
+            ax.plot(kPoints, dispersions[index, ], marker='o', label=f'Band_{index+1}')
+        ax.legend(labels=states_toBePlotted+1, bbox_to_anchor=(1.05, 1))
+        fig.tight_layout()
+
+        #-------------------------------------------
+        # Plots - save all the figures to one PDF
+        #-------------------------------------------
+        filename_no_extension = self.separateFileExtension(name)[0]
+        export_filename = f'{filename_no_extension}_patched_dispersion'
+
+        if savePDF: self.export_figs(export_filename, 'pdf', self.software)
+        if savePNG: self.export_figs(export_filename, 'png', self.software, fig=fig)
+
+        # --- display in the GUI
+        plt.show()
+        return fig
 
 
-    # store data in arrays (independent of quantum models)
-    x             = datafile_bandedge.coords['x'].value
-    CBBandedge    = datafile_bandedge.variables['Gamma'].value
-    LHBandedge    = datafile_bandedge.variables['LH'].value
-    HHBandedge    = datafile_bandedge.variables['HH'].value
-    SOBandedge    = datafile_bandedge.variables['SO'].value
+    def plot_dispersions_sweep(self, 
+            master_input_file, 
+            sweep_variable, 
+            list_of_values, 
+            states_toBePlotted
+            ):
+        """
+        Plot multiple dispersions from sweep output.
+        TODO: Currently, only 1D sweep is supported.
 
-    states_toBePlotted, num_evs = common.get_states_to_be_plotted(datafiles_probability_dict, software, states_range_dict=states_range_dict, states_list_dict=states_list_dict)
+        INPUT:
+            master_input_file       nn.InputFile object
+            sweep_variable          string of sweep variable name
+            list_of_values          list of values at which simulations have run
+            states_toBePlotted      list of eigenstate numbers to be plotted
+
+        """
+        inputfile_name = self.separateFileExtension(master_input_file.fullpath)[0]
+        output_folder_path = self.getSweepOutputFolderPath(inputfile_name, self.software, sweep_variable)
+        logging.info(f'output folder path: {output_folder_path}')
+
+        for value in list_of_values:
+            output_subfolderName = self.getSweepOutputSubfolderName(inputfile_name, {sweep_variable: value})
+            output_folder = os.path.join(output_folder_path, output_subfolderName)
+
+            # load output data files
+            datafile_dispersion = self.getDataFile_in_folder('dispersion_', output_folder, self.software)
+
+            # store data in arrays
+            kPoints     = datafile_dispersion.coords['|k|'].value
+            num_bands   = len(datafile_dispersion.variables)
+            num_kPoints = len(kPoints)
+            dispersions = np.zeros((num_bands, num_kPoints), dtype=np.double)
+            for index in states_toBePlotted:
+                dispersions[index, ] = datafile_dispersion.variables[f'Band_{index+1}'].value
+
+            # instantiate matplotlib subplot objects
+            fig, ax = plt.subplots()
+            ax.set_xlabel('in-plane k [/nm]')
+            ax.set_ylabel('energy [eV]')
+            ax.set_title('{}, {}={:.1f} nm'.format(inputfile_name, sweep_variable, value))
+            for index in states_toBePlotted:
+                ax.plot(kPoints, dispersions[index, ], marker='o', label=f'{index+1}th')
+            ax.legend(loc='upper left')
+
+        # save all the figures to one PDF
+        PDFfilename = self.separateFileExtension(inputfile_name)[0]
+        self.export_figs(PDFfilename, 'pdf', self.software, output_folder_path=output_folder_path)
 
 
-    # visualize the in-plane k point_maxts at which Schroedinger eq. has been solved
-    if only_k0:
-        num_kPoints = dict()
+    def generate_gif(self, 
+            master_input_file, 
+            sweep_variable, 
+            list_of_values, 
+            states_toBePlotted
+            ):
+        """
+        Generate GIF animation from multiple dispersions obtained from sweep.
+        Currently, only 1D sweep is supported.
+
+        INPUT:
+            master_input_file       nn.InputFile object
+            sweep_variable          string of sweep variable name
+            list_of_values          list of values at which simulations have been performed
+            states_toBePlotted      list of eigenstate numbers to be plotted
+
+        """
+        inputfile_name = self.separateFileExtension(master_input_file.fullpath)[0]
+        output_folder_path = self.getSweepOutputFolderPath(inputfile_name, self.software, sweep_variable)
+
+        # determine optimal plot range - x-axis
+        output_subfolderName = self.getSweepOutputSubfolderName(inputfile_name, {sweep_variable: list_of_values[0]})
+        output_folder        = os.path.join(output_folder_path, output_subfolderName)
+        datafile_dispersion  = self.getDataFile_in_folder('dispersion_', output_folder, self.software)
+        kPoints              = datafile_dispersion.coords['|k|'].value
+        xrange = kPoints[-1] - kPoints[0]
+        xmin = kPoints[0] - 0.05 * xrange
+        xmax = kPoints[-1] + 0.05 * xrange
+
+        # determine optimal plot range - y-axis
+        energy_min  = 0
+        energy_max  = 0
+        for index in states_toBePlotted:
+            energies = datafile_dispersion.variables[f'Band_{index+1}'].value
+            energy_min = min(energy_min, np.amin(energies))
+            energy_max = max(energy_max, np.amax(energies))
+        yrange = energy_max - energy_min
+        ymin = energy_min - 0.05 * yrange
+        ymax = energy_max + 0.05 * yrange
+
+        num_bands   = len(datafile_dispersion.variables)
+        num_kPoints = len(kPoints)
+
+        def plotDispersions(iSweep):
+            output_subfolderName = self.getSweepOutputSubfolderName(inputfile_name, {sweep_variable: list_of_values[iSweep]})
+            output_folder = os.path.join(output_folder_path, output_subfolderName)
+
+            # load output data files
+            datafile_dispersion = self.getDataFile_in_folder('dispersion_', output_folder, self.software)
+
+            # store data in arrays
+            dispersions = np.zeros((num_bands, num_kPoints), dtype=np.double)
+            for index in states_toBePlotted:
+                dispersions[index, ] = datafile_dispersion.variables[f'Band_{index+1}'].value
+
+            ax.set_title('{}, {}={:.1f} nm'.format(inputfile_name, sweep_variable, list_of_values[iSweep]))
+
+            for i, index in enumerate(states_toBePlotted):
+                lines[i].set_data(kPoints, dispersions[index, ])
+                lines[i].set_label(f'{index+1}th')
+            ax.legend(loc='upper left')
+
+
+        fig, ax = plt.subplots()
+        ax.set_xlabel('in-plane k [/nm]')
+        ax.set_ylabel('energy [eV]')
+        ax.set_xlim(xmin, xmax)
+        ax.set_ylim(ymin, ymax)
+
+        lines = []
+        for index in states_toBePlotted:
+            line, = plt.plot([], [], marker='o')   # empty plot
+            lines.append(line)
+
+        def animate(iSweep):
+            plotDispersions(iSweep)
+
+        # generate GIF animation
+        from matplotlib import animation
+
+        cwd = os.getcwd()
+        os.chdir(output_folder_path)
+        logging.info(f'Exporting GIF animation to: {output_folder_path}\n')
+        num_sweeps  = len(list_of_values)
+        ani = animation.FuncAnimation(fig, animate, frames=num_sweeps, interval=700)
+        ani.save(f'{inputfile_name}.gif', writer='pillow')
+        os.chdir(cwd)
+
+
+
+    ############### plot probabilities ##################################
+    def plot_probabilities(self, 
+            input_file,
+            states_range_dict   = None,
+            states_list_dict    = None,
+            start_position      = -10000.,
+            end_position        = 10000.,
+            hide_tails          = False,
+            only_k0             = True,
+            show_spinor         = False,
+            show_state_index    = False,
+            plot_title          = '',
+            labelsize           = None,
+            ticksize            = None,
+            savePDF             = False,
+            savePNG             = False,
+            ):
+        """
+        Plot probability distribution on top of bandedges.
+        Properly distinguishes the results from the single band effective mass model, 6- and 8-band k.p models.
+        If both electrons and holes have been simulated, also plot both probabilities in one figure.
+
+        The probability distributions are coloured according to
+        quantum model that yielded the solution (for single-band effective mass and kp6 models) or
+        electron fraction (for kp8 model).
+
+        Parameters
+        ----------
+        input_file : nextnanopy.InputFile object
+            nextnano++ input file.
+        states_range_dict : dict, optional
+            range of state indices to be plotted for each quantum model. The default is None.
+        states_list_dict : dict, optional
+            list of state indices to be plotted for each quantum model.
+            Alternatively, strings 'lowestElectron', 'highestHole' and 'occupied' are accepted. For 'occupied', another key 'cutoff_occupation' must be set in this dict.
+            The default is None.
+        start_position : real, optional
+            left edge of the plotting region. The default is -10000.
+        end_position : real, optional
+            right edge of the plotting region. The default is 10000.
+        hide_tails : bool, optional
+            hide the probability tails. The default is False.
+        only_k0 : bool, optional
+            suppress the output of nonzero in-plane k states. The default is True.
+        show_spinor : bool, optional
+            plot pie chart of spinor composition for all eigenvalues and k points. The default is False.
+        show_state_index : bool, optional
+            indicate eigenstate indices on top of probability plot. The default is False.
+        plot_title : str, optional
+            title of the probability plot. The default is ''.
+        labelsize : int, optional
+            font size of xlabel, ylabel and colorbar label
+        ticksize : int, optional
+            font size of xtics, ytics and colorbar tics
+        savePDF : str, optional
+            save the plot in the PDF format. The default is False.
+        savePNG : str, optional
+            save the plot in the PNG format. The default is False.
+
+        Returns
+        -------
+        None.
+
+        """
+        if labelsize is None: labelsize = self.labelsize_default
+        if ticksize is None: ticksize = self.ticksize_default
+
+        from matplotlib import colors
+        from matplotlib.gridspec import GridSpec
+
+        # load output data files
+        datafile_bandedge = self.getDataFile('bandedges', input_file.fullpath, self.software)
+        datafiles_probability_dict = self.getDataFile_probabilities_with_name(input_file.fullpath, self.software)
+
+        for model, datafiles in datafiles_probability_dict.items():
+            if len(datafiles) == 0: continue
+
+            datafile_probability = datafiles[0]
+            x_probability  = datafile_probability.coords['x'].value
+        if not datafile_probability:
+            raise self.NextnanoInputFileError('Probabilities are not output! Modify the input file.')
+
+
+        # store data in arrays (independent of quantum models)
+        x             = datafile_bandedge.coords['x'].value
+        CBBandedge    = datafile_bandedge.variables['Gamma'].value
+        LHBandedge    = datafile_bandedge.variables['LH'].value
+        HHBandedge    = datafile_bandedge.variables['HH'].value
+        SOBandedge    = datafile_bandedge.variables['SO'].value
+
+        states_toBePlotted, num_evs = self.get_states_to_be_plotted(datafiles_probability_dict, self.software, states_range_dict=states_range_dict, states_list_dict=states_list_dict)
+
+
+        # visualize the in-plane k point_maxts at which Schroedinger eq. has been solved
+        if only_k0:
+            num_kPoints = dict()
+            for model in states_toBePlotted:
+                num_kPoints[model] = 1
+        else:
+            inplaneK_dict = self.getKPointsData1D(input_file)
+            self.plot_inplaneK(inplaneK_dict)
+            num_kPoints = self.get_num_kPoints(inplaneK_dict)
+
+
+        # dictionary containing quantum model keys and 2-dimensional list for each key that stores psi^2 for all (eigenstate, kIndex)
+        psiSquared = dict.fromkeys(datafiles_probability_dict.keys())
         for model in states_toBePlotted:
-            num_kPoints[model] = 1
-    else:
-        inplaneK_dict = getKPointsData1D(input_file)
-        plot_inplaneK(inplaneK_dict)
-        num_kPoints = get_num_kPoints(inplaneK_dict)
+            psiSquared[model] = [ [ 0 for kIndex in range(num_kPoints[model]) ] for stateIndex in range(num_evs[model]) ]  # stateIndex in states_toBePlotted[model] would give a list of the same size
+
+        for model, dfs in datafiles_probability_dict.items():
+            if len(dfs) == 0: continue
+
+            for cnt, stateIndex in enumerate(states_toBePlotted[model]):
+                for kIndex in range(num_kPoints[model]):
+                    psiSquared_oldgrid = dfs[kIndex].variables[f'Psi^2_{stateIndex+1}'].value
+                    psiSquared[model][cnt][kIndex] = self.convert_grid(psiSquared_oldgrid, x_probability, x)   # grid interpolation needed because of 'output_bandedges{ averaged=no }'
 
 
-    # dictionary containing quantum model keys and 2-dimensional list for each key that stores psi^2 for all (eigenstate, kIndex)
-    psiSquared = dict.fromkeys(datafiles_probability_dict.keys())
-    for model in states_toBePlotted:
-        psiSquared[model] = [ [ 0 for kIndex in range(num_kPoints[model]) ] for stateIndex in range(num_evs[model]) ]  # stateIndex in states_toBePlotted[model] would give a list of the same size
-
-    for model, dfs in datafiles_probability_dict.items():
-        if len(dfs) == 0: continue
-
-        for cnt, stateIndex in enumerate(states_toBePlotted[model]):
-            for kIndex in range(num_kPoints[model]):
-                psiSquared_oldgrid = dfs[kIndex].variables[f'Psi^2_{stateIndex+1}'].value
-                psiSquared[model][cnt][kIndex] = common.convert_grid(psiSquared_oldgrid, x_probability, x)   # grid interpolation needed because of 'output_bandedges{ averaged=no }'
+        # chop off edges of the simulation region
+        CBBandedge = super().cutOff_edges1D(CBBandedge, x, start_position, end_position)
+        HHBandedge = super().cutOff_edges1D(HHBandedge, x, start_position, end_position)
+        LHBandedge = super().cutOff_edges1D(LHBandedge, x, start_position, end_position)
+        SOBandedge = super().cutOff_edges1D(SOBandedge, x, start_position, end_position)
 
 
-    # chop off edges of the simulation region
-    CBBandedge = common.cutOff_edges1D(CBBandedge, x, start_position, end_position)
-    HHBandedge = common.cutOff_edges1D(HHBandedge, x, start_position, end_position)
-    LHBandedge = common.cutOff_edges1D(LHBandedge, x, start_position, end_position)
-    SOBandedge = common.cutOff_edges1D(SOBandedge, x, start_position, end_position)
-
-
-    for model in states_toBePlotted:
-        for cnt, stateIndex in enumerate(states_toBePlotted[model]):
-            for kIndex in range(num_kPoints[model]):
-                psiSquared[model][cnt][kIndex] = common.cutOff_edges1D(psiSquared[model][cnt][kIndex], x, start_position, end_position)   # chop off edges of the simulation region
-
-    x = common.cutOff_edges1D(x, x, start_position, end_position)
-    simLength = x[-1]-x[0]   # (nm)
-
-
-    # mask psiSquared data where it is flat
-    if hide_tails:
         for model in states_toBePlotted:
             for cnt, stateIndex in enumerate(states_toBePlotted[model]):
                 for kIndex in range(num_kPoints[model]):
-                    psiSquared[model][cnt][kIndex] = common.mask_part_of_array(psiSquared[model][cnt][kIndex], 'flat', 1e-3)
+                    psiSquared[model][cnt][kIndex] = super().cutOff_edges1D(psiSquared[model][cnt][kIndex], x, start_position, end_position)   # chop off edges of the simulation region
+
+        x = super().cutOff_edges1D(x, x, start_position, end_position)
+        simLength = x[-1]-x[0]   # (nm)
 
 
-    if 'kp6' in datafiles_probability_dict.keys() or 'kp8' in datafiles_probability_dict.keys():
-        # output data of spinor composition at all in-plane k
-        datafiles_spinor = {
-            'kp6': list(),
-            'kp8': list()
-        }
-        datafiles = common.getDataFiles(['spinor_composition', 'CbHhLhSo'], input_file.fullpath, software)
-        datafiles = [df for cnt in range(len(datafiles)) for df in datafiles if str(cnt).zfill(5) + '_CbHhLhSo' in os.path.split(df.fullpath)[1]]   # sort spinor composition datafiles in ascending kIndex
-        for df in datafiles:
-            filename = os.path.split(df.fullpath)[1]
-            quantum_model = detect_quantum_model(filename)
-            if quantum_model == 'kp6':
-                datafiles_spinor['kp6'].append(df)
-            elif quantum_model == 'kp8':
-                datafiles_spinor['kp8'].append(df)
-            else:
-                raise RuntimeError("Unknown quantum model in spinor composition!")
-        del datafiles
+        # mask psiSquared data where it is flat
+        if hide_tails:
+            for model in states_toBePlotted:
+                for cnt, stateIndex in enumerate(states_toBePlotted[model]):
+                    for kIndex in range(num_kPoints[model]):
+                        psiSquared[model][cnt][kIndex] = super().mask_part_of_array(psiSquared[model][cnt][kIndex], 'flat', 1e-3)
 
-        # dictionary containing quantum model keys and 1-dimensional np.ndarrays for each key that stores spinor composition for all (eigenstate, kIndex)
-        compositions = dict()
 
-        for model, state_indices in states_toBePlotted.items():
-            if model not in ['kp6', 'kp8']: continue
+        if 'kp6' in datafiles_probability_dict.keys() or 'kp8' in datafiles_probability_dict.keys():
+            # output data of spinor composition at all in-plane k
+            datafiles_spinor = {
+                'kp6': list(),
+                'kp8': list()
+            }
+            datafiles = self.getDataFiles(['spinor_composition', 'CbHhLhSo'], input_file.fullpath, self.software)
+            datafiles = [df for cnt in range(len(datafiles)) for df in datafiles if str(cnt).zfill(5) + '_CbHhLhSo' in os.path.split(df.fullpath)[1]]   # sort spinor composition datafiles in ascending kIndex
+            for df in datafiles:
+                filename = os.path.split(df.fullpath)[1]
+                quantum_model = self.detect_quantum_model(filename)
+                if quantum_model == 'kp6':
+                    datafiles_spinor['kp6'].append(df)
+                elif quantum_model == 'kp8':
+                    datafiles_spinor['kp8'].append(df)
+                else:
+                    raise RuntimeError("Unknown quantum model in spinor composition!")
+            del datafiles
 
-            compositions[model] = np.zeros((num_evs[model], num_kPoints[model], 4))   # compositions[quantum model][eigenvalue index][k index][spinor index]
+            # dictionary containing quantum model keys and 1-dimensional np.ndarrays for each key that stores spinor composition for all (eigenstate, kIndex)
+            compositions = dict()
 
-            for stateIndex in state_indices:
-                for kIndex in range(num_kPoints[model]):
-                    assert model in os.path.split(datafiles_spinor[model][kIndex].fullpath)[1]  # filename contains correct quantum model
-                    assert str(kIndex) in os.path.split(datafiles_spinor[model][kIndex].fullpath)[1]  # filename contains correct kIndex
-                    # store spinor composition data
-                    if model == 'kp8':
-                        compositions[model][stateIndex, kIndex, 0] = datafiles_spinor[model][kIndex].variables['cb1'].value[stateIndex] + datafiles_spinor[model][kIndex].variables['cb2'].value[stateIndex]
+            for model, state_indices in states_toBePlotted.items():
+                if model not in ['kp6', 'kp8']: continue
 
-                    compositions[model][stateIndex, kIndex, 1] = datafiles_spinor[model][kIndex].variables['hh1'].value[stateIndex] + datafiles_spinor[model][kIndex].variables['hh2'].value[stateIndex]
-                    compositions[model][stateIndex, kIndex, 2] = datafiles_spinor[model][kIndex].variables['lh1'].value[stateIndex] + datafiles_spinor[model][kIndex].variables['lh2'].value[stateIndex]
-                    compositions[model][stateIndex, kIndex, 3] = datafiles_spinor[model][kIndex].variables['so1'].value[stateIndex] + datafiles_spinor[model][kIndex].variables['so2'].value[stateIndex]
+                compositions[model] = np.zeros((num_evs[model], num_kPoints[model], 4))   # compositions[quantum model][eigenvalue index][k index][spinor index]
 
-    # define plot title
-    title = common.getPlotTitle(plot_title)
+                for stateIndex in state_indices:
+                    for kIndex in range(num_kPoints[model]):
+                        assert model in os.path.split(datafiles_spinor[model][kIndex].fullpath)[1]  # filename contains correct quantum model
+                        assert str(kIndex) in os.path.split(datafiles_spinor[model][kIndex].fullpath)[1]  # filename contains correct kIndex
+                        # store spinor composition data
+                        if model == 'kp8':
+                            compositions[model][stateIndex, kIndex, 0] = datafiles_spinor[model][kIndex].variables['cb1'].value[stateIndex] + datafiles_spinor[model][kIndex].variables['cb2'].value[stateIndex]
 
-    def draw_bandedges(ax, model):
-        common.set_plot_labels(ax, 'Position (nm)', 'Energy (eV)', title)
-        if model == 'Gamma' or model == 'kp8':
-            ax.plot(x, CBBandedge, label='CB', linewidth=0.6, color=common.band_colors['CB'])
-        if model == 'HH' or model == 'kp6' or model == 'kp8':
-            ax.plot(x, LHBandedge, label='HH', linewidth=0.6, color=common.band_colors['HH'])
-        if model == 'LH' or model == 'kp6' or model == 'kp8':
-            ax.plot(x, HHBandedge, label='LH', linewidth=0.6, color=common.band_colors['LH'])
-        if model == 'SO' or model == 'kp6' or model == 'kp8':
-            ax.plot(x, SOBandedge, label='SO', linewidth=0.6, color=common.band_colors['SO'])
+                        compositions[model][stateIndex, kIndex, 1] = datafiles_spinor[model][kIndex].variables['hh1'].value[stateIndex] + datafiles_spinor[model][kIndex].variables['hh2'].value[stateIndex]
+                        compositions[model][stateIndex, kIndex, 2] = datafiles_spinor[model][kIndex].variables['lh1'].value[stateIndex] + datafiles_spinor[model][kIndex].variables['lh2'].value[stateIndex]
+                        compositions[model][stateIndex, kIndex, 3] = datafiles_spinor[model][kIndex].variables['so1'].value[stateIndex] + datafiles_spinor[model][kIndex].variables['so2'].value[stateIndex]
 
-    def draw_probabilities(ax, state_indices, model, kIndex, show_state_index):
-        skip_annotation = False
-        for cnt, stateIndex in enumerate(state_indices):
-            if model == 'kp8':
-                # color according to electron fraction of the state
-                plot_color = scalarmappable.to_rgba(compositions['kp8'][stateIndex, kIndex, 0])
-            else:
-                # color according to the quantum model that yielded the solution
-                plot_color = common.band_colors[model]
-            ax.plot(x, psiSquared[model][cnt][kIndex], color=plot_color)
+        # define plot title
+        title = self.getPlotTitle(plot_title)
 
-            if show_state_index:
-                xmax, ymax = common.get_maximum_points(psiSquared[model][cnt][kIndex], x)
-                if skip_annotation:   # if annotation was skipped in the previous iteration, annotate
-                    # ax.annotate(f'n={stateIndex},{stateIndex+1}', xy=(xmax, ymax), xytext=(xmax-0.05*simLength, ymax+0.07))
-                    ax.annotate(f'{stateIndex},{stateIndex+1}', xy=(xmax, ymax), xytext=(xmax, ymax+0.07))
-                    skip_annotation = False   # wavefunction degeneracy is atmost 2
-                elif cnt < len(state_indices)-1:  # if not the last state
-                    xmax_next, ymax_next = common.get_maximum_points(psiSquared[model][cnt+1][kIndex], x)
-                    if abs(xmax_next - xmax) < 1.0 and abs(ymax_next - ymax) < 1e-1:
-                        skip_annotation = True
+        def draw_bandedges(ax, model):
+            self.set_plot_labels(ax, 'Position (nm)', 'Energy (eV)', title)
+            if model == 'Gamma' or model == 'kp8':
+                ax.plot(x, CBBandedge, label='CB', linewidth=0.6, color=self.band_colors['CB'])
+            if model == 'HH' or model == 'kp6' or model == 'kp8':
+                ax.plot(x, HHBandedge, label='HH', linewidth=0.6, color=self.band_colors['HH'])
+            if model == 'LH' or model == 'kp6' or model == 'kp8':
+                ax.plot(x, LHBandedge, label='LH', linewidth=0.6, color=self.band_colors['LH'])
+            if model == 'SO' or model == 'kp6' or model == 'kp8':
+                ax.plot(x, SOBandedge, label='SO', linewidth=0.6, color=self.band_colors['SO'])
+
+        def draw_probabilities(ax, state_indices, model, kIndex, show_state_index):
+            skip_annotation = False
+            for cnt, stateIndex in enumerate(state_indices):
+                if model == 'kp8':
+                    # color according to electron fraction of the state
+                    plot_color = scalarmappable.to_rgba(compositions['kp8'][stateIndex, kIndex, 0])
+                else:
+                    # color according to the quantum model that yielded the solution
+                    plot_color = self.band_colors[model]
+                ax.plot(x, psiSquared[model][cnt][kIndex], color=plot_color)
+
+                if show_state_index:
+                    xmax, ymax = self.get_maximum_points(psiSquared[model][cnt][kIndex], x)
+                    if skip_annotation:   # if annotation was skipped in the previous iteration, annotate
+                        # ax.annotate(f'n={stateIndex},{stateIndex+1}', xy=(xmax, ymax), xytext=(xmax-0.05*simLength, ymax+0.07))
+                        ax.annotate(f'{stateIndex},{stateIndex+1}', xy=(xmax, ymax), xytext=(xmax, ymax+0.07))
+                        skip_annotation = False   # wavefunction degeneracy is atmost 2
+                    elif cnt < len(state_indices)-1:  # if not the last state
+                        xmax_next, ymax_next = self.get_maximum_points(psiSquared[model][cnt+1][kIndex], x)
+                        if abs(xmax_next - xmax) < 1.0 and abs(ymax_next - ymax) < 1e-1:
+                            skip_annotation = True
+                        else:
+                            skip_annotation = False
+                            # ax.annotate(f'n={stateIndex+1}', xy=(xmax, ymax), xytext=(xmax-0.05*simLength, ymax+0.07))
+                            ax.annotate(f'{stateIndex+1}', xy=(xmax, ymax), xytext=(xmax, ymax+0.07))
                     else:
-                        skip_annotation = False
                         # ax.annotate(f'n={stateIndex+1}', xy=(xmax, ymax), xytext=(xmax-0.05*simLength, ymax+0.07))
                         ax.annotate(f'{stateIndex+1}', xy=(xmax, ymax), xytext=(xmax, ymax+0.07))
-                else:
-                    # ax.annotate(f'n={stateIndex+1}', xy=(xmax, ymax), xytext=(xmax-0.05*simLength, ymax+0.07))
-                    ax.annotate(f'{stateIndex+1}', xy=(xmax, ymax), xytext=(xmax, ymax+0.07))
-        ax.legend()
-
-    def draw_spinor_pie_charts(gs_spinor, state_indices, model, stateIndex, kIndex, show_state_index):
-        num_rows, num_columns = common.getRowColumnForDisplay(len(state_indices))  # determine arrangement of spinor composition plots
-        list_of_colors = [common.band_colors[model] for model in ['CB', 'HH', 'LH', 'SO']]
-        for i in range(num_rows):
-            for j in range(num_columns):
-                subplotIndex = j + num_columns * i
-                if subplotIndex >= len(state_indices): break
-
-                ax = fig.add_subplot(gs_spinor[i, j])
-                stateIndex = state_indices[subplotIndex]
-                ax.pie(compositions[model][stateIndex, kIndex, :], colors=list_of_colors, normalize=True, startangle=90, counterclock=False)   # compositions[quantum model][eigenvalue index][k index][spinor index]
-                if show_state_index: ax.set_title(f'n={stateIndex+1}', color='grey')
-
-
-    # instantiate matplotlib subplot objects for bandedge & probability distribution & spinor pie charts
-    for model, state_indices in states_toBePlotted.items():
-        for kIndex in range(num_kPoints[model]):
-            if only_k0 and kIndex > 0: break
-
-            if show_spinor and (model == 'kp6' or model == 'kp8'):
-                num_rows, num_columns = common.getRowColumnForDisplay(len(state_indices))
-
-                fig = plt.figure(figsize=plt.figaspect(0.4))
-                grid_probability = GridSpec(1, 1, figure=fig, left=0.10, right=0.48, bottom=0.15, wspace=0.05)
-                grid_spinor = GridSpec(num_rows, num_columns, figure=fig, left=0.55, right=0.98, bottom=0.15, hspace=0.2)
-                ax_probability = fig.add_subplot(grid_probability[0,0])
-            else:
-                fig, ax_probability = plt.subplots()
-            if only_k0:
-                ax_probability.set_title(f'{title} (quantum model: {model})', color=common.band_colors[model])
-            else:
-                ax_probability.set_title(f'{title} (quantum model: {model}), k index: {kIndex}', color=common.band_colors[model])
-            draw_bandedges(ax_probability, model)
-
-
-            if model == 'kp8':
-                # define colorbar representing electron fraction
-                divnorm = colors.TwoSlopeNorm(vcenter=0.5, vmin=0.0, vmax=1.0)
-                scalarmappable = plt.cm.ScalarMappable(cmap='seismic', norm=divnorm)
-                cbar = fig.colorbar(scalarmappable)
-                cbar.set_label("Electron fraction", fontsize=labelsize)
-                cbar.ax.tick_params(labelsize=ticksize)
-
-            draw_probabilities(ax_probability, state_indices, model, kIndex, show_state_index)
-
-            if show_spinor and (model == 'kp6' or model == 'kp8'):
-                draw_spinor_pie_charts(grid_spinor, state_indices, model, stateIndex, kIndex, show_state_index)
-            else:
-                fig.tight_layout()
-
-
-    # if both electrons and holes have been calculated separately (but not by kp8),
-    # plot bandedge and probabilities at k|| = 0
-    calculated_e_models = [model for model in states_toBePlotted if model in model_names_conduction]
-    calculated_h_models = [model for model in states_toBePlotted if model in model_names_valence]
-
-    models = [model in model_names_conduction for model in states_toBePlotted]
-    models.append([model in model_names_conduction for model in states_toBePlotted])
-
-    if len(calculated_e_models) >= 1 and len(calculated_h_models) >= 1:
-        fig, ax_combi = plt.subplots()
-        ax_combi.set_title(f"{title} ({calculated_e_models}+{calculated_h_models}), zone-center")
-        draw_bandedges(ax_combi, 'Gamma')
-        draw_bandedges(ax_combi, 'HH')
-        draw_bandedges(ax_combi, 'LH')
-        draw_bandedges(ax_combi, 'SO')
-
-        for model in calculated_e_models + calculated_h_models:
-            draw_probabilities(ax_combi, states_toBePlotted[model], model, 0, show_state_index)
-        fig.tight_layout()
-
-
-    #-------------------------------------------
-    # Plots --- save all the figures to one PDF
-    #-------------------------------------------
-    if savePDF:
-        export_filename = f'{common.separateFileExtension(input_file.fullpath)[0]}_probabilities'
-        common.export_figs(export_filename, 'pdf', software)
-    if savePNG:
-        export_filename = f'{common.separateFileExtension(input_file.fullpath)[0]}_probabilities'
-        common.export_figs(export_filename, 'png', software, fig=fig)   # NOTE: presumably only the last fig instance is exported
-
-    # --- display in the GUI
-    plt.show()
-
-
-
-############### k.p density shortcut #########################################
-
-def plot_carrier_densities(
-        input_file,
-        scale_factor        = 1.0,
-        start_position      = -10000,
-        end_position        = 10000,
-        plot_title          = '',
-        labelsize           = common.labelsize_default,
-        ticksize            = common.ticksize_default,
-        PDFfilename         = ''
-        ):
-    """
-    Plot carrier densities as a function of position.
-
-    Parameters
-    ----------
-    input_file : nextnanopy.InputFile object
-        nextnano++ input file.
-    scale_factor : real, optional
-        Scaling factor for density. The default is 1.0.
-    start_position : real, optional
-        left edge of the plotting region. The default is -10000.
-    end_position : real, optional
-        right edge of the plotting region. The default is 10000.
-    plot_title : str, optional
-        title of the plot. By default, title is not displayed.
-    PDFfilename : str, optional
-        file name of the PDF file. If not specified, no PDF is exported. The default is ''.
-
-    Returns
-    -------
-    fig : TYPE
-        DESCRIPTION.
-
-    """
-
-    # load output data files
-    datafile_bandedge = common.getDataFile('bandedges', input_file.fullpath, software)
-    datafile_densityEl = common.getDataFile('density_electron', input_file.fullpath, software, exclude_keywords=['integrated'])
-    datafile_densityHl = common.getDataFile('density_hole', input_file.fullpath, software, exclude_keywords=['integrated'])
-
-    # store data in arrays
-    x           = datafile_bandedge.coords['x'].value
-    CBBandedge  = datafile_bandedge.variables['Gamma'].value
-    HHBandedge  = datafile_bandedge.variables['HH'].value
-    LHBandedge  = datafile_bandedge.variables['LH'].value
-    SOBandedge  = datafile_bandedge.variables['SO'].value
-    x_density   = datafile_densityEl.coords['x'].value
-
-    densityEl_oldgrid   = datafile_densityEl.variables['Electron_density'].value # grid interpolation needed because of 'output_bandedges{ averaged=no }'
-    densityHl_oldgrid   = datafile_densityHl.variables['Hole_density'].value
-    densityEl           = common.convert_grid(densityEl_oldgrid, x_density, x)
-    densityHl           = common.convert_grid(densityHl_oldgrid, x_density, x)
-
-
-    # chop off edges of the simulation region
-    CBBandedge = common.cutOff_edges1D(CBBandedge, x, start_position, end_position)
-    HHBandedge = common.cutOff_edges1D(HHBandedge, x, start_position, end_position)
-    LHBandedge = common.cutOff_edges1D(LHBandedge, x, start_position, end_position)
-    SOBandedge = common.cutOff_edges1D(SOBandedge, x, start_position, end_position)
-    densityEl  = common.cutOff_edges1D(densityEl, x, start_position, end_position)
-    densityHl  = common.cutOff_edges1D(densityHl, x, start_position, end_position)
-    x = common.cutOff_edges1D(x, x, start_position, end_position)
-
-    # plot k points
-    inplaneK_dict = getKPointsData1D(input_file)
-    plot_inplaneK(inplaneK_dict)
-
-
-    #-------------------------------------------
-    # Plots
-    #-------------------------------------------
-
-    # --- plot charge density
-    fig, ax = plt.subplots()
-    ax.plot(x, CBBandedge, label='CB', linewidth=0.6, color=common.band_colors['CB'])
-    ax.plot(x, HHBandedge, label='HH', linewidth=0.6, color=common.band_colors['HH'])
-    ax.plot(x, LHBandedge, label='LH', linewidth=0.6, color=common.band_colors['LH'])
-    ax.plot(x, SOBandedge, label='SO', linewidth=0.6, color=common.band_colors['SO'])
-
-    ylabel_unit_str = "{:.0e}".format(1e18 / scale_factor)
-    ax.plot(x, scale_factor * densityEl, 'r', label='electron')
-    ax.plot(x, -scale_factor * densityHl, 'b', label='hole')
-    ax.set_xlabel("Position (nm)", fontsize=labelsize)
-    ax.set_ylabel('Carrier density (' + ylabel_unit_str + ' $\mathrm{cm}^{-3}$)', fontsize=labelsize)
-    ax.tick_params(axis='x', labelsize=ticksize)
-    ax.tick_params(axis='y', labelsize=ticksize)
-    fig.tight_layout()
-
-    # define plot title
-    if plot_title:
-        title = common.getPlotTitle(plot_title)
-    else:
-        title = ''
-    ax.set_title(title)
-    ax.legend(loc='upper right')
-
-    # --- save all the figures to one PDF
-    if PDFfilename:
-        common.export_figs(PDFfilename, 'pdf', software)
-
-    # --- display in the GUI
-    plt.show()
-
-    return fig
-
-
-def validate_input(plotOccupation, plotFillingFactors, cutoffOccupation, parameter_to_modify, newValue):
-    if plotOccupation and plotFillingFactors:
-        common.NextnanopyScriptError('Occupation and filling factors are not output in one simulation!')
-
-    if plotOccupation:
-        if cutoffOccupation is None:
-            TypeError('Cutoff occupation not specified!')
-        if cutoffOccupation < 0:
-            ValueError('Cutoff occupation out of range (occupation >= 0)')
-
-    if parameter_to_modify:
-        if newValue is None:
-            TypeError('Specify new value for the modified input parameter!')
-
-
-
-# TODO: this method confuses probabilities_shift of Gamma and kp6 when loading data for all k. plot_probabilities() does it better. May be integrated to plot_probabilities()
-def kp_density_analysis(
-        folderPath, originalFilename, quantum_model,
-        cutoffOccupation    = None,
-        parameter_to_modify = '',
-        filename_appendix   = '',
-        newValue            = None,
-        executablePath      = '',
-        runSimulation       = True,
-        plotOccupation      = True,
-        plotFillingFactors  = True,
-        plotProbAndSpinor_k = True,
-        plotFermiLevels     = True,
-        plotDensity         = True,
-        scaleDensityPlot    = False,
-        plotSpinorBarChart  = True,
-        PDFfilename         = ''
-        ):
-    """
-    folderPath:         input file folder path
-    originalFilename:   (original) input file name
-
-    quantum_model:      quantum model (kp6 or kp8)
-
-    cutoffOccupation:   cutoff occupation (states with more occupation than this value is regarded as 'occupied')
-
-    parameter_to_modify: name of the parameter to be modified
-    filename_appendix:  string to be appended to the file name
-    newValue:           new value
-
-    executablePath:     path to executable (if different executable than in the config file is desired)
-
-    runSimulation:      whether you want to run simulation
-
-    # which data to plot
-    plotOccupation:       density of (n,k=0) states
-    plotFillingFactors:   filling factor of (n,k) states  # TODO: implement plot of filling factos at all k
-    plotProbAndSpinor_k:  psi^2 and spinor compositions for each k
-    plotFermiLevels:
-    plotDensity:
-    scaleDensityPlot:
-    plotSpinorBarChart:   spinor compositions for each eigenvalue and k as bar chart
-
-    PDFfilename:          output PDF file name. By default, no PDF is generated.
-    """
-    validate_input(plotOccupation, plotFillingFactors, cutoffOccupation, parameter_to_modify, newValue)
-
-    input_file = nn.InputFile(os.path.join(folderPath, originalFilename))
-
-    #-------------------------------------------
-    # postprocessing
-    #-------------------------------------------
-    # load output data files
-    # TODO: clean up
-    datafile_bandedge = common.getDataFile('bandedges', input_file.fullpath, software)
-    datafiles_probability = common.getDataFiles('probabilities_shift', input_file.fullpath, software)  # psi^2 at all in-plane k
-    datafiles_spinor = common.getDataFiles('CbHhLhSo', input_file.fullpath, software)  # spinor composition at all in-plane k
-    if plotOccupation or plotProbAndSpinor_k:
-        datafile_occupation = common.getDataFile('occupation', input_file.fullpath, software)
-    if plotFillingFactors:
-        datafile_filling = common.getDataFile('filling_factors', input_file.fullpath, software)
-
-    # store data in arrays
-    x           = datafile_bandedge.coords['x'].value
-    CBBandedge  = datafile_bandedge.variables['Gamma'].value
-    LHBandedge  = datafile_bandedge.variables['LH'].value
-    HHBandedge  = datafile_bandedge.variables['HH'].value
-    if plotOccupation or plotProbAndSpinor_k:
-        stateIndices = datafile_occupation.coords['no.'].value
-        Occupations  = datafile_occupation.variables['Occupation'].value
-    if plotFillingFactors:
-        stateIndices   = datafile_filling.coords['no.'].value
-        fillingFactors = datafile_filling.variables['filling_factors'].value # TODO: now output for all k in my code
-    if plotFermiLevels:
-        elFermiE    = datafile_bandedge.variables['electron_Fermi_level'].value
-        hlFermiE    = datafile_bandedge.variables['hole_Fermi_level'].value
-
-
-    # get number of eigenvalues
-    if plotOccupation or plotFillingFactors or plotProbAndSpinor_k:
-        num_evs = len(Occupations)
-
-    # generate index list of occupied states
-    if plotOccupation or plotProbAndSpinor_k:
-        # occupiedStatesNo = list()
-        # for stateNo, occupation in zip(stateIndices, Occupations):
-        #     if occupation >= cutoffOccupation:
-        #         occupiedStatesNo.append(int(stateNo))
-        occupiedStatesNo = [int(stateNo) for stateNo, occupation in zip(stateIndices, Occupations) if occupation >= cutoffOccupation]
-
-
-
-    # plot k points
-    inplaneK_dict = getKPointsData1D(input_file)
-    plot_inplaneK(inplaneK_dict)
-
-    # get number of k points
-    num_kPoints = get_num_kPoints(inplaneK_dict)[quantum_model]
-
-
-    if plotProbAndSpinor_k:
-        psiSquared = np.zeros((num_evs, num_kPoints, len(x)), dtype=np.double)
-        composition = np.zeros((num_evs, num_kPoints, 4), dtype=np.double)   # for each eigenstate, 4 components (CB, HH, LH, SO)
-
-        for stateNo in occupiedStatesNo:
-            for kIndex in range(num_kPoints):
-                # store psi^2 data
-                psiSquared_oldgrid = datafiles_probability[kIndex].variables[f'Psi^2_{stateNo}'].value
-                x_probability      = datafiles_probability[kIndex].coords['x'].value
-                psiSquared[stateNo-1, kIndex, ] = common.convert_grid(psiSquared_oldgrid, x_probability, x)   # grid interpolation needed because of 'output_bandedges{ averaged=no }'
-
-                # store spinor composition data (for only occupied states)
-                if quantum_model == 'kp8':
-                    composition[stateNo-1, kIndex, 0] = datafiles_spinor[kIndex].variables['cb1'].value[stateNo-1] + datafiles_spinor[kIndex].variables['cb2'].value[stateNo-1]
-
-                composition[stateNo-1, kIndex, 1] = datafiles_spinor[kIndex].variables['hh1'].value[stateNo-1] + datafiles_spinor[kIndex].variables['hh2'].value[stateNo-1]
-                composition[stateNo-1, kIndex, 2] = datafiles_spinor[kIndex].variables['lh1'].value[stateNo-1] + datafiles_spinor[kIndex].variables['lh2'].value[stateNo-1]
-                composition[stateNo-1, kIndex, 3] = datafiles_spinor[kIndex].variables['so1'].value[stateNo-1] + datafiles_spinor[kIndex].variables['so2'].value[stateNo-1]
-
-
-    if plotSpinorBarChart:
-        electronFraction = np.zeros((num_evs, num_kPoints), dtype=np.double)
-
-        for stateNo in occupiedStatesNo:
-            for kIndex in range(num_kPoints):
-                if quantum_model == 'kp8':
-                    electronFraction[stateNo-1, kIndex] = datafiles_spinor[kIndex].variables['cb1'].value[stateNo-1] + datafiles_spinor[kIndex].variables['cb2'].value[stateNo-1]
-
-
-
-    #-------------------------------------------
-    # Plots
-    #-------------------------------------------
-
-    # --- plot occupation (integrated over k)
-    if plotOccupation:
-        fig, ax = plt.subplots()
-        cutoff = np.array([cutoffOccupation] * num_evs)
-        ax.plot(stateIndices, Occupations, marker='o', label='occupation')
-        ax.plot(cutoff, label='cutoff')
-        plt.yscale('log')
-        plt.xlim([1, num_evs])
-        plt.ylim([1e1, 10*max(Occupations)])
-        ax.set_xlabel('eigenstate index')
-        ax.set_ylabel(f"{datafile_occupation.variables['Occupation'].label}")
-        ax.legend(loc='upper left')
-
-    # --- plot filling factors at k=0
-    if plotFillingFactors:
-        fig, ax = plt.subplots()
-        ax.plot(stateIndices, fillingFactors, marker='o')
-        plt.xlim([1, num_evs])
-        plt.ylim([0, 1])
-        ax.set_xlabel('eigenstate index')
-        ax.set_title('filling factors')
-
-    # --- plot spinor compositions and probabilities for each k
-    if plotProbAndSpinor_k:
-        num_rows, num_columns = common.getRowColumnForDisplay(len(occupiedStatesNo))  # determine arrangement of spinor composition plots
-
-        for kIndex in range(num_kPoints):
-            # plot probabilities with labels
-            fig, ax = plt.subplots()
-            ax.set_xlabel(f"{datafile_bandedge.coords['x'].label}")
-            ax.set_ylabel('energy (eV)')
-            simLength = x[-1]-x[0]   # (nm)
-
-            ax.plot(x, CBBandedge, label='CB', linewidth=0.6)
-            ax.plot(x, HHBandedge, label='HH', linewidth=0.6)
-            ax.plot(x, LHBandedge, label='LH', linewidth=0.6)
-            if plotFermiLevels:
-                ax.plot(x, elFermiE, label='e FermiE', alpha=0.7)
-                ax.plot(x, hlFermiE, label='h FermiE', alpha=0.7)
-
-            for stateNo in occupiedStatesNo:
-                ax.plot(x, psiSquared[stateNo-1, kIndex, ])
-                ymax = np.amax(psiSquared[stateNo-1, kIndex, ])
-                xmaxIndex = np.where(psiSquared[stateNo-1, kIndex, ] == ymax)[0]
-                xmax = x[xmaxIndex.item(0)]             # type(xmaxIndex.item(0)) is 'int'
-                # ax.annotate(f'n={stateNo}', xy=(xmax, ymax), xytext=(xmax-0.05*simLength, ymax+0.07))
-                ax.annotate(f'{stateNo}', xy=(xmax, ymax), xytext=(xmax, ymax+0.07))
-
-            ax.set_title(f'Bandedges and occupied states at k index={kIndex}')
-            ax.legend(loc='upper right')
-
-            # plot spinor compositions
-            fig, ax = plt.subplots()
+            ax.legend()
+
+        def draw_spinor_pie_charts(gs_spinor, state_indices, model, stateIndex, kIndex, show_state_index):
+            num_rows, num_columns = self.getRowColumnForDisplay(len(state_indices))  # determine arrangement of spinor composition plots
+            list_of_colors = [self.band_colors[model] for model in ['CB', 'HH', 'LH', 'SO']]
             for i in range(num_rows):
                 for j in range(num_columns):
                     subplotIndex = j + num_columns * i
-                    if subplotIndex >= len(occupiedStatesNo): break
-                    ax = plt.subplot2grid((num_rows, num_columns), (i, j))
-                    ax.pie(composition[occupiedStatesNo[subplotIndex]-1, kIndex, ], normalize=True, startangle=90, counterclock=False)
-                    ax.set_title(f'n={occupiedStatesNo[subplotIndex]}', {'color':'grey'})
-            ax.legend(labels=['CB','HH','LH','SO'], loc='lower right')
+                    if subplotIndex >= len(state_indices): break
+
+                    ax = fig.add_subplot(gs_spinor[i, j])
+                    stateIndex = state_indices[subplotIndex]
+                    ax.pie(compositions[model][stateIndex, kIndex, :], colors=list_of_colors, normalize=True, startangle=90, counterclock=False)   # compositions[quantum model][eigenvalue index][k index][spinor index]
+                    if show_state_index: ax.set_title(f'n={stateIndex+1}', color='grey')
+
+
+        # instantiate matplotlib subplot objects for bandedge & probability distribution & spinor pie charts
+        for model, state_indices in states_toBePlotted.items():
+            for kIndex in range(num_kPoints[model]):
+                if only_k0 and kIndex > 0: break
+
+                if show_spinor and (model == 'kp6' or model == 'kp8'):
+                    num_rows, num_columns = self.getRowColumnForDisplay(len(state_indices))
+
+                    fig = plt.figure(figsize=plt.figaspect(0.4))
+                    grid_probability = GridSpec(1, 1, figure=fig, left=0.10, right=0.48, bottom=0.15, wspace=0.05)
+                    grid_spinor = GridSpec(num_rows, num_columns, figure=fig, left=0.55, right=0.98, bottom=0.15, hspace=0.2)
+                    ax_probability = fig.add_subplot(grid_probability[0,0])
+                else:
+                    fig, ax_probability = plt.subplots()
+                if only_k0:
+                    ax_probability.set_title(f'{title} (quantum model: {model})', color=self.band_colors[model])
+                else:
+                    ax_probability.set_title(f'{title} (quantum model: {model}), k index: {kIndex}', color=self.band_colors[model])
+                draw_bandedges(ax_probability, model)
+
+
+                if model == 'kp8':
+                    # define colorbar representing electron fraction
+                    divnorm = colors.TwoSlopeNorm(vcenter=0.5, vmin=0.0, vmax=1.0)
+                    scalarmappable = plt.cm.ScalarMappable(cmap='seismic', norm=divnorm)
+                    cbar = fig.colorbar(scalarmappable)
+                    cbar.set_label("Electron fraction", fontsize=labelsize)
+                    cbar.ax.tick_params(labelsize=ticksize)
+
+                draw_probabilities(ax_probability, state_indices, model, kIndex, show_state_index)
+
+                if show_spinor and (model == 'kp6' or model == 'kp8'):
+                    draw_spinor_pie_charts(grid_spinor, state_indices, model, stateIndex, kIndex, show_state_index)
+                else:
+                    fig.tight_layout()
+
+
+        # if both electrons and holes have been calculated separately (but not by kp8),
+        # plot bandedge and probabilities at k|| = 0
+        calculated_e_models = [model for model in states_toBePlotted if model in self.model_names_conduction]
+        calculated_h_models = [model for model in states_toBePlotted if model in self.model_names_valence]
+
+        models = [model in self.model_names_conduction for model in states_toBePlotted]
+        models.append([model in self.model_names_conduction for model in states_toBePlotted])
+
+        if len(calculated_e_models) >= 1 and len(calculated_h_models) >= 1:
+            fig, ax_combi = plt.subplots()
+            ax_combi.set_title(f"{title} ({calculated_e_models}+{calculated_h_models}), zone-center")
+            draw_bandedges(ax_combi, 'Gamma')
+            draw_bandedges(ax_combi, 'HH')
+            draw_bandedges(ax_combi, 'LH')
+            draw_bandedges(ax_combi, 'SO')
+
+            for model in calculated_e_models + calculated_h_models:
+                draw_probabilities(ax_combi, states_toBePlotted[model], model, 0, show_state_index)
+            fig.tight_layout()
+
+
+        #-------------------------------------------
+        # Plots --- save all the figures to one PDF
+        #-------------------------------------------
+        if savePDF:
+            export_filename = f'{self.separateFileExtension(input_file.fullpath)[0]}_probabilities'
+            self.export_figs(export_filename, 'pdf', self.software)
+        if savePNG:
+            export_filename = f'{self.separateFileExtension(input_file.fullpath)[0]}_probabilities'
+            self.export_figs(export_filename, 'png', self.software, fig=fig)   # NOTE: presumably only the last fig instance is exported
+
+        # --- display in the GUI
+        plt.show()
 
 
 
+    ############### k.p density shortcut #########################################
 
-    # --- plot charge density
-    if plotDensity:
-        plot_carrier_densities(input_file, scale_factor=1.0, PDFfilename=PDFfilename)
+    def plot_carrier_densities(self, 
+            input_file,
+            scale_factor        = 1.0,
+            start_position      = -10000,
+            end_position        = 10000,
+            plot_title          = '',
+            labelsize           = None,
+            ticksize            = None,
+            PDFfilename         = ''
+            ):
+        """
+        Plot carrier densities as a function of position.
 
-    # --- plot list of spinor composition
-    if plotSpinorBarChart:
-        if len(datafiles_probability) == len(datafiles_spinor):
-          num_kPoints = len(datafiles_probability)
+        Parameters
+        ----------
+        input_file : nextnanopy.InputFile object
+            nextnano++ input file.
+        scale_factor : real, optional
+            Scaling factor for density. The default is 1.0.
+        start_position : real, optional
+            left edge of the plotting region. The default is -10000.
+        end_position : real, optional
+            right edge of the plotting region. The default is 10000.
+        plot_title : str, optional
+            title of the plot. By default, title is not displayed.
+        PDFfilename : str, optional
+            file name of the PDF file. If not specified, no PDF is exported. The default is ''.
+
+        Returns
+        -------
+        fig : TYPE
+            DESCRIPTION.
+
+        """
+        if labelsize is None: labelsize = self.labelsize_default
+        if ticksize is None: ticksize = self.ticksize_default
+
+        # load output data files
+        datafile_bandedge = self.getDataFile('bandedges', input_file.fullpath, self.software)
+        datafile_densityEl = self.getDataFile('density_electron', input_file.fullpath, self.software, exclude_keywords=['integrated'])
+        datafile_densityHl = self.getDataFile('density_hole', input_file.fullpath, self.software, exclude_keywords=['integrated'])
+
+        # store data in arrays
+        x           = datafile_bandedge.coords['x'].value
+        CBBandedge  = datafile_bandedge.variables['Gamma'].value
+        HHBandedge  = datafile_bandedge.variables['HH'].value
+        LHBandedge  = datafile_bandedge.variables['LH'].value
+        SOBandedge  = datafile_bandedge.variables['SO'].value
+        x_density   = datafile_densityEl.coords['x'].value
+
+        densityEl_oldgrid   = datafile_densityEl.variables['Electron_density'].value # grid interpolation needed because of 'output_bandedges{ averaged=no }'
+        densityHl_oldgrid   = datafile_densityHl.variables['Hole_density'].value
+        densityEl           = self.convert_grid(densityEl_oldgrid, x_density, x)
+        densityHl           = self.convert_grid(densityHl_oldgrid, x_density, x)
+
+
+        # chop off edges of the simulation region
+        CBBandedge = super().cutOff_edges1D(CBBandedge, x, start_position, end_position)
+        HHBandedge = super().cutOff_edges1D(HHBandedge, x, start_position, end_position)
+        LHBandedge = super().cutOff_edges1D(LHBandedge, x, start_position, end_position)
+        SOBandedge = super().cutOff_edges1D(SOBandedge, x, start_position, end_position)
+        densityEl  = super().cutOff_edges1D(densityEl, x, start_position, end_position)
+        densityHl  = super().cutOff_edges1D(densityHl, x, start_position, end_position)
+        x = super().cutOff_edges1D(x, x, start_position, end_position)
+
+        # plot k points
+        inplaneK_dict = self.getKPointsData1D(input_file)
+        self.plot_inplaneK(inplaneK_dict)
+
+
+        #-------------------------------------------
+        # Plots
+        #-------------------------------------------
+
+        # --- plot charge density
+        fig, ax = plt.subplots()
+        ax.plot(x, CBBandedge, label='CB', linewidth=0.6, color=self.band_colors['CB'])
+        ax.plot(x, HHBandedge, label='HH', linewidth=0.6, color=self.band_colors['HH'])
+        ax.plot(x, LHBandedge, label='LH', linewidth=0.6, color=self.band_colors['LH'])
+        ax.plot(x, SOBandedge, label='SO', linewidth=0.6, color=self.band_colors['SO'])
+
+        ylabel_unit_str = "{:.0e}".format(1e18 / scale_factor)
+        ax.plot(x, scale_factor * densityEl, 'r', label='electron')
+        ax.plot(x, -scale_factor * densityHl, 'b', label='hole')
+        ax.set_xlabel("Position (nm)", fontsize=labelsize)
+        ax.set_ylabel('Carrier density (' + ylabel_unit_str + ' $\mathrm{cm}^{-3}$)', fontsize=labelsize)
+        ax.tick_params(axis='x', labelsize=ticksize)
+        ax.tick_params(axis='y', labelsize=ticksize)
+        fig.tight_layout()
+
+        # define plot title
+        if plot_title:
+            title = self.getPlotTitle(plot_title)
         else:
-          common.NextnanoInputFileError('Number of k points is inconsistent between probabilities and spinor components! Spinor components in SXYZ basis are not allowed to exist in the output folder.')
+            title = ''
+        ax.set_title(title)
+        ax.legend(loc='upper right')
 
-        for stateNo in range(num_evs):
+        # --- save all the figures to one PDF
+        if PDFfilename:
+            self.export_figs(PDFfilename, 'pdf', self.software)
+
+        # --- display in the GUI
+        plt.show()
+
+        return fig
+
+
+    def validate_input(self, 
+            plotOccupation, 
+            plotFillingFactors, 
+            cutoffOccupation, 
+            parameter_to_modify, 
+            newValue
+            ):
+        if plotOccupation and plotFillingFactors:
+            self.NextnanopyScriptError('Occupation and filling factors are not output in one simulation!')
+
+        if plotOccupation:
+            if cutoffOccupation is None:
+                TypeError('Cutoff occupation not specified!')
+            if cutoffOccupation < 0:
+                ValueError('Cutoff occupation out of range (occupation >= 0)')
+
+        if parameter_to_modify:
+            if newValue is None:
+                TypeError('Specify new value for the modified input parameter!')
+
+
+
+    # TODO: this method confuses probabilities_shift of Gamma and kp6 when loading data for all k. plot_probabilities() does it better. May be integrated to plot_probabilities()
+    def kp_density_analysis(self, 
+            folderPath, originalFilename, quantum_model,
+            cutoffOccupation    = None,
+            parameter_to_modify = '',
+            filename_appendix   = '',
+            newValue            = None,
+            executablePath      = '',
+            runSimulation       = True,
+            plotOccupation      = True,
+            plotFillingFactors  = True,
+            plotProbAndSpinor_k = True,
+            plotFermiLevels     = True,
+            plotDensity         = True,
+            scaleDensityPlot    = False,
+            plotSpinorBarChart  = True,
+            PDFfilename         = ''
+            ):
+        """
+        folderPath:         input file folder path
+        originalFilename:   (original) input file name
+
+        quantum_model:      quantum model (kp6 or kp8)
+
+        cutoffOccupation:   cutoff occupation (states with more occupation than this value is regarded as 'occupied')
+
+        parameter_to_modify: name of the parameter to be modified
+        filename_appendix:  string to be appended to the file name
+        newValue:           new value
+
+        executablePath:     path to executable (if different executable than in the config file is desired)
+
+        runSimulation:      whether you want to run simulation
+
+        # which data to plot
+        plotOccupation:       density of (n,k=0) states
+        plotFillingFactors:   filling factor of (n,k) states  # TODO: implement plot of filling factos at all k
+        plotProbAndSpinor_k:  psi^2 and spinor compositions for each k
+        plotFermiLevels:
+        plotDensity:
+        scaleDensityPlot:
+        plotSpinorBarChart:   spinor compositions for each eigenvalue and k as bar chart
+
+        PDFfilename:          output PDF file name. By default, no PDF is generated.
+        """
+        self.validate_input(plotOccupation, plotFillingFactors, cutoffOccupation, parameter_to_modify, newValue)
+
+        input_file = nn.InputFile(os.path.join(folderPath, originalFilename))
+
+        #-------------------------------------------
+        # postprocessing
+        #-------------------------------------------
+        # load output data files
+        # TODO: clean up
+        datafile_bandedge = self.getDataFile('bandedges', input_file.fullpath, self.software)
+        datafiles_probability = self.getDataFiles('probabilities_shift', input_file.fullpath, self.software)  # psi^2 at all in-plane k
+        datafiles_spinor = self.getDataFiles('CbHhLhSo', input_file.fullpath, self.software)  # spinor composition at all in-plane k
+        if plotOccupation or plotProbAndSpinor_k:
+            datafile_occupation = self.getDataFile('occupation', input_file.fullpath, self.software)
+        if plotFillingFactors:
+            datafile_filling = self.getDataFile('filling_factors', input_file.fullpath, self.software)
+
+        # store data in arrays
+        x           = datafile_bandedge.coords['x'].value
+        CBBandedge  = datafile_bandedge.variables['Gamma'].value
+        LHBandedge  = datafile_bandedge.variables['LH'].value
+        HHBandedge  = datafile_bandedge.variables['HH'].value
+        if plotOccupation or plotProbAndSpinor_k:
+            stateIndices = datafile_occupation.coords['no.'].value
+            Occupations  = datafile_occupation.variables['Occupation'].value
+        if plotFillingFactors:
+            stateIndices   = datafile_filling.coords['no.'].value
+            fillingFactors = datafile_filling.variables['filling_factors'].value # TODO: now output for all k in my code
+        if plotFermiLevels:
+            elFermiE    = datafile_bandedge.variables['electron_Fermi_level'].value
+            hlFermiE    = datafile_bandedge.variables['hole_Fermi_level'].value
+
+
+        # get number of eigenvalues
+        if plotOccupation or plotFillingFactors or plotProbAndSpinor_k:
+            num_evs = len(Occupations)
+
+        # generate index list of occupied states
+        if plotOccupation or plotProbAndSpinor_k:
+            # occupiedStatesNo = list()
+            # for stateNo, occupation in zip(stateIndices, Occupations):
+            #     if occupation >= cutoffOccupation:
+            #         occupiedStatesNo.append(int(stateNo))
+            occupiedStatesNo = [int(stateNo) for stateNo, occupation in zip(stateIndices, Occupations) if occupation >= cutoffOccupation]
+
+
+
+        # plot k points
+        inplaneK_dict = self.getKPointsData1D(input_file)
+        self.plot_inplaneK(inplaneK_dict)
+
+        # get number of k points
+        num_kPoints = self.get_num_kPoints(inplaneK_dict)[quantum_model]
+
+
+        if plotProbAndSpinor_k:
+            psiSquared = np.zeros((num_evs, num_kPoints, len(x)), dtype=np.double)
+            composition = np.zeros((num_evs, num_kPoints, 4), dtype=np.double)   # for each eigenstate, 4 components (CB, HH, LH, SO)
+
+            for stateNo in occupiedStatesNo:
+                for kIndex in range(num_kPoints):
+                    # store psi^2 data
+                    psiSquared_oldgrid = datafiles_probability[kIndex].variables[f'Psi^2_{stateNo}'].value
+                    x_probability      = datafiles_probability[kIndex].coords['x'].value
+                    psiSquared[stateNo-1, kIndex, ] = self.convert_grid(psiSquared_oldgrid, x_probability, x)   # grid interpolation needed because of 'output_bandedges{ averaged=no }'
+
+                    # store spinor composition data (for only occupied states)
+                    if quantum_model == 'kp8':
+                        composition[stateNo-1, kIndex, 0] = datafiles_spinor[kIndex].variables['cb1'].value[stateNo-1] + datafiles_spinor[kIndex].variables['cb2'].value[stateNo-1]
+
+                    composition[stateNo-1, kIndex, 1] = datafiles_spinor[kIndex].variables['hh1'].value[stateNo-1] + datafiles_spinor[kIndex].variables['hh2'].value[stateNo-1]
+                    composition[stateNo-1, kIndex, 2] = datafiles_spinor[kIndex].variables['lh1'].value[stateNo-1] + datafiles_spinor[kIndex].variables['lh2'].value[stateNo-1]
+                    composition[stateNo-1, kIndex, 3] = datafiles_spinor[kIndex].variables['so1'].value[stateNo-1] + datafiles_spinor[kIndex].variables['so2'].value[stateNo-1]
+
+
+        if plotSpinorBarChart:
+            electronFraction = np.zeros((num_evs, num_kPoints), dtype=np.double)
+
+            for stateNo in occupiedStatesNo:
+                for kIndex in range(num_kPoints):
+                    if quantum_model == 'kp8':
+                        electronFraction[stateNo-1, kIndex] = datafiles_spinor[kIndex].variables['cb1'].value[stateNo-1] + datafiles_spinor[kIndex].variables['cb2'].value[stateNo-1]
+
+
+
+        #-------------------------------------------
+        # Plots
+        #-------------------------------------------
+
+        # --- plot occupation (integrated over k)
+        if plotOccupation:
             fig, ax = plt.subplots()
-            ax.bar(np.arange(num_kPoints), electronFraction[stateNo,])
-            ax.bar(np.arange(num_kPoints), 1-electronFraction[stateNo,], bottom=electronFraction[stateNo,])
-            ax.set_title(f'Spinor composition of n={stateNo+1} (blue: CB-contribution)')
-            ax.set_xlabel('k index')
+            cutoff = np.array([cutoffOccupation] * num_evs)
+            ax.plot(stateIndices, Occupations, marker='o', label='occupation')
+            ax.plot(cutoff, label='cutoff')
+            plt.yscale('log')
+            plt.xlim([1, num_evs])
+            plt.ylim([1e1, 10*max(Occupations)])
+            ax.set_xlabel('eigenstate index')
+            ax.set_ylabel(f"{datafile_occupation.variables['Occupation'].label}")
+            ax.legend(loc='upper left')
 
+        # --- plot filling factors at k=0
+        if plotFillingFactors:
+            fig, ax = plt.subplots()
+            ax.plot(stateIndices, fillingFactors, marker='o')
+            plt.xlim([1, num_evs])
+            plt.ylim([0, 1])
+            ax.set_xlabel('eigenstate index')
+            ax.set_title('filling factors')
 
-    # --- save all the figures to one PDF
-    if PDFfilename: common.export_figs(PDFfilename, 'pdf', software)
+        # --- plot spinor compositions and probabilities for each k
+        if plotProbAndSpinor_k:
+            num_rows, num_columns = self.getRowColumnForDisplay(len(occupiedStatesNo))  # determine arrangement of spinor composition plots
 
-    # --- display in the GUI
-    plt.show()
+            for kIndex in range(num_kPoints):
+                # plot probabilities with labels
+                fig, ax = plt.subplots()
+                ax.set_xlabel(f"{datafile_bandedge.coords['x'].label}")
+                ax.set_ylabel('energy (eV)')
+                simLength = x[-1]-x[0]   # (nm)
 
+                ax.plot(x, CBBandedge, label='CB', linewidth=0.6)
+                ax.plot(x, HHBandedge, label='HH', linewidth=0.6)
+                ax.plot(x, LHBandedge, label='LH', linewidth=0.6)
+                if plotFermiLevels:
+                    ax.plot(x, elFermiE, label='e FermiE', alpha=0.7)
+                    ax.plot(x, hlFermiE, label='h FermiE', alpha=0.7)
 
+                for stateNo in occupiedStatesNo:
+                    ax.plot(x, psiSquared[stateNo-1, kIndex, ])
+                    ymax = np.amax(psiSquared[stateNo-1, kIndex, ])
+                    xmaxIndex = np.where(psiSquared[stateNo-1, kIndex, ] == ymax)[0]
+                    xmax = x[xmaxIndex.item(0)]             # type(xmaxIndex.item(0)) is 'int'
+                    # ax.annotate(f'n={stateNo}', xy=(xmax, ymax), xytext=(xmax-0.05*simLength, ymax+0.07))
+                    ax.annotate(f'{stateNo}', xy=(xmax, ymax), xytext=(xmax, ymax+0.07))
 
-############### k.p matrix element shortcut #########################################
-# def plot_matrix_elements(
-#         input_file,
-#         kind,
-#         initial_states,
-#         final_states
-#         ):
-#     """
-#     INPUT:
-#         input_file          nextnanopy.InputFile object
-#         kind                string specifying interband (overlap), intraband or dipole
-#         initial_states      list of state index
-#         final_states        list of state index
-#     """
-#     if kind not in matrix_elements_names:
-#         raise KeyError("Unrecognized matrix element requested.")
+                ax.set_title(f'Bandedges and occupied states at k index={kIndex}')
+                ax.legend(loc='upper right')
 
-#     # load output data files
-#     files_matrix_elements      = getFilepaths_matrix_elements(input_file.fullpath)[kind]
-
-
-#     if len(files_matrix_elements) == 0:
-#         raise RuntimeError("Output of matrix elements not found!")
-
-
-#     # store data in arrays and trim unnecessary data
-#     matrix_elements = [ [ 0 for initial in initial_states ] for final in final_states ]
-#     for f in files_matrix_elements:
-#         data = np.loadtxt(f, skiprows=1)
-#         to_be_kept = np.full(len(data), True)
-
-#         for row in range(len(data)):
-#             initial = int(data[row][0])
-#             final   = int(data[row][1])
-
-#             if initial not in initial_states or final not in final_states:
-#                 # data = np.delete(data, row, axis=0)   # delete row
-#                 to_be_kept[row] = False
-#                 continue
-
-
-#         matrix_elements = data[to_be_kept]   # delete unnecessary transitions
-#         logging.debug(matrix_elements)
-
-
-
-#     # dictionary containing three keys (quantum model) and 2-dimensional list for each key that stores psi^2 for all (eigenstate, kIndex)
-#     psiSquared = {
-#         'Gamma': [ [ 0 for kIndex in range(len(inplaneK_dict['Gamma'])) ] for stateIndex in range(num_evs['Gamma']) ],
-#         'kp6': [ [ 0 for kIndex in range(len(inplaneK_dict['kp6'])) ] for stateIndex in range(num_evs['kp6']) ],
-#         'kp8': [ [ 0 for kIndex in range(len(inplaneK_dict['kp8'])) ] for stateIndex in range(num_evs['kp8']) ]
-#     }
-#     for model in datafiles_probability_dict:
-#         dfs = datafiles_probability_dict[model]
-#         if len(dfs) == 0: continue
-#         for stateIndex in states_toBePlotted[model]:
-#             for kIndex in range(num_kPoints[model]):
-#                 psiSquared_oldgrid = datafiles_probability_dict[model][kIndex].variables[f'Psi^2_{stateIndex+1}'].value
-#                 psiSquared[model][stateIndex][kIndex] = common.convert_grid(psiSquared_oldgrid, x_probability, x)   # grid interpolation needed because of 'output_bandedges{ averaged=no }'
-
-
-#     # chop off edges of the simulation region
-    # CBBandedge = common.cutOff_edges1D(CBBandedge, x, start_position, end_position)
-    # LHBandedge = common.cutOff_edges1D(LHBandedge, x, start_position, end_position)
-    # HHBandedge = common.cutOff_edges1D(HHBandedge, x, start_position, end_position)
-
-    # for stateIndex in states_toBePlotted[model]:
-    #     for kIndex in range(num_kPoints[model]):
-    #         psiSquared[model][stateIndex][kIndex] = common.cutOff_edges1D(psiSquared[model][stateIndex][kIndex], x, start_position, end_position)   # chop off edges of the simulation region
-    # x = common.cutOff_edges1D(x, x, start_position, end_position)
-
-#     simLength = x[-1]-x[0]   # (nm)
-
-
-#     # mask psiSquared data where it is flat
-#     for model in datafiles_probability_dict:
-#         for stateIndex in states_toBePlotted[model]:
-#             for kIndex in range(num_kPoints[model]):
-#                 psiSquared[model][stateIndex][kIndex] = common.mask_part_of_array(psiSquared[model][stateIndex][kIndex], 'flat', 1e-3)
-
-#     title = common.getPlotTitle(input_file.fullpath)
-
-#     # instantiate matplotlib subplot objects
-#     for model in datafiles_probability_dict:
-#         for kIndex in range(num_kPoints[model]):
-#             fig, ax = plt.subplots()
-#             ax.set_xlabel('z [nm]')
-#             ax.set_ylabel('Energy [eV]')
-#             ax.set_title(f'{title} (quantum model: {model}), k index: {kIndex}')
-#             # ax.set_title(f'8-band k.p model, k index: {kIndex}')
-#             if model == 'Gamma' or model == 'kp8':
-#                 ax.plot(x, CBBandedge, label='CB', alpha=0.5)
-#             if model == 'kp6' or model == 'kp8':
-#                 ax.plot(x, LHBandedge, label='LH', alpha=0.5)
-#                 ax.plot(x, HHBandedge, label='HH', alpha=0.5)
-#             for stateIndex in states_toBePlotted[model]:
-#                 ax.plot(x, psiSquared[model][stateIndex][kIndex])
-#                 xmax, ymax = common.get_maximum_points(psiSquared[model][stateIndex][kIndex], x)
-#                 ax.annotate(f'n={stateIndex+1}', xy=(xmax, ymax), xytext=(xmax-0.05*simLength, ymax+0.07))
-#             ax.legend(loc='upper right')
-#     fig, ax = plt.subplots()
-#     ax.set_xlabel()
-#     ax.set_ylabel()
-#     ax.set_title(f"{kind} matrix elements")
-#     ax.imshow(matrix_elements, interpolation='none')
-
-#     #-------------------------------------------
-#     # Plots
-#     #-------------------------------------------
-
-#     # --- save all the figures to one PDF
-#     if PDFfilename: common.export_figs(PDFfilename, 'pdf', software)
-
-#     # --- display in the GUI
-#     plt.show()
+                # plot spinor compositions
+                fig, ax = plt.subplots()
+                for i in range(num_rows):
+                    for j in range(num_columns):
+                        subplotIndex = j + num_columns * i
+                        if subplotIndex >= len(occupiedStatesNo): break
+                        ax = plt.subplot2grid((num_rows, num_columns), (i, j))
+                        ax.pie(composition[occupiedStatesNo[subplotIndex]-1, kIndex, ], normalize=True, startangle=90, counterclock=False)
+                        ax.set_title(f'n={occupiedStatesNo[subplotIndex]}', {'color':'grey'})
+                ax.legend(labels=['CB','HH','LH','SO'], loc='lower right')
 
 
 
-############### find ground states from kp8 result ############################
-def find_lowest_electron_state_atK0(output_folder, threshold=0.5):
-    """
-    From spinor composition data, determine the lowest electron state in an 8-band k.p simulation.
-    This method should be able to detect it properly even when the effective bandgap is negative,
-    i.e. when the lowest electron state is below the highest hole state.
 
-    Note
-    ----
-    Nonzero k points may become important for TI phase and camel-back dispersion.
+        # --- plot charge density
+        if plotDensity:
+            self.plot_carrier_densities(input_file, scale_factor=1.0, PDFfilename=PDFfilename)
 
-    Parameters
-    ----------
-    output_folder : str
-        output folder path
-    threshold : real, optional
-        If electron fraction in the spinor composition is greater than this value, the state is assumed to be an electron state.
-        The default is 0.5.
-
-    Returns
-    -------
-    state index (base 0) of the lowest electron state at in-plane k = 0
-
-    """
-    # get nn.DataFile object
-    try:
-        datafile = common.getDataFile_in_folder(['spinor', '00000_CbHhLhSo'], output_folder, software)   # spinor composition at in-plane k = 0
-    except FileNotFoundError:
-        warnings.warn("Spinor components output in CbHhLhSo basis is not found. Assuming decoupling of the conduction and valence bands...", category=common.NextnanoInputFileWarning)
-        return int(0)
-
-    # check if it is an 8-band k.p simulation result
-    filename = os.path.split(datafile.fullpath)[1]
-    if detect_quantum_model(filename) != 'kp8':
-        warnings.warn("This is not an 8-band k.p simulation. Assuming decoupling of the conduction and valence bands...", category=common.NextnanoInputFileWarning)
-        return int(0)
-
-    # find the lowest electron state
-    num_evs = len(datafile.variables['cb1'].value)
-    for stateIndex in range(num_evs):
-        electronFraction = datafile.variables['cb1'].value[stateIndex] + datafile.variables['cb2'].value[stateIndex]
-        if electronFraction > threshold:
-            return stateIndex
-
-    raise RuntimeError(f"No electron states found in: {output_folder}")
-
-
-def find_highest_hole_state_atK0(output_folder, threshold=0.5):
-    """
-    From spinor composition data, determine the highest hole state in an 8-band k.p simulation.
-    This method should be able to detect it properly even when the effective bandgap is negative,
-    i.e. when the highest hole state is above the lowest electron state.
-
-    Note
-    ----
-    Nonzero k points may become important for TI phase and camel-back dispersion.
-
-    Parameters
-    ----------
-    output_folder : str
-        output folder path
-    threshold : real, optional
-        If electron fraction in the spinor composition is less than this value, the state is assumed to be a hole state.
-        The default is 0.5.
-
-    Returns
-    -------
-    state index (base 0) of the highest hole state at in-plane k = 0
-
-    """
-    # get nn.DataFile object
-    try:
-        datafile = common.getDataFile_in_folder(['spinor', '00000_CbHhLhSo'], output_folder, software)   # spinor composition at in-plane k = 0
-    except FileNotFoundError:
-        warnings.warn("Spinor components output in CbHhLhSo basis is not found. Assuming decoupling of the conduction and valence bands...", category=common.NextnanoInputFileWarning)
-        return int(0)
-
-    # check if it is an 8-band k.p simulation result
-    filename = os.path.split(datafile.fullpath)[1]
-    if detect_quantum_model(filename) != 'kp8':
-        warnings.warn("This is not an 8-band k.p simulation. Assuming decoupling of the conduction and valence bands...", category=common.NextnanoInputFileWarning)
-        return int(0)
-
-    # find the highest hole state
-    num_evs = len(datafile.variables['cb1'].value)
-    for stateIndex in reversed(range(num_evs)):
-        electronFraction = datafile.variables['cb1'].value[stateIndex] + datafile.variables['cb2'].value[stateIndex]
-        if electronFraction < threshold:
-            return stateIndex
-
-    raise RuntimeError(f"No hole states found in: {output_folder}")
-
-
-################ optics analysis #############################################
-kp8_basis = ['cb1', 'cb2', 'hh1', 'hh2', 'lh1', 'lh2', 'so1', 'so2']
-kp6_basis = ['hh1', 'hh2', 'lh1', 'lh2', 'so1', 'so2']
-
-# def calculate_overlaps(output_folders):
-#     # if only one keyword is provided, make a list with single element to simplify code
-#     if isinstance(output_folders, str):
-#         output_folders = [output_folders]
-
-#     # create numpy array with the same size as output_folders
-#     if isinstance(output_folders, list):
-#         list_of_overlaps = [calculate_overlap(folder) for folder in output_folders]
-#         overlaps = np.array(list_of_overlaps, dtype=np.cdouble)
-#     else:
-#         raise TypeError("Argument 'output_folders' must be either str or list of str!")
-
-#     return overlaps
-
-
-def calculate_overlap(output_folder, force_lightHole=False):
-    """
-    Calculate envelope overlap between the lowest electron and highest hole states from wavefunction output data
-
-    Parameters
-    ----------
-    output_folder : str
-        Absolute path of output folder that contains the amplitude data
-    force_lightHole : bool, optional
-        If True, always use the overlap of Gamma and light-hole states. Effective only for single-band models.
-        Default is False
-
-    Returns
-    -------
-    overlap : np.ndarray with dtype=cdouble
-        Spatial overlap of envelope functions
-
-    Requires
-    --------
-    SciPy package installation
-
-    """
-    from scipy.integrate import simps
-
-    # load amplitude data
-    datafile_amplitude_at_k0 = getDataFile_amplitudesK0_in_folder(output_folder)   # returns a dict of nn.DataFile
-
-    if 'kp8' in datafile_amplitude_at_k0.keys():
-        electron_state_is_multiband = True
-        hole_state_is_multiband = True
-        df_e = datafile_amplitude_at_k0['kp8'][0]
-        df_h = datafile_amplitude_at_k0['kp8'][0]
-        h_state_basis = kp8_basis
-    elif 'kp6' in datafile_amplitude_at_k0.keys():
-        electron_state_is_multiband = False
-        hole_state_is_multiband = True
-        df_e = datafile_amplitude_at_k0['Gamma'][0]
-        df_h = datafile_amplitude_at_k0['kp6'][0]
-        h_state_basis = kp6_basis
-    else:  # single band
-        electron_state_is_multiband = False
-        hole_state_is_multiband = False
-        df_e = datafile_amplitude_at_k0['Gamma'][0]
-        df_HH = datafile_amplitude_at_k0['HH'][0]
-        df_LH = datafile_amplitude_at_k0['LH'][0]
-
-        if force_lightHole:
-            # always take Gamma-LH
-            df_h = df_LH
-            h_state_basis = ['LH']
-        else:
-            # take the highest of HH and LH eigenstates
-            E_HH = common.getDataFile_in_folder(['energy_spectrum', '_HH'], output_folder, software).variables['Energy'].value[0]   # energy of the first eigenstate
-            E_LH = common.getDataFile_in_folder(['energy_spectrum', '_LH'], output_folder, software).variables['Energy'].value[0]   # energy of the first eigenstate
-            if E_HH >= E_LH:
-                df_h = df_HH
-                h_state_basis = ['HH']
+        # --- plot list of spinor composition
+        if plotSpinorBarChart:
+            if len(datafiles_probability) == len(datafiles_spinor):
+                num_kPoints = len(datafiles_probability)
             else:
+                self.NextnanoInputFileError('Number of k points is inconsistent between probabilities and spinor components! Spinor components in SXYZ basis are not allowed to exist in the output folder.')
+
+            for stateNo in range(num_evs):
+                fig, ax = plt.subplots()
+                ax.bar(np.arange(num_kPoints), electronFraction[stateNo,])
+                ax.bar(np.arange(num_kPoints), 1-electronFraction[stateNo,], bottom=electronFraction[stateNo,])
+                ax.set_title(f'Spinor composition of n={stateNo+1} (blue: CB-contribution)')
+                ax.set_xlabel('k index')
+
+
+        # --- save all the figures to one PDF
+        if PDFfilename: self.export_figs(PDFfilename, 'pdf', self.software)
+
+        # --- display in the GUI
+        plt.show()
+
+
+
+    ############### k.p matrix element shortcut #########################################
+    # def plot_matrix_elements(self, 
+    #         input_file,
+    #         kind,
+    #         initial_states,
+    #         final_states
+    #         ):
+    #     """
+    #     INPUT:
+    #         input_file          nextnanopy.InputFile object
+    #         kind                string specifying interband (overlap), intraband or dipole
+    #         initial_states      list of state index
+    #         final_states        list of state index
+    #     """
+    #     if kind not in matrix_elements_names:
+    #         raise KeyError("Unrecognized matrix element requested.")
+
+    #     # load output data files
+    #     files_matrix_elements      = getFilepaths_matrix_elements(input_file.fullpath)[kind]
+
+
+    #     if len(files_matrix_elements) == 0:
+    #         raise RuntimeError("Output of matrix elements not found!")
+
+
+    #     # store data in arrays and trim unnecessary data
+    #     matrix_elements = [ [ 0 for initial in initial_states ] for final in final_states ]
+    #     for f in files_matrix_elements:
+    #         data = np.loadtxt(f, skiprows=1)
+    #         to_be_kept = np.full(len(data), True)
+
+    #         for row in range(len(data)):
+    #             initial = int(data[row][0])
+    #             final   = int(data[row][1])
+
+    #             if initial not in initial_states or final not in final_states:
+    #                 # data = np.delete(data, row, axis=0)   # delete row
+    #                 to_be_kept[row] = False
+    #                 continue
+
+
+    #         matrix_elements = data[to_be_kept]   # delete unnecessary transitions
+    #         logging.debug(matrix_elements)
+
+
+
+    #     # dictionary containing three keys (quantum model) and 2-dimensional list for each key that stores psi^2 for all (eigenstate, kIndex)
+    #     psiSquared = {
+    #         'Gamma': [ [ 0 for kIndex in range(len(inplaneK_dict['Gamma'])) ] for stateIndex in range(num_evs['Gamma']) ],
+    #         'kp6': [ [ 0 for kIndex in range(len(inplaneK_dict['kp6'])) ] for stateIndex in range(num_evs['kp6']) ],
+    #         'kp8': [ [ 0 for kIndex in range(len(inplaneK_dict['kp8'])) ] for stateIndex in range(num_evs['kp8']) ]
+    #     }
+    #     for model in datafiles_probability_dict:
+    #         dfs = datafiles_probability_dict[model]
+    #         if len(dfs) == 0: continue
+    #         for stateIndex in states_toBePlotted[model]:
+    #             for kIndex in range(num_kPoints[model]):
+    #                 psiSquared_oldgrid = datafiles_probability_dict[model][kIndex].variables[f'Psi^2_{stateIndex+1}'].value
+    #                 psiSquared[model][stateIndex][kIndex] = self.convert_grid(psiSquared_oldgrid, x_probability, x)   # grid interpolation needed because of 'output_bandedges{ averaged=no }'
+
+
+    #     # chop off edges of the simulation region
+        # CBBandedge = super().cutOff_edges1D(CBBandedge, x, start_position, end_position)
+        # LHBandedge = super().cutOff_edges1D(LHBandedge, x, start_position, end_position)
+        # HHBandedge = super().cutOff_edges1D(HHBandedge, x, start_position, end_position)
+
+        # for stateIndex in states_toBePlotted[model]:
+        #     for kIndex in range(num_kPoints[model]):
+        #         psiSquared[model][stateIndex][kIndex] = super().cutOff_edges1D(psiSquared[model][stateIndex][kIndex], x, start_position, end_position)   # chop off edges of the simulation region
+        # x = super().cutOff_edges1D(x, x, start_position, end_position)
+
+    #     simLength = x[-1]-x[0]   # (nm)
+
+
+    #     # mask psiSquared data where it is flat
+    #     for model in datafiles_probability_dict:
+    #         for stateIndex in states_toBePlotted[model]:
+    #             for kIndex in range(num_kPoints[model]):
+    #                 psiSquared[model][stateIndex][kIndex] = super().mask_part_of_array(psiSquared[model][stateIndex][kIndex], 'flat', 1e-3)
+
+    #     title = self.getPlotTitle(input_file.fullpath)
+
+    #     # instantiate matplotlib subplot objects
+    #     for model in datafiles_probability_dict:
+    #         for kIndex in range(num_kPoints[model]):
+    #             fig, ax = plt.subplots()
+    #             ax.set_xlabel('z [nm]')
+    #             ax.set_ylabel('Energy [eV]')
+    #             ax.set_title(f'{title} (quantum model: {model}), k index: {kIndex}')
+    #             # ax.set_title(f'8-band k.p model, k index: {kIndex}')
+    #             if model == 'Gamma' or model == 'kp8':
+    #                 ax.plot(x, CBBandedge, label='CB', alpha=0.5)
+    #             if model == 'kp6' or model == 'kp8':
+    #                 ax.plot(x, LHBandedge, label='LH', alpha=0.5)
+    #                 ax.plot(x, HHBandedge, label='HH', alpha=0.5)
+    #             for stateIndex in states_toBePlotted[model]:
+    #                 ax.plot(x, psiSquared[model][stateIndex][kIndex])
+    #                 xmax, ymax = self.get_maximum_points(psiSquared[model][stateIndex][kIndex], x)
+    #                 ax.annotate(f'n={stateIndex+1}', xy=(xmax, ymax), xytext=(xmax-0.05*simLength, ymax+0.07))
+    #             ax.legend(loc='upper right')
+    #     fig, ax = plt.subplots()
+    #     ax.set_xlabel()
+    #     ax.set_ylabel()
+    #     ax.set_title(f"{kind} matrix elements")
+    #     ax.imshow(matrix_elements, interpolation='none')
+
+    #     #-------------------------------------------
+    #     # Plots
+    #     #-------------------------------------------
+
+    #     # --- save all the figures to one PDF
+    #     if PDFfilename: self.export_figs(PDFfilename, 'pdf', self.software)
+
+    #     # --- display in the GUI
+    #     plt.show()
+
+
+
+    ############### find ground states from kp8 result ############################
+    def find_lowest_electron_state_atK0(self, output_folder, threshold=0.5):
+        """
+        From spinor composition data, determine the lowest electron state in an 8-band k.p simulation.
+        This method should be able to detect it properly even when the effective bandgap is negative,
+        i.e. when the lowest electron state is below the highest hole state.
+
+        Note
+        ----
+        Nonzero k points may become important for TI phase and camel-back dispersion.
+
+        Parameters
+        ----------
+        output_folder : str
+            output folder path
+        threshold : real, optional
+            If electron fraction in the spinor composition is greater than this value, the state is assumed to be an electron state.
+            The default is 0.5.
+
+        Returns
+        -------
+        state index (base 0) of the lowest electron state at in-plane k = 0
+
+        """
+        # get nn.DataFile object
+        try:
+            datafile = self.getDataFile_in_folder(['spinor', '00000_CbHhLhSo'], output_folder, self.software)   # spinor composition at in-plane k = 0
+        except FileNotFoundError:
+            warnings.warn("Spinor components output in CbHhLhSo basis is not found. Assuming decoupling of the conduction and valence bands...", category=self.NextnanoInputFileWarning)
+            return int(0)
+
+        # check if it is an 8-band k.p simulation result
+        filename = os.path.split(datafile.fullpath)[1]
+        if self.detect_quantum_model(filename) != 'kp8':
+            warnings.warn("This is not an 8-band k.p simulation. Assuming decoupling of the conduction and valence bands...", category=self.NextnanoInputFileWarning)
+            return int(0)
+
+        # find the lowest electron state
+        num_evs = len(datafile.variables['cb1'].value)
+        for stateIndex in range(num_evs):
+            electronFraction = datafile.variables['cb1'].value[stateIndex] + datafile.variables['cb2'].value[stateIndex]
+            if electronFraction > threshold:
+                return stateIndex
+
+        raise RuntimeError(f"No electron states found in: {output_folder}")
+
+
+    def find_highest_hole_state_atK0(self, output_folder, threshold=0.5):
+        """
+        From spinor composition data, determine the highest hole state in an 8-band k.p simulation.
+        This method should be able to detect it properly even when the effective bandgap is negative,
+        i.e. when the highest hole state is above the lowest electron state.
+
+        Note
+        ----
+        Nonzero k points may become important for TI phase and camel-back dispersion.
+
+        Parameters
+        ----------
+        output_folder : str
+            output folder path
+        threshold : real, optional
+            If electron fraction in the spinor composition is less than this value, the state is assumed to be a hole state.
+            The default is 0.5.
+
+        Returns
+        -------
+        state index (base 0) of the highest hole state at in-plane k = 0
+
+        """
+        # get nn.DataFile object
+        try:
+            datafile = self.getDataFile_in_folder(['spinor', '00000_CbHhLhSo'], output_folder, self.software)   # spinor composition at in-plane k = 0
+        except FileNotFoundError:
+            warnings.warn("Spinor components output in CbHhLhSo basis is not found. Assuming decoupling of the conduction and valence bands...", category=self.NextnanoInputFileWarning)
+            return int(0)
+
+        # check if it is an 8-band k.p simulation result
+        filename = os.path.split(datafile.fullpath)[1]
+        if self.detect_quantum_model(filename) != 'kp8':
+            warnings.warn("This is not an 8-band k.p simulation. Assuming decoupling of the conduction and valence bands...", category=self.NextnanoInputFileWarning)
+            return int(0)
+
+        # find the highest hole state
+        num_evs = len(datafile.variables['cb1'].value)
+        for stateIndex in reversed(range(num_evs)):
+            electronFraction = datafile.variables['cb1'].value[stateIndex] + datafile.variables['cb2'].value[stateIndex]
+            if electronFraction < threshold:
+                return stateIndex
+
+        raise RuntimeError(f"No hole states found in: {output_folder}")
+
+
+    ################ optics analysis #############################################
+    kp8_basis = ['cb1', 'cb2', 'hh1', 'hh2', 'lh1', 'lh2', 'so1', 'so2']
+    kp6_basis = ['hh1', 'hh2', 'lh1', 'lh2', 'so1', 'so2']
+
+    # def calculate_overlaps(output_folders):
+    #     # if only one keyword is provided, make a list with single element to simplify code
+    #     if isinstance(output_folders, str):
+    #         output_folders = [output_folders]
+
+    #     # create numpy array with the same size as output_folders
+    #     if isinstance(output_folders, list):
+    #         list_of_overlaps = [calculate_overlap(folder) for folder in output_folders]
+    #         overlaps = np.array(list_of_overlaps, dtype=np.cdouble)
+    #     else:
+    #         raise TypeError("Argument 'output_folders' must be either str or list of str!")
+
+    #     return overlaps
+
+
+    def calculate_overlap(self, output_folder, force_lightHole=False):
+        """
+        Calculate envelope overlap between the lowest electron and highest hole states from wavefunction output data
+
+        Parameters
+        ----------
+        output_folder : str
+            Absolute path of output folder that contains the amplitude data
+        force_lightHole : bool, optional
+            If True, always use the overlap of Gamma and light-hole states. Effective only for single-band models.
+            Default is False
+
+        Returns
+        -------
+        overlap : np.ndarray with dtype=cdouble
+            Spatial overlap of envelope functions
+
+        Requires
+        --------
+        SciPy package installation
+
+        """
+        from scipy.integrate import simps
+
+        # load amplitude data
+        datafile_amplitude_at_k0 = self.getDataFile_amplitudesK0_in_folder(output_folder)   # returns a dict of nn.DataFile
+
+        if 'kp8' in datafile_amplitude_at_k0.keys():
+            electron_state_is_multiband = True
+            hole_state_is_multiband = True
+            df_e = datafile_amplitude_at_k0['kp8'][0]
+            df_h = datafile_amplitude_at_k0['kp8'][0]
+            h_state_basis = self.kp8_basis
+        elif 'kp6' in datafile_amplitude_at_k0.keys():
+            electron_state_is_multiband = False
+            hole_state_is_multiband = True
+            df_e = datafile_amplitude_at_k0['Gamma'][0]
+            df_h = datafile_amplitude_at_k0['kp6'][0]
+            h_state_basis = self.kp6_basis
+        else:  # single band
+            electron_state_is_multiband = False
+            hole_state_is_multiband = False
+            df_e = datafile_amplitude_at_k0['Gamma'][0]
+            df_HH = datafile_amplitude_at_k0['HH'][0]
+            df_LH = datafile_amplitude_at_k0['LH'][0]
+
+            if force_lightHole:
+                # always take Gamma-LH
                 df_h = df_LH
                 h_state_basis = ['LH']
-
-    x = df_e.coords['x'].value
-    iLowestElectron = find_lowest_electron_state_atK0(output_folder, threshold=0.5)
-    iHighestHole    = find_highest_hole_state_atK0(output_folder, threshold=0.5)
-
-
-    # extract amplitude of electron-like state
-    if electron_state_is_multiband:
-        amplitude_e = np.zeros((len(kp8_basis), len(x)), dtype=np.cdouble)
-        for mu, band in enumerate(kp8_basis):
-            amplitude_e[mu,:].real = df_e.variables[f'Psi_{iLowestElectron+1}_{band}_real'].value
-            amplitude_e[mu,:].imag = df_e.variables[f'Psi_{iLowestElectron+1}_{band}_imag'].value
-    else:
-        amplitude_e = np.zeros(len(x), dtype=np.double)
-        amplitude_e[:] = df_e.variables[f'Psi_{iLowestElectron+1}'].value
-
-    # extract amplitude of hole-like state
-    if hole_state_is_multiband:
-        amplitude_h = np.zeros((len(h_state_basis), len(x)), dtype=np.cdouble)
-        for nu, band in enumerate(h_state_basis):
-            amplitude_h[nu,:].real = df_h.variables[f'Psi_{iHighestHole+1}_{band}_real'].value
-            amplitude_h[nu,:].imag = df_h.variables[f'Psi_{iHighestHole+1}_{band}_imag'].value
-    else:
-        amplitude_h = np.zeros(len(x), dtype=np.double)
-        amplitude_h[:] = df_h.variables[f'Psi_{iHighestHole+1}'].value
-
-    overlap = 0.
-
-    # calculate overlap
-    if electron_state_is_multiband and hole_state_is_multiband:
-        for mu in range(len(kp8_basis)):
-            for nu in range(len(kp8_basis)):
-                prod = np.multiply(np.conjugate(amplitude_h[nu,:]), amplitude_e[mu,:])   # multiply arguments element-wise
-                overlap += simps(prod, x)
-    elif hole_state_is_multiband:
-        for nu in range(len(kp6_basis)):
-            prod = np.multiply(np.conjugate(amplitude_h[nu,:]), amplitude_e[:])   # multiply arguments element-wise
-            overlap += simps(prod, x)
-    else:
-        prod = np.multiply(np.conjugate(amplitude_h[:]), amplitude_e[:])   # multiply arguments element-wise
-        overlap += simps(prod, x)
-
-    return overlap
-
-
-def get_transition_energy(output_folder, force_lightHole=False):
-    """
-    Get the transition energy = energy separation between the lowest electron and highest hole states.
-    Unit: eV
-    """
-    datafiles = common.getDataFiles_in_folder(["transition_energies", ".fld"], output_folder, software)
-
-    iLowestElectron = find_lowest_electron_state_atK0(output_folder, threshold=0.5)
-    iHighestHole    = find_highest_hole_state_atK0(output_folder, threshold=0.5)
-
-    # get the energy separation dE = (electron state level) - (hole state level)
-    if any('kp8' in df.fullpath for df in datafiles):
-        for datafile in datafiles:
-            if 'kp8' in datafile.fullpath:
-                df = datafile
-        dE = df.variables[0].value[iLowestElectron][iHighestHole]
-    elif any('kp6' in df.fullpath for df in datafiles):
-        for datafile in datafiles:
-            if 'kp6' in datafile.fullpath:
-                df = datafile
-        dE = - df.variables[0].value[iHighestHole][iLowestElectron]
-    else:  # single band
-        df_HH_Gamma = common.getDataFile_in_folder(["transition_energies", "HH_Gamma", ".fld"], output_folder, software)
-        df_LH_Gamma = common.getDataFile_in_folder(["transition_energies", "LH_Gamma", ".fld"], output_folder, software)
-        dE_HH_Gamma = - df_HH_Gamma.variables[0].value[iHighestHole][iLowestElectron]
-        dE_LH_Gamma = - df_LH_Gamma.variables[0].value[iHighestHole][iLowestElectron]
-
-        if force_lightHole:
-            # always take Gamma-LH
-            dE = dE_LH_Gamma
-        else:
-            # take the highest of HH and LH
-            # this also works for negative effective bandgap
-            if dE_HH_Gamma <= dE_LH_Gamma:
-                dE = dE_HH_Gamma
             else:
+                # take the highest of HH and LH eigenstates
+                E_HH = self.getDataFile_in_folder(['energy_spectrum', '_HH'], output_folder, self.software).variables['Energy'].value[0]   # energy of the first eigenstate
+                E_LH = self.getDataFile_in_folder(['energy_spectrum', '_LH'], output_folder, self.software).variables['Energy'].value[0]   # energy of the first eigenstate
+                if E_HH >= E_LH:
+                    df_h = df_HH
+                    h_state_basis = ['HH']
+                else:
+                    df_h = df_LH
+                    h_state_basis = ['LH']
+
+        x = df_e.coords['x'].value
+        iLowestElectron = self.find_lowest_electron_state_atK0(output_folder, threshold=0.5)
+        iHighestHole    = self.find_highest_hole_state_atK0(output_folder, threshold=0.5)
+
+
+        # extract amplitude of electron-like state
+        if electron_state_is_multiband:
+            amplitude_e = np.zeros((len(self.kp8_basis), len(x)), dtype=np.cdouble)
+            for mu, band in enumerate(self.kp8_basis):
+                amplitude_e[mu,:].real = df_e.variables[f'Psi_{iLowestElectron+1}_{band}_real'].value
+                amplitude_e[mu,:].imag = df_e.variables[f'Psi_{iLowestElectron+1}_{band}_imag'].value
+        else:
+            amplitude_e = np.zeros(len(x), dtype=np.double)
+            amplitude_e[:] = df_e.variables[f'Psi_{iLowestElectron+1}'].value
+
+        # extract amplitude of hole-like state
+        if hole_state_is_multiband:
+            amplitude_h = np.zeros((len(h_state_basis), len(x)), dtype=np.cdouble)
+            for nu, band in enumerate(h_state_basis):
+                amplitude_h[nu,:].real = df_h.variables[f'Psi_{iHighestHole+1}_{band}_real'].value
+                amplitude_h[nu,:].imag = df_h.variables[f'Psi_{iHighestHole+1}_{band}_imag'].value
+        else:
+            amplitude_h = np.zeros(len(x), dtype=np.double)
+            amplitude_h[:] = df_h.variables[f'Psi_{iHighestHole+1}'].value
+
+        overlap = 0.
+
+        # calculate overlap
+        if electron_state_is_multiband and hole_state_is_multiband:
+            for mu in range(len(self.kp8_basis)):
+                for nu in range(len(self.kp8_basis)):
+                    prod = np.multiply(np.conjugate(amplitude_h[nu,:]), amplitude_e[mu,:])   # multiply arguments element-wise
+                    overlap += simps(prod, x)
+        elif hole_state_is_multiband:
+            for nu in range(len(self.kp6_basis)):
+                prod = np.multiply(np.conjugate(amplitude_h[nu,:]), amplitude_e[:])   # multiply arguments element-wise
+                overlap += simps(prod, x)
+        else:
+            prod = np.multiply(np.conjugate(amplitude_h[:]), amplitude_e[:])   # multiply arguments element-wise
+            overlap += simps(prod, x)
+
+        return overlap
+
+
+    def get_transition_energy(self, output_folder, force_lightHole=False):
+        """
+        Get the transition energy = energy separation between the lowest electron and highest hole states.
+        Unit: eV
+        """
+        datafiles = self.getDataFiles_in_folder(["transition_energies", ".fld"], output_folder, self.software)
+
+        iLowestElectron = self.find_lowest_electron_state_atK0(output_folder, threshold=0.5)
+        iHighestHole    = self.find_highest_hole_state_atK0(output_folder, threshold=0.5)
+
+        # get the energy separation dE = (electron state level) - (hole state level)
+        if any('kp8' in df.fullpath for df in datafiles):
+            for datafile in datafiles:
+                if 'kp8' in datafile.fullpath:
+                    df = datafile
+            dE = df.variables[0].value[iLowestElectron][iHighestHole]
+        elif any('kp6' in df.fullpath for df in datafiles):
+            for datafile in datafiles:
+                if 'kp6' in datafile.fullpath:
+                    df = datafile
+            dE = - df.variables[0].value[iHighestHole][iLowestElectron]
+        else:  # single band
+            df_HH_Gamma = self.getDataFile_in_folder(["transition_energies", "HH_Gamma", ".fld"], output_folder, self.software)
+            df_LH_Gamma = self.getDataFile_in_folder(["transition_energies", "LH_Gamma", ".fld"], output_folder, self.software)
+            dE_HH_Gamma = - df_HH_Gamma.variables[0].value[iHighestHole][iLowestElectron]
+            dE_LH_Gamma = - df_LH_Gamma.variables[0].value[iHighestHole][iLowestElectron]
+
+            if force_lightHole:
+                # always take Gamma-LH
                 dE = dE_LH_Gamma
+            else:
+                # take the highest of HH and LH
+                # this also works for negative effective bandgap
+                if dE_HH_Gamma <= dE_LH_Gamma:
+                    dE = dE_HH_Gamma
+                else:
+                    dE = dE_LH_Gamma
 
-    # logging.debug(f"get_transition_energy: using data {df.fullpath}")
+        # logging.debug(f"get_transition_energy: using data {df.fullpath}")
 
-    return dE
+        return dE
 
 
-def get_hole_energy_difference(output_folder):
-    """
-    Get the hole energy difference = energy separation between the highest HH and highest LH states.
-    Unit: eV
-    """
-    try:
-        E_HH = common.getDataFile_in_folder(['energy_spectrum', '_HH'], output_folder, software).variables['Energy'].value[0]   # energy of the first eigenstate
-        E_LH = common.getDataFile_in_folder(['energy_spectrum', '_LH'], output_folder, software).variables['Energy'].value[0]   # energy of the first eigenstate
-    except FileNotFoundError:
-        warnings.warn("Energy spectrum for heavy- and light-hole states not found.")
-        return 0
-    else:
-        return E_HH - E_LH 
+    def get_hole_energy_difference(self, output_folder):
+        """
+        Get the hole energy difference = energy separation between the highest HH and highest LH states.
+        Unit: eV
+        """
+        try:
+            E_HH = self.getDataFile_in_folder(['energy_spectrum', '_HH'], output_folder, self.software).variables['Energy'].value[0]   # energy of the first eigenstate
+            E_LH = self.getDataFile_in_folder(['energy_spectrum', '_LH'], output_folder, self.software).variables['Energy'].value[0]   # energy of the first eigenstate
+        except FileNotFoundError:
+            warnings.warn("Energy spectrum for heavy- and light-hole states not found.")
+            return 0
+        else:
+            return E_HH - E_LH 
