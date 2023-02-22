@@ -75,14 +75,14 @@ class nnpShortcuts(CommonShortcuts):
         """
 
         outputFolder = nn.config.get(self.software, 'outputdirectory')
-        filename_no_extension = self.separateFileExtension(input_file.fullpath)[0]
+        filename_no_extension = super().separateFileExtension(input_file.fullpath)[0]
         outputSubfolder = os.path.join(outputFolder, filename_no_extension)
         return self.getKPointsData1D_in_folder(outputSubfolder)
 
 
     def getKPointsData1D_in_folder(self, folder_path):
 
-        datafiles = self.getDataFiles_in_folder('k_points', folder_path, self.software)
+        datafiles = super().getDataFiles_in_folder('k_points', folder_path, self.software)
 
         # inplaneK_dict = {
         #     'Gamma': list(),
@@ -170,7 +170,7 @@ class nnpShortcuts(CommonShortcuts):
         dictionary { quantum model key: corresponding list of nn.DataFile() objects for probability_shift }
 
         """
-        datafiles = self.getDataFiles_in_folder('probabilities_shift', folder_path, self.software)
+        datafiles = super().getDataFiles_in_folder('probabilities_shift', folder_path, self.software)
 
         # probability_dict = {
         #     'Gamma': list(),
@@ -203,7 +203,7 @@ class nnpShortcuts(CommonShortcuts):
         RETURN:
             dictionary { quantum model key: list of nn.DataFile() objects for amplitude data }
         """
-        datafiles = self.getDataFiles_in_folder('amplitudes', folder_path, self.software, exclude_keywords='shift')   # return a list of nn.DataFile
+        datafiles = super().getDataFiles_in_folder('amplitudes', folder_path, self.software, exclude_keywords='shift')   # return a list of nn.DataFile
 
         # amplitude_dict = {
         #     'Gamma': list(),
@@ -235,10 +235,10 @@ class nnpShortcuts(CommonShortcuts):
     #     dictionary with keys interband, intraband, and dipole, each consisting of list of file paths for matrix_elements
     #     """
     #     name = os.path.split(name)[1]   # remove paths if present
-    #     filename_no_extension = self.separateFileExtension(name)[0]
+    #     filename_no_extension = super().separateFileExtension(name)[0]
     #     outputFolder = nn.config.get(self.software, 'outputdirectory')
     #     outputSubFolder = os.path.join(outputFolder, filename_no_extension)
-    #     datafiles = self.getDataFiles_in_folder(['matrix_elements', '.txt'], outputSubFolder, self.software)
+    #     datafiles = super().getDataFiles_in_folder(['matrix_elements', '.txt'], outputSubFolder, self.software)
 
     #     # matrix_elements_dict = {
     #     #     'interband': list(),
@@ -321,7 +321,7 @@ class nnpShortcuts(CommonShortcuts):
         try:
             datafile_dispersion = self.getDataFile('dispersion_', name, self.software)
         except ValueError:
-            datafile_dispersion = self.getDataFile_in_folder('dispersion_', name, self.software)
+            datafile_dispersion = super().getDataFile_in_folder('dispersion_', name, self.software)
 
         # store data in arrays
         kPoints     = datafile_dispersion.coords['|k|'].value
@@ -339,7 +339,7 @@ class nnpShortcuts(CommonShortcuts):
         for index in states_toBePlotted:
             dispersions[index, ] = datafile_dispersion.variables[f'Band_{index+1}'].value
 
-        filename_no_extension = self.separateFileExtension(name)[0]
+        filename_no_extension = super().separateFileExtension(name)[0]
 
         # define plot title
         if plot_title:
@@ -431,12 +431,12 @@ class nnpShortcuts(CommonShortcuts):
         try:
             datafile_dispersion1 = self.getDataFile('dispersion_', name, self.software)
         except ValueError:
-            datafile_dispersion1 = self.getDataFile_in_folder('dispersion_', name, self.software)
+            datafile_dispersion1 = super().getDataFile_in_folder('dispersion_', name, self.software)
         logging.info("Loading 2nd dispersion data (to be plotted on the right)...")
         try:
             datafile_dispersion2 = self.getDataFile('dispersion_', name, self.software)
         except ValueError:
-            datafile_dispersion2 = self.getDataFile_in_folder('dispersion_', name, self.software)
+            datafile_dispersion2 = super().getDataFile_in_folder('dispersion_', name, self.software)
 
         # store data in arrays
         kPoints1     = datafile_dispersion1.coords['|k|'].value
@@ -483,7 +483,7 @@ class nnpShortcuts(CommonShortcuts):
         #-------------------------------------------
         # Plots - save all the figures to one PDF
         #-------------------------------------------
-        filename_no_extension = self.separateFileExtension(name)[0]
+        filename_no_extension = super().separateFileExtension(name)[0]
         export_filename = f'{filename_no_extension}_patched_dispersion'
 
         if savePDF: self.export_figs(export_filename, 'pdf', self.software)
@@ -511,7 +511,7 @@ class nnpShortcuts(CommonShortcuts):
             states_toBePlotted      list of eigenstate numbers to be plotted
 
         """
-        inputfile_name = self.separateFileExtension(master_input_file.fullpath)[0]
+        inputfile_name = super().separateFileExtension(master_input_file.fullpath)[0]
         output_folder_path = self.getSweepOutputFolderPath(inputfile_name, self.software, sweep_variable)
         logging.info(f'output folder path: {output_folder_path}')
 
@@ -520,7 +520,7 @@ class nnpShortcuts(CommonShortcuts):
             output_folder = os.path.join(output_folder_path, output_subfolderName)
 
             # load output data files
-            datafile_dispersion = self.getDataFile_in_folder('dispersion_', output_folder, self.software)
+            datafile_dispersion = super().getDataFile_in_folder('dispersion_', output_folder, self.software)
 
             # store data in arrays
             kPoints     = datafile_dispersion.coords['|k|'].value
@@ -540,7 +540,7 @@ class nnpShortcuts(CommonShortcuts):
             ax.legend(loc='upper left')
 
         # save all the figures to one PDF
-        PDFfilename = self.separateFileExtension(inputfile_name)[0]
+        PDFfilename = super().separateFileExtension(inputfile_name)[0]
         self.export_figs(PDFfilename, 'pdf', self.software, output_folder_path=output_folder_path)
 
 
@@ -561,13 +561,13 @@ class nnpShortcuts(CommonShortcuts):
             states_toBePlotted      list of eigenstate numbers to be plotted
 
         """
-        inputfile_name = self.separateFileExtension(master_input_file.fullpath)[0]
+        inputfile_name = super().separateFileExtension(master_input_file.fullpath)[0]
         output_folder_path = self.getSweepOutputFolderPath(inputfile_name, self.software, sweep_variable)
 
         # determine optimal plot range - x-axis
         output_subfolderName = self.getSweepOutputSubfolderName(inputfile_name, {sweep_variable: list_of_values[0]})
         output_folder        = os.path.join(output_folder_path, output_subfolderName)
-        datafile_dispersion  = self.getDataFile_in_folder('dispersion_', output_folder, self.software)
+        datafile_dispersion  = super().getDataFile_in_folder('dispersion_', output_folder, self.software)
         kPoints              = datafile_dispersion.coords['|k|'].value
         xrange = kPoints[-1] - kPoints[0]
         xmin = kPoints[0] - 0.05 * xrange
@@ -592,7 +592,7 @@ class nnpShortcuts(CommonShortcuts):
             output_folder = os.path.join(output_folder_path, output_subfolderName)
 
             # load output data files
-            datafile_dispersion = self.getDataFile_in_folder('dispersion_', output_folder, self.software)
+            datafile_dispersion = super().getDataFile_in_folder('dispersion_', output_folder, self.software)
 
             # store data in arrays
             dispersions = np.zeros((num_bands, num_kPoints), dtype=np.double)
@@ -749,7 +749,7 @@ class nnpShortcuts(CommonShortcuts):
             for cnt, stateIndex in enumerate(states_toBePlotted[model]):
                 for kIndex in range(num_kPoints[model]):
                     psiSquared_oldgrid = dfs[kIndex].variables[f'Psi^2_{stateIndex+1}'].value
-                    psiSquared[model][cnt][kIndex] = self.convert_grid(psiSquared_oldgrid, x_probability, x)   # grid interpolation needed because of 'output_bandedges{ averaged=no }'
+                    psiSquared[model][cnt][kIndex] = super().convert_grid(psiSquared_oldgrid, x_probability, x)   # grid interpolation needed because of 'output_bandedges{ averaged=no }'
 
 
         # chop off edges of the simulation region
@@ -935,10 +935,10 @@ class nnpShortcuts(CommonShortcuts):
         # Plots --- save all the figures to one PDF
         #-------------------------------------------
         if savePDF:
-            export_filename = f'{self.separateFileExtension(input_file.fullpath)[0]}_probabilities'
+            export_filename = f'{super().separateFileExtension(input_file.fullpath)[0]}_probabilities'
             self.export_figs(export_filename, 'pdf', self.software)
         if savePNG:
-            export_filename = f'{self.separateFileExtension(input_file.fullpath)[0]}_probabilities'
+            export_filename = f'{super().separateFileExtension(input_file.fullpath)[0]}_probabilities'
             self.export_figs(export_filename, 'png', self.software, fig=fig)   # NOTE: presumably only the last fig instance is exported
 
         # --- display in the GUI
@@ -1000,8 +1000,8 @@ class nnpShortcuts(CommonShortcuts):
 
         densityEl_oldgrid   = datafile_densityEl.variables['Electron_density'].value # grid interpolation needed because of 'output_bandedges{ averaged=no }'
         densityHl_oldgrid   = datafile_densityHl.variables['Hole_density'].value
-        densityEl           = self.convert_grid(densityEl_oldgrid, x_density, x)
-        densityHl           = self.convert_grid(densityHl_oldgrid, x_density, x)
+        densityEl           = super().convert_grid(densityEl_oldgrid, x_density, x)
+        densityHl           = super().convert_grid(densityHl_oldgrid, x_density, x)
 
 
         # chop off edges of the simulation region
@@ -1187,7 +1187,7 @@ class nnpShortcuts(CommonShortcuts):
                     # store psi^2 data
                     psiSquared_oldgrid = datafiles_probability[kIndex].variables[f'Psi^2_{stateNo}'].value
                     x_probability      = datafiles_probability[kIndex].coords['x'].value
-                    psiSquared[stateNo-1, kIndex, ] = self.convert_grid(psiSquared_oldgrid, x_probability, x)   # grid interpolation needed because of 'output_bandedges{ averaged=no }'
+                    psiSquared[stateNo-1, kIndex, ] = super().convert_grid(psiSquared_oldgrid, x_probability, x)   # grid interpolation needed because of 'output_bandedges{ averaged=no }'
 
                     # store spinor composition data (for only occupied states)
                     if quantum_model == 'kp8':
@@ -1362,7 +1362,7 @@ class nnpShortcuts(CommonShortcuts):
     #         for stateIndex in states_toBePlotted[model]:
     #             for kIndex in range(num_kPoints[model]):
     #                 psiSquared_oldgrid = datafiles_probability_dict[model][kIndex].variables[f'Psi^2_{stateIndex+1}'].value
-    #                 psiSquared[model][stateIndex][kIndex] = self.convert_grid(psiSquared_oldgrid, x_probability, x)   # grid interpolation needed because of 'output_bandedges{ averaged=no }'
+    #                 psiSquared[model][stateIndex][kIndex] = super().convert_grid(psiSquared_oldgrid, x_probability, x)   # grid interpolation needed because of 'output_bandedges{ averaged=no }'
 
 
     #     # chop off edges of the simulation region
@@ -1448,7 +1448,7 @@ class nnpShortcuts(CommonShortcuts):
         """
         # get nn.DataFile object
         try:
-            datafile = self.getDataFile_in_folder(['spinor', '00000_CbHhLhSo'], output_folder, self.software)   # spinor composition at in-plane k = 0
+            datafile = super().getDataFile_in_folder(['spinor', '00000_CbHhLhSo'], output_folder, self.software)   # spinor composition at in-plane k = 0
         except FileNotFoundError:
             warnings.warn("Spinor components output in CbHhLhSo basis is not found. Assuming decoupling of the conduction and valence bands...", category=self.NextnanoInputFileWarning)
             return int(0)
@@ -1494,7 +1494,7 @@ class nnpShortcuts(CommonShortcuts):
         """
         # get nn.DataFile object
         try:
-            datafile = self.getDataFile_in_folder(['spinor', '00000_CbHhLhSo'], output_folder, self.software)   # spinor composition at in-plane k = 0
+            datafile = super().getDataFile_in_folder(['spinor', '00000_CbHhLhSo'], output_folder, self.software)   # spinor composition at in-plane k = 0
         except FileNotFoundError:
             warnings.warn("Spinor components output in CbHhLhSo basis is not found. Assuming decoupling of the conduction and valence bands...", category=self.NextnanoInputFileWarning)
             return int(0)
@@ -1586,8 +1586,8 @@ class nnpShortcuts(CommonShortcuts):
                 h_state_basis = ['LH']
             else:
                 # take the highest of HH and LH eigenstates
-                E_HH = self.getDataFile_in_folder(['energy_spectrum', '_HH'], output_folder, self.software).variables['Energy'].value[0]   # energy of the first eigenstate
-                E_LH = self.getDataFile_in_folder(['energy_spectrum', '_LH'], output_folder, self.software).variables['Energy'].value[0]   # energy of the first eigenstate
+                E_HH = super().getDataFile_in_folder(['energy_spectrum', '_HH'], output_folder, self.software).variables['Energy'].value[0]   # energy of the first eigenstate
+                E_LH = super().getDataFile_in_folder(['energy_spectrum', '_LH'], output_folder, self.software).variables['Energy'].value[0]   # energy of the first eigenstate
                 if E_HH >= E_LH:
                     df_h = df_HH
                     h_state_basis = ['HH']
@@ -1644,7 +1644,7 @@ class nnpShortcuts(CommonShortcuts):
         Get the transition energy = energy separation between the lowest electron and highest hole states.
         Unit: eV
         """
-        datafiles = self.getDataFiles_in_folder(["transition_energies", ".fld"], output_folder, self.software)
+        datafiles = super().getDataFiles_in_folder(["transition_energies", ".fld"], output_folder, self.software)
 
         iLowestElectron = self.find_lowest_electron_state_atK0(output_folder, threshold=0.5)
         iHighestHole    = self.find_highest_hole_state_atK0(output_folder, threshold=0.5)
@@ -1661,8 +1661,8 @@ class nnpShortcuts(CommonShortcuts):
                     df = datafile
             dE = - df.variables[0].value[iHighestHole][iLowestElectron]
         else:  # single band
-            df_HH_Gamma = self.getDataFile_in_folder(["transition_energies", "HH_Gamma", ".fld"], output_folder, self.software)
-            df_LH_Gamma = self.getDataFile_in_folder(["transition_energies", "LH_Gamma", ".fld"], output_folder, self.software)
+            df_HH_Gamma = super().getDataFile_in_folder(["transition_energies", "HH_Gamma", ".fld"], output_folder, self.software)
+            df_LH_Gamma = super().getDataFile_in_folder(["transition_energies", "LH_Gamma", ".fld"], output_folder, self.software)
             dE_HH_Gamma = - df_HH_Gamma.variables[0].value[iHighestHole][iLowestElectron]
             dE_LH_Gamma = - df_LH_Gamma.variables[0].value[iHighestHole][iLowestElectron]
 
@@ -1688,8 +1688,8 @@ class nnpShortcuts(CommonShortcuts):
         Unit: eV
         """
         try:
-            E_HH = self.getDataFile_in_folder(['energy_spectrum', '_HH'], output_folder, self.software).variables['Energy'].value[0]   # energy of the first eigenstate
-            E_LH = self.getDataFile_in_folder(['energy_spectrum', '_LH'], output_folder, self.software).variables['Energy'].value[0]   # energy of the first eigenstate
+            E_HH = super().getDataFile_in_folder(['energy_spectrum', '_HH'], output_folder, self.software).variables['Energy'].value[0]   # energy of the first eigenstate
+            E_LH = super().getDataFile_in_folder(['energy_spectrum', '_LH'], output_folder, self.software).variables['Energy'].value[0]   # energy of the first eigenstate
         except FileNotFoundError:
             warnings.warn("Energy spectrum for heavy- and light-hole states not found.")
             return 0

@@ -49,7 +49,7 @@ class NEGFShortcuts(CommonShortcuts):
 
         # export to an image file
         outputFolder = nn.config.get(self.software, 'outputdirectory')
-        filename_no_extension = self.separateFileExtension(input_file_name)[0]
+        filename_no_extension = super().separateFileExtension(input_file_name)[0]
         outputSubfolder = os.path.join(outputFolder, filename_no_extension)
         self.export_figs("IV", "png", self.software, output_folder_path=outputSubfolder, fig=fig)
 
@@ -57,7 +57,7 @@ class NEGFShortcuts(CommonShortcuts):
 
     def getDataFile_NEGF_init(self, keywords, name):
         output_folder = nn.config.get(self.software, 'outputdirectory')
-        filename_no_extension = self.separateFileExtension(name)[0]
+        filename_no_extension = super().separateFileExtension(name)[0]
         subfolder = os.path.join(output_folder, filename_no_extension)
         d = nn.DataFolder(subfolder)
 
@@ -67,7 +67,7 @@ class NEGFShortcuts(CommonShortcuts):
                 # listOfFiles = d.go_to(folder_name).find(keyword, deep=True)
                 init_folder_path = d.go_to(folder_name).fullpath
 
-        return self.getDataFile_in_folder(keywords, init_folder_path, self.software)  # TODO: add options available
+        return super().getDataFile_in_folder(keywords, init_folder_path, self.software)  # TODO: add options available
 
 
 
@@ -90,10 +90,10 @@ class NEGFShortcuts(CommonShortcuts):
 
         """
         output_folder = nn.config.get(self.software, 'outputdirectory')
-        filename_no_extension = self.separateFileExtension(name)[0]
+        filename_no_extension = super().separateFileExtension(name)[0]
         bias_subfolder = os.path.join(output_folder, filename_no_extension, str(bias) + 'mv')
 
-        return self.getDataFile_in_folder(keywords, bias_subfolder, self.software)
+        return super().getDataFile_in_folder(keywords, bias_subfolder, self.software)
 
 
     # def get_convergenceInfo(self, bias):
@@ -243,7 +243,7 @@ class NEGFShortcuts(CommonShortcuts):
 
         # export to an image file
         outputFolder = nn.config.get(self.software, 'outputdirectory')
-        filename_no_extension = self.separateFileExtension(name)[0]
+        filename_no_extension = super().separateFileExtension(name)[0]
         outputSubfolder = os.path.join(outputFolder, filename_no_extension)
         self.export_figs("WannierStarkStates_init", "png", self.software, output_folder_path=outputSubfolder, fig=fig)
 
@@ -319,7 +319,7 @@ class NEGFShortcuts(CommonShortcuts):
 
         # export to an image file
         outputFolder = nn.config.get(self.software, 'outputdirectory')
-        filename_no_extension = self.separateFileExtension(input_file_name)[0]
+        filename_no_extension = super().separateFileExtension(input_file_name)[0]
         outputSubfolder = os.path.join(outputFolder, filename_no_extension)
         self.export_figs("DOS", "png", self.software, output_folder_path=outputSubfolder, fig=fig)
 
@@ -366,7 +366,7 @@ class NEGFShortcuts(CommonShortcuts):
 
         # export to an image file
         outputFolder = nn.config.get(self.software, 'outputdirectory')
-        filename_no_extension = self.separateFileExtension(input_file_name)[0]
+        filename_no_extension = super().separateFileExtension(input_file_name)[0]
         outputSubfolder = os.path.join(outputFolder, filename_no_extension)
         self.export_figs("CarrierDensity", "png", self.software, output_folder_path=outputSubfolder, fig=fig)
 
@@ -413,7 +413,7 @@ class NEGFShortcuts(CommonShortcuts):
 
         # export to an image file
         outputFolder = nn.config.get(self.software, 'outputdirectory')
-        filename_no_extension = self.separateFileExtension(input_file_name)[0]
+        filename_no_extension = super().separateFileExtension(input_file_name)[0]
         outputSubfolder = os.path.join(outputFolder, filename_no_extension)
         self.export_figs("CurrentDensity", "png", self.software, output_folder_path=outputSubfolder, fig=fig)
 
@@ -457,7 +457,7 @@ class NEGFShortcuts(CommonShortcuts):
 
         """
         output_folder = nn.config.get(self.software, 'outputdirectory')
-        filename_no_extension = self.separateFileExtension(name)[0]
+        filename_no_extension = super().separateFileExtension(name)[0]
         datafolder = nn.DataFolder(os.path.join(output_folder, filename_no_extension))
 
         biases = [int(folder_name.replace('mV', '')) for folder_name in datafolder.folders.keys() if ('mV' in folder_name) and ('Init' not in folder_name)]
@@ -485,7 +485,7 @@ class NEGFShortcuts(CommonShortcuts):
         if rightFig not in quantity_names:
             raise KeyError(f"Entry must be {quantity_names}!")
 
-        input_file_name = self.separateFileExtension(input_file_name)[0]
+        input_file_name = super().separateFileExtension(input_file_name)[0]
 
         array_of_biases = np.array(self.get_biases(input_file_name))
 
@@ -565,9 +565,9 @@ class NEGFShortcuts(CommonShortcuts):
         """
         # find the output file
         outputFolder = nn.config.get(self.software, 'outputdirectory')
-        filename_no_extension = self.separateFileExtension(name)[0]
+        filename_no_extension = super().separateFileExtension(name)[0]
         outputSubfolder = os.path.join(outputFolder, filename_no_extension)
-        df = self.getDataFile_in_folder('L-I-V.dat', outputSubfolder, self.software)
+        df = super().getDataFile_in_folder('L-I-V.dat', outputSubfolder, self.software)
         
         data = np.loadtxt(df.fullpath, skiprows=1)
 
@@ -858,7 +858,7 @@ class NEGFShortcuts(CommonShortcuts):
             for cnt, stateIndex in enumerate(states_toBePlotted[model]):
                 for kIndex in range(num_kPoints[model]):
                     psiSquared_oldgrid = dfs[kIndex].variables[f"Psi^2_{stateIndex+1} (lev.{stateIndex+1} per.0)"].value  # TODO: generalize. nPeriod is not always 1
-                    psiSquared[model][cnt][kIndex] = self.convert_grid(psiSquared_oldgrid, x_probability, x)   # grid interpolation needed because of 'output_bandedges{ averaged=no }'
+                    psiSquared[model][cnt][kIndex] = super().convert_grid(psiSquared_oldgrid, x_probability, x)   # grid interpolation needed because of 'output_bandedges{ averaged=no }'
 
 
         # chop off edges of the simulation region
@@ -1045,10 +1045,10 @@ class NEGFShortcuts(CommonShortcuts):
         # Plots --- save all the figures to one PDF
         #-------------------------------------------
         if savePDF:
-            export_filename = f'{self.separateFileExtension(input_file.fullpath)[0]}_probabilities'
+            export_filename = f'{super().separateFileExtension(input_file.fullpath)[0]}_probabilities'
             self.export_figs(export_filename, 'pdf', self.software)
         if savePNG:
-            export_filename = f'{self.separateFileExtension(input_file.fullpath)[0]}_probabilities'
+            export_filename = f'{super().separateFileExtension(input_file.fullpath)[0]}_probabilities'
             self.export_figs(export_filename, 'png', self.software, fig=fig)   # NOTE: presumably only the last fig instance is exported
 
         # --- display in the GUI
@@ -1069,7 +1069,7 @@ class NEGFShortcuts(CommonShortcuts):
         dictionary { quantum model key: corresponding list of nn.DataFile() objects for probability_shift }
 
         """
-        datafiles = self.getDataFiles_in_folder("probabilities_shifted", folder_path, self.software)
+        datafiles = super().getDataFiles_in_folder("probabilities_shifted", folder_path, self.software)
 
         if len(datafiles) > 1: raise RuntimeError("Multiple data files found with keyword 'Probabilities_selected'!")
         probability_dict = {'kp8': list(datafiles)} # currently, wavefunctions are output only in 8-band models
@@ -1103,7 +1103,7 @@ class NEGFShortcuts(CommonShortcuts):
         """
         # get nn.DataFile object
         try:
-            datafile = self.getDataFile_in_folder(['spinor'], output_folder, self.software)   # spinor composition at in-plane k = 0
+            datafile = super().getDataFile_in_folder(['spinor'], output_folder, self.software)   # spinor composition at in-plane k = 0
         except FileNotFoundError:
             warnings.warn("Spinor components output in CbHhLhSo basis is not found. Assuming decoupling of the conduction and valence bands...", category=self.NextnanoInputFileWarning)
             return int(0)
@@ -1143,7 +1143,7 @@ class NEGFShortcuts(CommonShortcuts):
         """
         # get nn.DataFile object
         try:
-            datafile = self.getDataFile_in_folder(['spinor'], output_folder, self.software)   # spinor composition at in-plane k = 0
+            datafile = super().getDataFile_in_folder(['spinor'], output_folder, self.software)   # spinor composition at in-plane k = 0
         except FileNotFoundError:
             warnings.warn("Spinor components output in CbHhLhSo basis is not found. Assuming decoupling of the conduction and valence bands...", category=self.NextnanoInputFileWarning)
             return int(0)

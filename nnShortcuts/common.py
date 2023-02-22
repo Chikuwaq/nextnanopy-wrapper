@@ -26,6 +26,8 @@ from nextnanopy.utils.misc import mkdir_if_not_exist
 
 
 class CommonShortcuts:
+    software = None
+
     # -------------------------------------------------------
     # Fundamental physical constants 
     # https://physics.nist.gov/cgi-bin/cuu
@@ -226,7 +228,11 @@ class CommonShortcuts:
     # -------------------------------------------------------
     # Simulation preprocessing
     # -------------------------------------------------------
-
+    # We make it a static method because:
+    # - this utility function doesn't access any properties of the class but makes sense that it belongs to the class
+    # - we want to forbid method override in the inherited classes
+    # - we want to make this method available without instantiation of an object.
+    @staticmethod
     def separateFileExtension(filename):
         """
         Separate file extension from file name.
@@ -671,6 +677,11 @@ class CommonShortcuts:
         return self.getDataFile_in_folder(keywords, outputSubfolder, software, exclude_keywords=exclude_keywords)
 
 
+    # We make it a static method because:
+    # - this utility function doesn't access any properties of the class but makes sense that it belongs to the class
+    # - we want to forbid method override in the inherited classes
+    # - we want to make this method available without instantiation of an object.
+    @staticmethod
     def getDataFile_in_folder(keywords, folder_path, software, exclude_keywords=None):
         """
         Get single nextnanopy.DataFile of output data with the given string keyword(s) in the specified folder.
@@ -782,6 +793,11 @@ class CommonShortcuts:
         return self.getDataFiles_in_folder(keywords, outputSubFolder, software, exclude_keywords=exclude_keywords)
 
 
+    # We make it a static method because:
+    # - this utility function doesn't access any properties of the class but makes sense that it belongs to the class
+    # - we want to forbid method override in the inherited classes
+    # - we want to make this method available without instantiation of an object.
+    @staticmethod
     def getDataFiles_in_folder(keywords, folder_path, software, exclude_keywords=None):
         """
         Get multiple nextnanopy.DataFiles of output data with the given string keyword(s) in the specified folder.
@@ -863,15 +879,15 @@ class CommonShortcuts:
         outputFolder = nn.config.get(software, 'outputdirectory')
         outputSubFolder = os.path.join(outputFolder, filename_no_extension)
 
-        if software == 'nextnano++':
-            return nnp.getDataFile_probabilities_in_folder(outputSubFolder)
-        elif software == 'nextnano3':
-            return nn3.getDataFile_probabilities_in_folder(outputSubFolder)
-        elif software == 'nextnano.NEGF':
-            return negf.getDataFile_probabilities_in_folder(outputSubFolder)
+        return self.getDataFile_probabilities_in_folder(outputSubFolder)
+        
+
+    def getDataFile_probabilities_in_folder(self, folder_path):
+        """ This method must be defined in the derived classes """
+        raise NotImplementedError()
 
 
-    def get_num_evs(probability_dict):
+    def __get_num_evs(self, probability_dict):
         """ number of eigenvalues for each quantum model """
         num_evs = dict()
         for model, datafiles in probability_dict.items():
@@ -918,7 +934,7 @@ class CommonShortcuts:
             raise ValueError("Only one of 'states_range_dict' or 'states_list_dict' is allowed as an argument")
 
         # get number of eigenvalues
-        num_evs = self.get_num_evs(datafiles_probability_dict)
+        num_evs = self.__get_num_evs(datafiles_probability_dict)
 
         # TODO: nn3 has two output files '_el' and '_hl' also in 8kp calculation
         states_toBePlotted = dict.fromkeys(datafiles_probability_dict.keys())
@@ -947,63 +963,61 @@ class CommonShortcuts:
                     states_toBePlotted[model] = np.arange(0, num_evs[model])   # by default, plot all the eigenstates
                 else:
                     states_toBePlotted[model] = list()
-                    if software == 'nextnano++':
-                        for stateNo in states_list_dict[model]:
-                            if stateNo == 'highestHole':
-                                if model != 'kp8' and model not in nnp.model_names_valence:
-                                    raise ValueError(f"Quantum model '{model}' does not contain hole states.")
+                    for stateNo in states_list_dict[model]:
+                        if stateNo == 'highestHole':
+                            if model != 'kp8' and model not in self.model_names_valence:
+                                raise ValueError(f"Quantum model '{model}' does not contain hole states.")
+                            
+                            # TODO: nn3 has two output files '_el' and '_hl' also in 8kp calculation
+                            states_toBePlotted[model].append(self.find_highest_hole_state_atK0(outfolder, threshold=0.5))
                                 
-                                # TODO: nn3 has two output files '_el' and '_hl' also in 8kp calculation
-                                states_toBePlotted[model].append(nnp.find_highest_hole_state_atK0(outfolder, threshold=0.5))
-                                    
-                            elif stateNo == 'lowestElectron':
-                                if model != 'kp8' and model not in nnp.model_names_conduction:
-                                    raise ValueError(f"Quantum model '{model}' does not contain electron states.")
+                        elif stateNo == 'lowestElectron':
+                            if model != 'kp8' and model not in self.model_names_conduction:
+                                raise ValueError(f"Quantum model '{model}' does not contain electron states.")
 
-                                states_toBePlotted[model].append(nnp.find_lowest_electron_state_atK0(outfolder, threshold=0.5))
-                                
-                            elif stateNo == 'occupied':
-                                if 'cutoff_occupation' not in states_list_dict.keys():
-                                    raise ValueError("cutoff_occupation must be specified in 'states_list_dict'")
-
-                                # WARNING: state selection based on k||=0 occupation
-                                df = self.getDataFile_in_folder(['occupation', model], outfolder, software)
-                                try:
-                                    cutoff_occupation = np.double(states_list_dict['cutoff_occupation'])
-                                except ValueError as e:
-                                    raise Exception("cutoff_occupation must be a real number!") from e
-                                if cutoff_occupation < 0: 
-                                    raise ValueError("cutoff_occupation must be positive!")
-
-                                states_toBePlotted[model] += [int(stateNo) - 1 for stateNo, occupation in zip(df.coords['no.'].value, df.variables['Occupation'].value) if occupation >= cutoff_occupation]
-                            elif isinstance(stateNo, int):
-                                if stateNo > num_evs[model]: 
-                                    raise ValueError("State index greater than number of eigenvalues calculated!")
-                                states_toBePlotted[model].append(stateNo - 1)
-                    elif software == 'nextnano.NEGF':
-                        for stateNo in states_list_dict[model]:
-                            if stateNo == 'highestHole':
-                                states_toBePlotted[model].append(negf.find_highest_hole_state_atK0(outfolder, threshold=0.5))
+                            states_toBePlotted[model].append(self.find_lowest_electron_state_atK0(outfolder, threshold=0.5))
                             
-                            elif stateNo == 'lowestElectron':
-                                states_toBePlotted[model].append(negf.find_lowest_electron_state_atK0(outfolder, threshold=0.5))
-                            
-                            elif stateNo == 'occupied':
-                                raise NotImplementedError("Plotting only occupied states not yet implemented")
-                            
-                            elif isinstance(stateNo, int):
-                                if stateNo > num_evs[model]: 
-                                    raise ValueError("State index greater than number of eigenvalues calculated!")
-                                states_toBePlotted[model].append(stateNo - 1)
+                        elif stateNo == 'occupied':
+                            if self.software == 'nextnano.NEGF':
+                                raise NotImplementedError("Plotting only occupied states not yet implemented for NEGF")
+                            if 'cutoff_occupation' not in states_list_dict.keys():
+                                raise ValueError("cutoff_occupation must be specified in 'states_list_dict'")
 
-                        
+                            # WARNING: state selection based on k||=0 occupation
+                            df = self.getDataFile_in_folder(['occupation', model], outfolder, software)
+                            try:
+                                cutoff_occupation = np.double(states_list_dict['cutoff_occupation'])
+                            except ValueError as e:
+                                raise Exception("cutoff_occupation must be a real number!") from e
+                            if cutoff_occupation < 0: 
+                                raise ValueError("cutoff_occupation must be positive!")
+
+                            states_toBePlotted[model] += [int(stateNo) - 1 for stateNo, occupation in zip(df.coords['no.'].value, df.variables['Occupation'].value) if occupation >= cutoff_occupation]
+                        elif isinstance(stateNo, int):
+                            if stateNo > num_evs[model]: 
+                                raise ValueError("State index greater than number of eigenvalues calculated!")
+                            states_toBePlotted[model].append(stateNo - 1)   
         return states_toBePlotted, num_evs
+
+    
+    def find_highest_hole_state_atK0(self):
+        """ This method must be defined in the derived classes """
+        raise NotImplementedError()
+
+    def find_lowest_electron_state_atK0(self):
+        """ This method must be defined in the derived classes """
+        raise NotImplementedError()
 
 
     # -------------------------------------------------------
     # Data postprocessing
     # -------------------------------------------------------
 
+    # We make it a static method because:
+    # - this utility function doesn't access any properties of the class but makes sense that it belongs to the class
+    # - we want to forbid method override in the inherited classes
+    # - we want to make this method available without instantiation of an object.
+    @staticmethod
     def convert_grid(arr, old_grid, new_grid):
         """
         Convert grid of an array.
@@ -1035,7 +1049,11 @@ class CommonShortcuts:
         return arr_new
 
 
-
+    # We make it a static method because:
+    # - this utility function doesn't access any properties of the class but makes sense that it belongs to the class
+    # - we want to forbid method override in the inherited classes
+    # - we want to make this method available without instantiation of an object.
+    @staticmethod
     def cutOff_edges1D(arr, x_grid, start_position, end_position):
         """
         Cut off the edges of 1D real space array.
@@ -1192,13 +1210,18 @@ class CommonShortcuts:
 
 
 
-    def mask_part_of_array(arr, string='flat', tolerance=1e-4, cut_range=[]):
+    # We make it a static method because:
+    # - this utility function doesn't access any properties of the class but makes sense that it belongs to the class
+    # - we want to forbid method override in the inherited classes
+    # - we want to make this method available without instantiation of an object.
+    @staticmethod
+    def mask_part_of_array(arr, method='flat', tolerance=1e-4, cut_range=[]):
         """
         Mask some elements in an array to plot limited part of data.
 
         INPUT:
             arr           data array to be masked
-            string        specify mask method. 'flat' masks flat part of the data, while 'range' masks the part specified by the index range.
+            method        specify mask method. 'flat' masks flat part of the data, while 'range' masks the part specified by the index range.
             tolerance     for 'flat' mask method
             cut_range     list: range of index to define indies to be masked
 
@@ -1207,12 +1230,12 @@ class CommonShortcuts:
 
         """
         if not isinstance(arr, np.ndarray):
-            raise TypeError('Array must be numpy.ndarray')
+            raise TypeError(f"Array must be numpy.ndarray. Type is {type(arr)}")
 
         arr_size = len(arr)
         new_arr = np.ma.array(arr, mask = [0 for i in range(arr_size)])   # non-masked np.ma.array with given data arr
 
-        if string == 'flat':  # mask data points where the values are almost flat
+        if method == 'flat':  # mask data points where the values are almost flat
             num_neighbours = 10   # number of neighbouring points to be tested
 
             def isFlat_forward(i, k):
@@ -1262,7 +1285,7 @@ class CommonShortcuts:
 
 
 
-        if string == 'range':
+        if method == 'range':
             if cut_range == []: raise ValueError('Specify the range to cut!')
 
             cut_indices = np.arange(cut_range[0], cut_range[1], 1)
