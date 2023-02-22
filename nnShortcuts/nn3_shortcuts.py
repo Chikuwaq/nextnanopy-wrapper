@@ -18,7 +18,9 @@ from nnShortcuts.common import CommonShortcuts
 
 
 class nn3Shortcuts(CommonShortcuts):
+    # nextnano solver
     software = 'nextnano3'
+    
     model_names = ['cb1', 'vb1', 'vb2', 'vb3', 'kp6', 'kp8']  # in nextnano3
     model_names_conduction = ['cb1']
     model_names_valence    = ['vb1', 'vb2', 'vb3', 'kp6', 'kp8']
@@ -51,7 +53,7 @@ class nn3Shortcuts(CommonShortcuts):
 
     def getKPointsData1D_in_folder(self, folder_path):
 
-        datafiles = super().getDataFiles_in_folder('k_points', folder_path, self.software)
+        datafiles = self.getDataFiles_in_folder('k_points', folder_path)
 
         # inplaneK_dict = {
         #     'Gamma': list(),
@@ -124,7 +126,7 @@ class nn3Shortcuts(CommonShortcuts):
         -------
         dictionary { quantum model key: corresponding list of nn.DataFile() objects for probability_shift }
         """
-        datafiles = super().getDataFiles_in_folder('_psi_squared', folder_path, self.software)  # TODO: is this finding the correct files?
+        datafiles = self.getDataFiles_in_folder('_psi_squared', folder_path)  # TODO: is this finding the correct files?
 
         # probability_dict = {
         #     'Gamma': list(),
@@ -157,7 +159,7 @@ class nn3Shortcuts(CommonShortcuts):
         RETURN:
             dictionary { quantum model key: list of nn.DataFile() objects for amplitude data }
         """
-        datafiles = super().getDataFiles_in_folder('psi', folder_path, self.software, exclude_keywords='shift')   # return a list of nn.DataFile
+        datafiles = self.getDataFiles_in_folder('psi', folder_path, exclude_keywords='shift')   # return a list of nn.DataFile
 
         # amplitude_dict = {
         #     'Gamma': list(),
@@ -216,7 +218,7 @@ class nn3Shortcuts(CommonShortcuts):
         """
         # get nn.DataFile object   # TODO: where is the output of spinor composition in nn3?
         try:
-            datafile = super().getDataFile_in_folder(['eigenvalues', '_info'], output_folder, self.software)   # spinor composition at in-plane k = 0
+            datafile = self.getDataFile_in_folder(['eigenvalues', '_info'], output_folder)   # spinor composition at in-plane k = 0
         except FileNotFoundError:
             warnings.warn("Spinor components output in CbHhLhSo basis is not found. Assuming decoupling of the conduction and valence bands...", category=self.NextnanoInputFileWarning)
             return int(0)
@@ -265,7 +267,7 @@ class nn3Shortcuts(CommonShortcuts):
         """
         # get nn.DataFile object  # TODO: where is the output of spinor composition in nn3?
         try:
-            datafile = super().getDataFile_in_folder(['eigenvalues', '_info'], output_folder, self.software)   # spinor composition at in-plane k = 0
+            datafile = self.getDataFile_in_folder(['eigenvalues', '_info'], output_folder)   # spinor composition at in-plane k = 0
         except FileNotFoundError:
             warnings.warn("Spinor components output in CbHhLhSo basis is not found. Assuming decoupling of the conduction and valence bands...", category=self.NextnanoInputFileWarning)
             return int(0)
@@ -342,8 +344,8 @@ class nn3Shortcuts(CommonShortcuts):
                 h_state_basis = ['LH']
             else:
                 # take the highest of HH and LH eigenstates
-                E_HH = super().getDataFile_in_folder(['energy_spectrum', '_HH'], output_folder, self.software).variables['Energy'].value[0]   # energy of the first eigenstate
-                E_LH = super().getDataFile_in_folder(['energy_spectrum', '_LH'], output_folder, self.software).variables['Energy'].value[0]   # energy of the first eigenstate
+                E_HH = self.getDataFile_in_folder(['energy_spectrum', '_HH'], output_folder).variables['Energy'].value[0]   # energy of the first eigenstate
+                E_LH = self.getDataFile_in_folder(['energy_spectrum', '_LH'], output_folder).variables['Energy'].value[0]   # energy of the first eigenstate
                 if E_HH >= E_LH:
                     df_h = df_HH
                     h_state_basis = ['HH']
@@ -402,8 +404,8 @@ class nn3Shortcuts(CommonShortcuts):
         """
         # TODO: make it compatible with single-band & kp6 models. See nnp implementation
         # NOTE: nn3 has two output files '_el' and '_hl' also in 8kp calculation.
-        datafile_el = super().getDataFile_in_folder(["eigenvalues", "el"], output_folder, self.software, exclude_keywords=["info", "pos"])
-        datafile_hl = super().getDataFile_in_folder(["eigenvalues", "hl"], output_folder, self.software, exclude_keywords=["info", "pos"])
+        datafile_el = self.getDataFile_in_folder(["eigenvalues", "el"], output_folder, exclude_keywords=["info", "pos"])
+        datafile_hl = self.getDataFile_in_folder(["eigenvalues", "hl"], output_folder, exclude_keywords=["info", "pos"])
         if 'kp8' not in datafile_el.fullpath or 'kp8' not in datafile_hl.fullpath:
             raise NotImplementedError("This method is currently limited to kp8!")
 
@@ -425,7 +427,7 @@ class nn3Shortcuts(CommonShortcuts):
         Get the hole energy difference = energy separation between the highest HH and highest LH states.
         Unit: eV
         """
-        E_HH = super().getDataFile_in_folder(['energy_spectrum', '_HH'], output_folder, self.software).variables['Energy'].value[0]   # energy of the first eigenstate
-        E_LH = super().getDataFile_in_folder(['energy_spectrum', '_LH'], output_folder, self.software).variables['Energy'].value[0]   # energy of the first eigenstate
+        E_HH = self.getDataFile_in_folder(['energy_spectrum', '_HH'], output_folder).variables['Energy'].value[0]   # energy of the first eigenstate
+        E_LH = self.getDataFile_in_folder(['energy_spectrum', '_LH'], output_folder).variables['Energy'].value[0]   # energy of the first eigenstate
             
         return E_HH - E_LH

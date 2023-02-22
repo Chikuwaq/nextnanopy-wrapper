@@ -14,13 +14,13 @@
 - avoid output PDF filename conflict between plot_carrier_density() and plot_probabilities() 
 
 [object-oriented approach]
-- self.software can be a member of the parent. You don't need software in the function args
 - some methods need to branch out to nnp and NEGF after some initial preparation. Put common preparation in the parent class 'CommonShortcuts', and then override the method in child classes. Within the child classes, you can use super().prepare() to invoke parent class'es method.
 - move labelsize and ticksize to the parent class constructor. In inherited class methods, use self.labelsize
 - if methods with the same name exist in different child classes, define them in the parent class and raise Exception. User instantiated a wrong object.
 - benefit of using classes is that the methods don't need to be defined above the code line of invocation. Bring the major methods up, auxilirary methods to the bottom.
 E.g. get_states_to_be_plotted()
 - is it possible to move imports to __init__? or at least to the parent class
+- use it in nnHelpers
 
 [SweepHelper]
 - add an example to demonstrate usage

@@ -19,7 +19,9 @@ from nnShortcuts.common import CommonShortcuts
 
 
 class nnpShortcuts(CommonShortcuts):
+    # nextnano solver
     software = 'nextnano++'
+    
     model_names = ['Gamma', 'L', 'X', 'Delta', 'HH', 'LH', 'SO', 'kp6', 'kp8']
     model_names_conduction = ['Gamma', 'L', 'X', 'Delta']
     model_names_valence    = ['HH', 'LH', 'SO', 'kp6']
@@ -27,14 +29,14 @@ class nnpShortcuts(CommonShortcuts):
 
 
     def get_bandgap_atPosition(self, filename, position):
-        df = self.getDataFile('bandgap.dat', filename, self.software)
+        df = self.getDataFile('bandgap.dat', filename)
         bandgap = df.variables['Bandgap_Gamma'].value
         x = df.coords['x'].value
         Eg = self.getValueAtPosition(bandgap, x, position)
         return Eg
 
     def get_deltaSO_atPosition(self, filename, position):
-        df = self.getDataFile('spin_orbit_coupling', filename, self.software)
+        df = self.getDataFile('spin_orbit_coupling', filename)
         spin_orbit_coupling = df.variables['Delta_so'].value
         x = df.coords['x'].value
         deltaSO = self.getValueAtPosition(spin_orbit_coupling, x, position)
@@ -82,7 +84,7 @@ class nnpShortcuts(CommonShortcuts):
 
     def getKPointsData1D_in_folder(self, folder_path):
 
-        datafiles = super().getDataFiles_in_folder('k_points', folder_path, self.software)
+        datafiles = self.getDataFiles_in_folder('k_points', folder_path)
 
         # inplaneK_dict = {
         #     'Gamma': list(),
@@ -170,7 +172,7 @@ class nnpShortcuts(CommonShortcuts):
         dictionary { quantum model key: corresponding list of nn.DataFile() objects for probability_shift }
 
         """
-        datafiles = super().getDataFiles_in_folder('probabilities_shift', folder_path, self.software)
+        datafiles = self.getDataFiles_in_folder('probabilities_shift', folder_path)
 
         # probability_dict = {
         #     'Gamma': list(),
@@ -203,7 +205,7 @@ class nnpShortcuts(CommonShortcuts):
         RETURN:
             dictionary { quantum model key: list of nn.DataFile() objects for amplitude data }
         """
-        datafiles = super().getDataFiles_in_folder('amplitudes', folder_path, self.software, exclude_keywords='shift')   # return a list of nn.DataFile
+        datafiles = self.getDataFiles_in_folder('amplitudes', folder_path, exclude_keywords='shift')   # return a list of nn.DataFile
 
         # amplitude_dict = {
         #     'Gamma': list(),
@@ -238,7 +240,7 @@ class nnpShortcuts(CommonShortcuts):
     #     filename_no_extension = super().separateFileExtension(name)[0]
     #     outputFolder = nn.config.get(self.software, 'outputdirectory')
     #     outputSubFolder = os.path.join(outputFolder, filename_no_extension)
-    #     datafiles = super().getDataFiles_in_folder(['matrix_elements', '.txt'], outputSubFolder, self.software)
+    #     datafiles = self.getDataFiles_in_folder(['matrix_elements', '.txt'], outputSubFolder)
 
     #     # matrix_elements_dict = {
     #     #     'interband': list(),
@@ -319,9 +321,9 @@ class nnpShortcuts(CommonShortcuts):
 
         # load output data files
         try:
-            datafile_dispersion = self.getDataFile('dispersion_', name, self.software)
+            datafile_dispersion = self.getDataFile('dispersion_', name)
         except ValueError:
-            datafile_dispersion = super().getDataFile_in_folder('dispersion_', name, self.software)
+            datafile_dispersion = self.getDataFile_in_folder('dispersion_', name)
 
         # store data in arrays
         kPoints     = datafile_dispersion.coords['|k|'].value
@@ -363,8 +365,8 @@ class nnpShortcuts(CommonShortcuts):
         # Save the figure to an image file
         #-------------------------------------------
         export_filename = f'{filename_no_extension}_dispersion'
-        if savePDF: self.export_figs(export_filename, 'pdf', self.software)
-        if savePNG: self.export_figs(export_filename, 'png', self.software, fig=fig)
+        if savePDF: self.export_figs(export_filename, 'pdf')
+        if savePNG: self.export_figs(export_filename, 'png', fig=fig)
 
         # --- display in the GUI
         plt.show()
@@ -429,14 +431,14 @@ class nnpShortcuts(CommonShortcuts):
         # load output data files
         logging.info("Loading 1st dispersion data (to be plotted on the left)...")
         try:
-            datafile_dispersion1 = self.getDataFile('dispersion_', name, self.software)
+            datafile_dispersion1 = self.getDataFile('dispersion_', name)
         except ValueError:
-            datafile_dispersion1 = super().getDataFile_in_folder('dispersion_', name, self.software)
+            datafile_dispersion1 = self.getDataFile_in_folder('dispersion_', name)
         logging.info("Loading 2nd dispersion data (to be plotted on the right)...")
         try:
-            datafile_dispersion2 = self.getDataFile('dispersion_', name, self.software)
+            datafile_dispersion2 = self.getDataFile('dispersion_', name)
         except ValueError:
-            datafile_dispersion2 = super().getDataFile_in_folder('dispersion_', name, self.software)
+            datafile_dispersion2 = self.getDataFile_in_folder('dispersion_', name)
 
         # store data in arrays
         kPoints1     = datafile_dispersion1.coords['|k|'].value
@@ -486,8 +488,8 @@ class nnpShortcuts(CommonShortcuts):
         filename_no_extension = super().separateFileExtension(name)[0]
         export_filename = f'{filename_no_extension}_patched_dispersion'
 
-        if savePDF: self.export_figs(export_filename, 'pdf', self.software)
-        if savePNG: self.export_figs(export_filename, 'png', self.software, fig=fig)
+        if savePDF: self.export_figs(export_filename, 'pdf')
+        if savePNG: self.export_figs(export_filename, 'png', fig=fig)
 
         # --- display in the GUI
         plt.show()
@@ -512,7 +514,7 @@ class nnpShortcuts(CommonShortcuts):
 
         """
         inputfile_name = super().separateFileExtension(master_input_file.fullpath)[0]
-        output_folder_path = self.getSweepOutputFolderPath(inputfile_name, self.software, sweep_variable)
+        output_folder_path = self.getSweepOutputFolderPath(inputfile_name, sweep_variable)
         logging.info(f'output folder path: {output_folder_path}')
 
         for value in list_of_values:
@@ -520,7 +522,7 @@ class nnpShortcuts(CommonShortcuts):
             output_folder = os.path.join(output_folder_path, output_subfolderName)
 
             # load output data files
-            datafile_dispersion = super().getDataFile_in_folder('dispersion_', output_folder, self.software)
+            datafile_dispersion = self.getDataFile_in_folder('dispersion_', output_folder)
 
             # store data in arrays
             kPoints     = datafile_dispersion.coords['|k|'].value
@@ -541,7 +543,7 @@ class nnpShortcuts(CommonShortcuts):
 
         # save all the figures to one PDF
         PDFfilename = super().separateFileExtension(inputfile_name)[0]
-        self.export_figs(PDFfilename, 'pdf', self.software, output_folder_path=output_folder_path)
+        self.export_figs(PDFfilename, 'pdf', output_folder_path=output_folder_path)
 
 
     def generate_gif(self, 
@@ -562,12 +564,12 @@ class nnpShortcuts(CommonShortcuts):
 
         """
         inputfile_name = super().separateFileExtension(master_input_file.fullpath)[0]
-        output_folder_path = self.getSweepOutputFolderPath(inputfile_name, self.software, sweep_variable)
+        output_folder_path = self.getSweepOutputFolderPath(inputfile_name, sweep_variable)
 
         # determine optimal plot range - x-axis
         output_subfolderName = self.getSweepOutputSubfolderName(inputfile_name, {sweep_variable: list_of_values[0]})
         output_folder        = os.path.join(output_folder_path, output_subfolderName)
-        datafile_dispersion  = super().getDataFile_in_folder('dispersion_', output_folder, self.software)
+        datafile_dispersion  = self.getDataFile_in_folder('dispersion_', output_folder)
         kPoints              = datafile_dispersion.coords['|k|'].value
         xrange = kPoints[-1] - kPoints[0]
         xmin = kPoints[0] - 0.05 * xrange
@@ -592,7 +594,7 @@ class nnpShortcuts(CommonShortcuts):
             output_folder = os.path.join(output_folder_path, output_subfolderName)
 
             # load output data files
-            datafile_dispersion = super().getDataFile_in_folder('dispersion_', output_folder, self.software)
+            datafile_dispersion = self.getDataFile_in_folder('dispersion_', output_folder)
 
             # store data in arrays
             dispersions = np.zeros((num_bands, num_kPoints), dtype=np.double)
@@ -705,8 +707,8 @@ class nnpShortcuts(CommonShortcuts):
         from matplotlib.gridspec import GridSpec
 
         # load output data files
-        datafile_bandedge = self.getDataFile('bandedges', input_file.fullpath, self.software)
-        datafiles_probability_dict = self.getDataFile_probabilities_with_name(input_file.fullpath, self.software)
+        datafile_bandedge = self.getDataFile('bandedges', input_file.fullpath)
+        datafiles_probability_dict = self.getDataFile_probabilities_with_name(input_file.fullpath)
 
         for model, datafiles in datafiles_probability_dict.items():
             if len(datafiles) == 0: continue
@@ -724,7 +726,7 @@ class nnpShortcuts(CommonShortcuts):
         HHBandedge    = datafile_bandedge.variables['HH'].value
         SOBandedge    = datafile_bandedge.variables['SO'].value
 
-        states_toBePlotted, num_evs = self.get_states_to_be_plotted(datafiles_probability_dict, self.software, states_range_dict=states_range_dict, states_list_dict=states_list_dict)
+        states_toBePlotted, num_evs = self.get_states_to_be_plotted(datafiles_probability_dict, states_range_dict=states_range_dict, states_list_dict=states_list_dict)
 
 
         # visualize the in-plane k point_maxts at which Schroedinger eq. has been solved
@@ -782,7 +784,7 @@ class nnpShortcuts(CommonShortcuts):
                 'kp6': list(),
                 'kp8': list()
             }
-            datafiles = self.getDataFiles(['spinor_composition', 'CbHhLhSo'], input_file.fullpath, self.software)
+            datafiles = self.getDataFiles(['spinor_composition', 'CbHhLhSo'], input_file.fullpath)
             datafiles = [df for cnt in range(len(datafiles)) for df in datafiles if str(cnt).zfill(5) + '_CbHhLhSo' in os.path.split(df.fullpath)[1]]   # sort spinor composition datafiles in ascending kIndex
             for df in datafiles:
                 filename = os.path.split(df.fullpath)[1]
@@ -936,10 +938,10 @@ class nnpShortcuts(CommonShortcuts):
         #-------------------------------------------
         if savePDF:
             export_filename = f'{super().separateFileExtension(input_file.fullpath)[0]}_probabilities'
-            self.export_figs(export_filename, 'pdf', self.software)
+            self.export_figs(export_filename, 'pdf')
         if savePNG:
             export_filename = f'{super().separateFileExtension(input_file.fullpath)[0]}_probabilities'
-            self.export_figs(export_filename, 'png', self.software, fig=fig)   # NOTE: presumably only the last fig instance is exported
+            self.export_figs(export_filename, 'png', fig=fig)   # NOTE: presumably only the last fig instance is exported
 
         # --- display in the GUI
         plt.show()
@@ -986,9 +988,9 @@ class nnpShortcuts(CommonShortcuts):
         if ticksize is None: ticksize = self.ticksize_default
 
         # load output data files
-        datafile_bandedge = self.getDataFile('bandedges', input_file.fullpath, self.software)
-        datafile_densityEl = self.getDataFile('density_electron', input_file.fullpath, self.software, exclude_keywords=['integrated'])
-        datafile_densityHl = self.getDataFile('density_hole', input_file.fullpath, self.software, exclude_keywords=['integrated'])
+        datafile_bandedge = self.getDataFile('bandedges', input_file.fullpath)
+        datafile_densityEl = self.getDataFile('density_electron', input_file.fullpath, exclude_keywords=['integrated'])
+        datafile_densityHl = self.getDataFile('density_hole', input_file.fullpath, exclude_keywords=['integrated'])
 
         # store data in arrays
         x           = datafile_bandedge.coords['x'].value
@@ -1048,7 +1050,7 @@ class nnpShortcuts(CommonShortcuts):
 
         # --- save all the figures to one PDF
         if PDFfilename:
-            self.export_figs(PDFfilename, 'pdf', self.software)
+            self.export_figs(PDFfilename, 'pdf')
 
         # --- display in the GUI
         plt.show()
@@ -1132,13 +1134,13 @@ class nnpShortcuts(CommonShortcuts):
         #-------------------------------------------
         # load output data files
         # TODO: clean up
-        datafile_bandedge = self.getDataFile('bandedges', input_file.fullpath, self.software)
-        datafiles_probability = self.getDataFiles('probabilities_shift', input_file.fullpath, self.software)  # psi^2 at all in-plane k
-        datafiles_spinor = self.getDataFiles('CbHhLhSo', input_file.fullpath, self.software)  # spinor composition at all in-plane k
+        datafile_bandedge = self.getDataFile('bandedges', input_file.fullpath)
+        datafiles_probability = self.getDataFiles('probabilities_shift', input_file.fullpath)  # psi^2 at all in-plane k
+        datafiles_spinor = self.getDataFiles('CbHhLhSo', input_file.fullpath)  # spinor composition at all in-plane k
         if plotOccupation or plotProbAndSpinor_k:
-            datafile_occupation = self.getDataFile('occupation', input_file.fullpath, self.software)
+            datafile_occupation = self.getDataFile('occupation', input_file.fullpath)
         if plotFillingFactors:
-            datafile_filling = self.getDataFile('filling_factors', input_file.fullpath, self.software)
+            datafile_filling = self.getDataFile('filling_factors', input_file.fullpath)
 
         # store data in arrays
         x           = datafile_bandedge.coords['x'].value
@@ -1297,7 +1299,7 @@ class nnpShortcuts(CommonShortcuts):
 
 
         # --- save all the figures to one PDF
-        if PDFfilename: self.export_figs(PDFfilename, 'pdf', self.software)
+        if PDFfilename: self.export_figs(PDFfilename, 'pdf')
 
         # --- display in the GUI
         plt.show()
@@ -1415,7 +1417,7 @@ class nnpShortcuts(CommonShortcuts):
     #     #-------------------------------------------
 
     #     # --- save all the figures to one PDF
-    #     if PDFfilename: self.export_figs(PDFfilename, 'pdf', self.software)
+    #     if PDFfilename: self.export_figs(PDFfilename, 'pdf')
 
     #     # --- display in the GUI
     #     plt.show()
@@ -1448,7 +1450,7 @@ class nnpShortcuts(CommonShortcuts):
         """
         # get nn.DataFile object
         try:
-            datafile = super().getDataFile_in_folder(['spinor', '00000_CbHhLhSo'], output_folder, self.software)   # spinor composition at in-plane k = 0
+            datafile = self.getDataFile_in_folder(['spinor', '00000_CbHhLhSo'], output_folder)   # spinor composition at in-plane k = 0
         except FileNotFoundError:
             warnings.warn("Spinor components output in CbHhLhSo basis is not found. Assuming decoupling of the conduction and valence bands...", category=self.NextnanoInputFileWarning)
             return int(0)
@@ -1494,7 +1496,7 @@ class nnpShortcuts(CommonShortcuts):
         """
         # get nn.DataFile object
         try:
-            datafile = super().getDataFile_in_folder(['spinor', '00000_CbHhLhSo'], output_folder, self.software)   # spinor composition at in-plane k = 0
+            datafile = self.getDataFile_in_folder(['spinor', '00000_CbHhLhSo'], output_folder)   # spinor composition at in-plane k = 0
         except FileNotFoundError:
             warnings.warn("Spinor components output in CbHhLhSo basis is not found. Assuming decoupling of the conduction and valence bands...", category=self.NextnanoInputFileWarning)
             return int(0)
@@ -1586,8 +1588,8 @@ class nnpShortcuts(CommonShortcuts):
                 h_state_basis = ['LH']
             else:
                 # take the highest of HH and LH eigenstates
-                E_HH = super().getDataFile_in_folder(['energy_spectrum', '_HH'], output_folder, self.software).variables['Energy'].value[0]   # energy of the first eigenstate
-                E_LH = super().getDataFile_in_folder(['energy_spectrum', '_LH'], output_folder, self.software).variables['Energy'].value[0]   # energy of the first eigenstate
+                E_HH = self.getDataFile_in_folder(['energy_spectrum', '_HH'], output_folder).variables['Energy'].value[0]   # energy of the first eigenstate
+                E_LH = self.getDataFile_in_folder(['energy_spectrum', '_LH'], output_folder).variables['Energy'].value[0]   # energy of the first eigenstate
                 if E_HH >= E_LH:
                     df_h = df_HH
                     h_state_basis = ['HH']
@@ -1644,7 +1646,7 @@ class nnpShortcuts(CommonShortcuts):
         Get the transition energy = energy separation between the lowest electron and highest hole states.
         Unit: eV
         """
-        datafiles = super().getDataFiles_in_folder(["transition_energies", ".fld"], output_folder, self.software)
+        datafiles = self.getDataFiles_in_folder(["transition_energies", ".fld"], output_folder)
 
         iLowestElectron = self.find_lowest_electron_state_atK0(output_folder, threshold=0.5)
         iHighestHole    = self.find_highest_hole_state_atK0(output_folder, threshold=0.5)
@@ -1661,8 +1663,8 @@ class nnpShortcuts(CommonShortcuts):
                     df = datafile
             dE = - df.variables[0].value[iHighestHole][iLowestElectron]
         else:  # single band
-            df_HH_Gamma = super().getDataFile_in_folder(["transition_energies", "HH_Gamma", ".fld"], output_folder, self.software)
-            df_LH_Gamma = super().getDataFile_in_folder(["transition_energies", "LH_Gamma", ".fld"], output_folder, self.software)
+            df_HH_Gamma = self.getDataFile_in_folder(["transition_energies", "HH_Gamma", ".fld"], output_folder)
+            df_LH_Gamma = self.getDataFile_in_folder(["transition_energies", "LH_Gamma", ".fld"], output_folder)
             dE_HH_Gamma = - df_HH_Gamma.variables[0].value[iHighestHole][iLowestElectron]
             dE_LH_Gamma = - df_LH_Gamma.variables[0].value[iHighestHole][iLowestElectron]
 
@@ -1688,8 +1690,8 @@ class nnpShortcuts(CommonShortcuts):
         Unit: eV
         """
         try:
-            E_HH = super().getDataFile_in_folder(['energy_spectrum', '_HH'], output_folder, self.software).variables['Energy'].value[0]   # energy of the first eigenstate
-            E_LH = super().getDataFile_in_folder(['energy_spectrum', '_LH'], output_folder, self.software).variables['Energy'].value[0]   # energy of the first eigenstate
+            E_HH = self.getDataFile_in_folder(['energy_spectrum', '_HH'], output_folder).variables['Energy'].value[0]   # energy of the first eigenstate
+            E_LH = self.getDataFile_in_folder(['energy_spectrum', '_LH'], output_folder).variables['Energy'].value[0]   # energy of the first eigenstate
         except FileNotFoundError:
             warnings.warn("Energy spectrum for heavy- and light-hole states not found.")
             return 0
