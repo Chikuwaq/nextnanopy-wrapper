@@ -846,6 +846,10 @@ class CommonShortcuts:
         return datafiles
 
 
+    def plot_probabilities(self):
+        raise NotImplementedError("There is no common implementation")
+
+
     def getDataFile_probabilities_with_name(self, name):
         """
         Get single nextnanopy.DataFile of probability_shift data in the folder of specified name.
@@ -863,9 +867,8 @@ class CommonShortcuts:
         return self.getDataFile_probabilities_in_folder(outputSubFolder)
         
 
-    def getDataFile_probabilities_in_folder(self, folder_path):
-        """ This method must be defined in the derived classes """
-        raise NotImplementedError()
+    def getDataFile_probabilities_in_folder(self):
+        raise NotImplementedError("There is no common implementation")
 
 
     def __get_num_evs(self, probability_dict):
@@ -980,12 +983,10 @@ class CommonShortcuts:
 
     
     def find_highest_hole_state_atK0(self):
-        """ This method must be defined in the derived classes """
-        raise NotImplementedError()
+        raise NotImplementedError("There is no common implementation")
 
     def find_lowest_electron_state_atK0(self):
-        """ This method must be defined in the derived classes """
-        raise NotImplementedError()
+        raise NotImplementedError("There is no common implementation")
 
 
     # -------------------------------------------------------
