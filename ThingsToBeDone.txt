@@ -18,7 +18,7 @@
 - benefit of using classes is that the methods don't need to be defined above the code line of invocation. Bring the major methods up, auxilirary methods to the bottom.
 E.g. get_states_to_be_plotted()
 - is it possible to move imports to __init__? or at least to the parent class
-- use it in nnHelpers
+- if the difference between overridden methods is only 'software', they can be defined in the parent.
 
 [SweepHelper]
 - add an example to demonstrate usage
