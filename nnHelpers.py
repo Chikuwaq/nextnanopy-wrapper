@@ -456,7 +456,7 @@ class SweepHelper:
 
 
     ### Sweep execution #####################################################
-    def execute_sweep(self, convergenceCheck=True, show_log=False, parallel_limit=1):
+    def execute_sweep(self, convergenceCheck=True, show_log=False, parallel_limit=1, **kwargs):
         """
         Run simulations.
 
@@ -468,6 +468,8 @@ class SweepHelper:
             The default is False.
         parallel_limit : int, optional
             Maximum number of parallel execution
+        kwargs : optional
+            other parameters accepted by nextnanopy.InputFile.execute()
 
         """
         # warn the user if many serial simulations are requested
@@ -487,7 +489,8 @@ class SweepHelper:
                 overwrite          = True,    # avoid enumeration of output folders for secure output data access. 
                 convergenceCheck   = convergenceCheck, 
                 show_log           = show_log, 
-                parallel_limit     = parallel_limit
+                parallel_limit     = parallel_limit,
+                **kwargs
                 )   
 
         # If not given at the class instantiation, determine how many eigenstates to plot (states_to_be_plotted attribute)
@@ -641,7 +644,7 @@ class SweepHelper:
         return fig
 
 
-    def plot_transition_energies(self, x_axis, y_axis=None, x_label=None, y_label=None, force_lightHole=False, plot_title='', figFilename=None, colormap=None, set_center_to_zero=False, unit='meV'):
+    def plot_transition_energies(self, x_axis, y_axis=None, x_label=None, y_label=None, force_lightHole=False, plot_title='', figFilename=None, colormap=None, set_center_to_zero=False, unit='meV', export_data=False):
         """
         Plot the transition energy (lowest electron eigenenergy - highest hole eigenenergy) colormap as a function of two selected sweep axes.
 
@@ -666,9 +669,16 @@ class SweepHelper:
             Default is False
         unit : str, optional
             unit of transition energy. Currently supports 'meV' 'micron' 'um' 'nm'
+        export_data : bool, optional
+            If True, return the processed data ready for manual plot.
+            If False, return figure
+
         Returns
         -------
-        fig : matplotlib.figure.Figure object
+        If export_data,
+            x_values, y_values, scaled transition energies
+        else,
+            matplotlib.figure.Figure object
 
         """
         if not self.__output_subfolders_exist():
@@ -705,13 +715,18 @@ class SweepHelper:
             fig = self.__plot_transition_energies_2D(x_axis, y_axis, x_label, y_label, x_values, y_values, plot_title, colormap, set_center_to_zero, unit, transition_energies_scaled)
         else:
             fig = self.__plot_transition_energies_1D(x_axis, x_label, x_values, plot_title, unit, transition_energies_scaled)
-        
-        if figFilename is None or figFilename == "":
-            name = os.path.split(self.output_folder_path)[1]
-            figFilename = name + "_transitionEnergies"
-        nnp.export_figs(figFilename, "png", output_folder_path=self.output_folder_path, fig=fig)
 
-        return fig
+        if export_data:
+            if plot_2D:
+                return x_values, y_values, transition_energies_scaled
+            else:
+                return x_values, transition_energies_scaled
+        else:
+            if figFilename is None or figFilename == "":
+                name = os.path.split(self.output_folder_path)[1]
+                figFilename = name + "_transitionEnergies"
+            nnp.export_figs(figFilename, "png", output_folder_path=self.output_folder_path, fig=fig)
+            return fig
 
         
 

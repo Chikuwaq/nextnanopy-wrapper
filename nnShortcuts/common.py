@@ -500,6 +500,11 @@ class CommonShortcuts:
 
         return new_S, new_Ep, new_L, new_N
 
+    # We make it a static method because:
+    # - this utility function doesn't access any properties of the class but makes sense that it belongs to the class
+    # - we want to forbid method override in the inherited classes
+    # - we want to make this method available without instantiation of an object.
+    @staticmethod
     def shift_DKK_as_nnp(DKK_parameter, Eg_T, old_Ep, new_Ep):
         """ 
         Shift the 8-band DKK parameters as in nn++/nn3.
@@ -510,12 +515,17 @@ class CommonShortcuts:
         """
         return DKK_parameter + (new_Ep - old_Ep) / Eg_T
 
+    # We make it a static method because:
+    # - this utility function doesn't access any properties of the class but makes sense that it belongs to the class
+    # - we want to forbid method override in the inherited classes
+    # - we want to make this method available without instantiation of an object.
+    @staticmethod
     def shift_DKK_properly(DKK_parameter, Eg_0K, Eg_T, old_Ep, new_Ep):
         """ 
         Shift the 8-band DKK parameters considering the temperature-dependence of the bandgap.
         This is appropriate IF 6-band DKK parameters are independent of temperature, which might not be the case.
 
-        NEGF++ test showed that using this shift makes the solutions worse.
+        In NEGF++ so far, we have not obtained smooth wavefunctions using this shift.
         
         Return
         ------
