@@ -232,7 +232,7 @@ class SweepHelper:
                 raise KeyError(f"Variable {sweep_var} has not been swept.")
         return
 
-    def __slice_data_for_colormap(self, key, x_axis, y_axis, datatype=np.double):
+    def __slice_data_for_colormap_2D(self, key, x_axis, y_axis, datatype=np.double):
         """
         Extract the data along two specified sweep parameters
 
@@ -290,6 +290,56 @@ class SweepHelper:
             res[yIndex, xIndex] = quantity  # matplotlib pcolormesh assumes (num of y values)=(num of rows) and (num of x values)=(num of columns) for C axis data
 
         return x_values, y_values, res
+
+    
+    def __slice_data_for_colormap_1D(self, key, x_axis, datatype=np.double):
+        """
+        Extract the data along one specified sweep parameter
+
+        Parameters
+        ----------
+        key : str
+            key in self.data object, specifying the data to be sliced
+        x_axis : str
+            sweep variable to be taken for x-axis.
+        datatype : numpy.dtype, optional
+            Data type of the sliced data will be set to this type.
+
+        Returns
+        -------
+        x_values : 1D numpy array
+            Values of the first sweep variable
+        res : 1D numpy array
+            Sliced data
+
+        """
+        # validate arguments
+        if key not in self.data.keys():
+            raise ValueError(f"{key} is not calculated in this sweep!")
+        self.__validate_sweep_variables(x_axis)
+        
+        x_values = self.sweep_space[x_axis]
+        
+        # identify index of plot axes
+        for i, var in enumerate(self.sweep_space.keys()):
+            if var == x_axis:
+                x_axis_variable_index = i
+        
+        sweep_space_reduced = self.__extract_1D_line_from_sweep_space(x_axis)
+
+        # returns bool whether the point in the sweep space belongs to the plot region
+        def isIn(coords):
+            return all(coords[i] in sweep_space_reduced[var] for i, var in enumerate(self.sweep_space.keys()))
+
+        # pick up sub-array of overlap data accordingly
+        res = np.zeros(len(x_values), dtype=datatype)
+        for coords, quantity in zip(self.data['sweep_coords'], self.data[key]):
+            if not isIn(coords): continue
+
+            xIndex = np.where(x_values == coords[x_axis_variable_index])   # find index for which arr == value
+            res[xIndex] = quantity
+
+        return x_values, res
 
 
     def __extract_1D_line_from_sweep_space(self, sweep_var):
@@ -383,6 +433,25 @@ class SweepHelper:
             yticklabel_interval = int(nSimulations_y / max_num_yticks)
             for i, ytick in enumerate(ax.yaxis.get_ticklabels()):
                 if i % yticklabel_interval != 0: ytick.set_visible(False)
+
+    
+    def __setup_1D_plot(self, ax, x_axis, x_label, plot_title, x_values):
+        """ 
+        Set labels, ticks and titles of a 1D plot 
+        """
+        if x_label is None: x_label = x_axis
+        
+        ax.set_xlabel(x_label)
+        ax.set_title(plot_title)
+        plt.xticks(x_values)
+        
+        # trim x- and y-axis tick labels, while keeping all the ticks present
+        nSimulations_x = len(self.sweep_space[x_axis])
+        max_num_xticks = 6   # TBD
+        if nSimulations_x > max_num_xticks:
+            xticklabel_interval = int(nSimulations_x / max_num_xticks)
+            for i, xtick in enumerate(ax.xaxis.get_ticklabels()):  
+                if i % xticklabel_interval != 0: xtick.set_visible(False)
         
 
 
@@ -530,7 +599,7 @@ class SweepHelper:
         # self.data['overlap_squared'] = self.data['overlap'].apply(common.absolute_squared)   # BUG: somehow the results become complex128, not float --> cannot be plotted
         
         # x- and y-axis coordinates and 2D array-like of overlap data
-        x_values, y_values, overlap = self.__slice_data_for_colormap('overlap', x_axis, y_axis, datatype=np.cdouble)   # complex double = two double-precision floats
+        x_values, y_values, overlap = self.__slice_data_for_colormap_2D('overlap', x_axis, y_axis, datatype=np.cdouble)   # complex double = two double-precision floats
         overlap_squared = np.abs(overlap)**2
         
         assert np.amin(overlap_squared) >= 0
@@ -572,7 +641,7 @@ class SweepHelper:
         return fig
 
 
-    def plot_transition_energies(self, x_axis, y_axis, x_label=None, y_label=None, force_lightHole=False, plot_title='', figFilename=None, colormap=None, set_center_to_zero=False, unit='meV'):
+    def plot_transition_energies(self, x_axis, y_axis=None, x_label=None, y_label=None, force_lightHole=False, plot_title='', figFilename=None, colormap=None, set_center_to_zero=False, unit='meV'):
         """
         Plot the transition energy (lowest electron eigenenergy - highest hole eigenenergy) colormap as a function of two selected sweep axes.
 
@@ -580,7 +649,7 @@ class SweepHelper:
         ----------
         x_axis : str
             sweep variable for x-axis
-        y_axis : str
+        y_axis : str, optional
             sweep variable for y-axis
         x_label : str, optional
             custom x-axis label
@@ -607,7 +676,11 @@ class SweepHelper:
 
         # validate input
         self.__validate_sweep_variables(x_axis)
-        self.__validate_sweep_variables(y_axis)
+        if y_axis is None:
+            plot_2D = False
+        else:
+            plot_2D = True
+            self.__validate_sweep_variables(y_axis)
         if unit not in ['meV', 'micron', 'um', 'nm']:
             raise ValueError(f"Energy unit {unit} is not supported.")
 
@@ -615,7 +688,10 @@ class SweepHelper:
         self.data['transition_energy'] = self.data['output_subfolder'].apply(nnp.get_transition_energy, force_lightHole=force_lightHole)
 
         # x- and y-axis coordinates and 2D array-like of overlap data
-        x_values, y_values, transition_energies = self.__slice_data_for_colormap('transition_energy', x_axis, y_axis, datatype=np.double)
+        if plot_2D:
+            x_values, y_values, transition_energies = self.__slice_data_for_colormap_2D('transition_energy', x_axis, y_axis, datatype=np.double)
+        else:
+            x_values, transition_energies = self.__slice_data_for_colormap_1D('transition_energy', x_axis, datatype=np.double)
 
         # Align unit
         if unit == 'meV':
@@ -625,7 +701,24 @@ class SweepHelper:
         elif unit == 'nm':
             transition_energies_scaled = common.electronvolt_to_micron(transition_energies) * 1e3
 
+        if plot_2D:
+            fig = self.__plot_transition_energies_2D(x_axis, y_axis, x_label, y_label, x_values, y_values, plot_title, colormap, set_center_to_zero, unit, transition_energies_scaled)
+        else:
+            fig = self.__plot_transition_energies_1D(x_axis, x_label, x_values, plot_title, unit, transition_energies_scaled)
         
+        if figFilename is None or figFilename == "":
+            name = os.path.split(self.output_folder_path)[1]
+            figFilename = name + "_transitionEnergies"
+        nnp.export_figs(figFilename, "png", output_folder_path=self.output_folder_path, fig=fig)
+
+        return fig
+
+        
+
+    def __plot_transition_energies_2D(self, x_axis, y_axis, x_label, y_label, x_values, y_values, plot_title, colormap, set_center_to_zero, unit, transition_energies_scaled):
+        if transition_energies_scaled.ndim != 2:
+            raise ValueError("Transition_energies_scaled must be two dimensional!")
+
         # instantiate 2D color plot
         fig, ax = plt.subplots()
         if not plot_title: plot_title = "Transition energies"
@@ -655,10 +748,27 @@ class SweepHelper:
         fig.tight_layout()
         plt.show()
 
-        if figFilename is None or figFilename == "":
-            name = os.path.split(self.output_folder_path)[1]
-            figFilename = name + "_transitionEnergies"
-        nnp.export_figs(figFilename, "png", output_folder_path=self.output_folder_path, fig=fig)
+        return fig
+
+
+    def __plot_transition_energies_1D(self, x_axis, x_label, x_values, plot_title, unit, transition_energies_scaled):
+        if transition_energies_scaled.ndim != 1:
+            raise ValueError("Transition_energies_scaled must be one dimensional!")
+        
+        # instantiate 1D plot
+        fig, ax = plt.subplots()
+        if not plot_title: plot_title = "Transition energies"
+        self.__setup_1D_plot(ax, x_axis, x_label, plot_title, x_values)
+
+        if unit == 'meV':
+            ax.set_ylabel("Transition energy ($\mathrm{meV}$)")
+        elif unit == 'micron' or unit == 'um':
+            ax.set_ylabel("Wavelength ($\mu\mathrm{m}$)")
+        elif unit == 'nm':
+            ax.set_ylabel("Wavelength ($\mathrm{nm}$)")
+        ax.plot(x_values, transition_energies_scaled)
+        fig.tight_layout()
+        plt.show()
 
         return fig
 
@@ -704,7 +814,7 @@ class SweepHelper:
         self.data['hole_energy_difference'] = self.data['output_subfolder'].apply(nnp.get_hole_energy_difference)
 
         # x- and y-axis coordinates and 2D array-like of overlap data
-        x_values, y_values, transition_energies = self.__slice_data_for_colormap('hole_energy_difference', x_axis, y_axis, datatype=np.double)
+        x_values, y_values, transition_energies = self.__slice_data_for_colormap_2D('hole_energy_difference', x_axis, y_axis, datatype=np.double)
 
 
         # instantiate 2D color plot
