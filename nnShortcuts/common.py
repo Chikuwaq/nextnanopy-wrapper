@@ -41,8 +41,19 @@ class CommonShortcuts:
     vacuum_permittivity = 8.854187e-12   # [F/m] 1F = 1 kg^{-1} m^{-2} s^2 C^2 = 1 C^2 / J
     Boltzmann = 1.380649e-23   # [J/K]
 
-    def __init__(self):
-        pass
+    def __init__(self, loglevel=logging.INFO):
+        # log setting
+        fmt = '[%(levelname)s] %(message)s'
+        logging.basicConfig(level=loglevel, format=fmt)
+        logging.captureWarnings(True)
+
+        # customize warning format
+        def warning_on_one_line(message, category, filename, lineno, file=None, line=None):
+            # return '%s:%s:\n%s: %s' % (filename, lineno, category.__name__, message)  # TODO: how to color the warning? Maybe useful https://github.com/Delgan/loguru
+            return f"{category.__name__}: {message} ({filename}:{lineno})"
+            # return "%(filename)s:%(lineno)d:\n %(category.__name__)s: %(message)s"
+        warnings.formatwarning = warning_on_one_line
+        logging.getLogger('matplotlib.font_manager').disabled = True  # suppress excessive 'findfont' warnings
 
     # -------------------------------------------------------
     # nextnano corporate colormap for matplotlib
@@ -85,7 +96,7 @@ class CommonShortcuts:
         'LH': 'forestgreen',
         'SO': 'goldenrod',
         'kp6': 'blueviolet',
-        'kp8': 'blueviolet'
+        'kp8': 'black'
         }
 
     labelsize_default = 16
@@ -391,11 +402,21 @@ class CommonShortcuts:
     # -------------------------------------------------------
     # Bandedge and k.p parameters
     # -------------------------------------------------------
+    # We make it a static method because:
+    # - this utility function doesn't access any properties of the class but makes sense that it belongs to the class
+    # - we want to forbid method override in the inherited classes
+    # - we want to make this method available without instantiation of an object.
+    @staticmethod
     def get_bandgap_at_T(bandgap_at_0K, alpha, beta, T):
         """ Varshni formula """
         return bandgap_at_0K - alpha * T**2 / (T + beta)
 
 
+    # We make it a static method because:
+    # - this utility function doesn't access any properties of the class but makes sense that it belongs to the class
+    # - we want to forbid method override in the inherited classes
+    # - we want to make this method available without instantiation of an object.
+    @staticmethod
     def get_factor_zb(Eg, deltaSO):
         """
         Temperature-dependent factor for the conversion among effective mass, S and Ep
@@ -479,7 +500,28 @@ class CommonShortcuts:
 
         return new_S, new_Ep, new_L, new_N
 
+    def shift_DKK_as_nnp(DKK_parameter, Eg_T, old_Ep, new_Ep):
+        """ 
+        Shift the 8-band DKK parameters as in nn++/nn3.
+        
+        Return
+        ------
+            In units of hbar^2 / 2m_0
+        """
+        return DKK_parameter + (new_Ep - old_Ep) / Eg_T
 
+    def shift_DKK_properly(DKK_parameter, Eg_0K, Eg_T, old_Ep, new_Ep):
+        """ 
+        Shift the 8-band DKK parameters considering the temperature-dependence of the bandgap.
+        This is appropriate IF 6-band DKK parameters are independent of temperature, which might not be the case.
+
+        NEGF++ test showed that using this shift makes the solutions worse.
+        
+        Return
+        ------
+            In units of hbar^2 / 2m_0
+        """
+        return DKK_parameter - old_Ep / Eg_0K + new_Ep / Eg_T
 
     # TODO: extend to WZ
     def rescale_Ep_and_get_S(self,
@@ -513,7 +555,8 @@ class CommonShortcuts:
         2. Calculate L', M, N', S from this Ep but using Eg at nonzero T
         """
         Ep = self.Ep_from_mass_and_S(mass, rescaleSTo, Eg_0K, deltaSO)
-        
+        print(f"Calculated Ep from mass, S, and Eg(0): {Ep}")
+
         correction = Ep / Eg_finiteTemp   # L, N in the database are in units of hbar^2/2m0
         Lprime = L_6kp + correction
         Nprime = N_6kp + correction
@@ -752,7 +795,7 @@ class CommonShortcuts:
                         determined = True
             file = list_of_files[choice]
 
-        logging.debug("Found:\n", file)
+        logging.debug(f"Found:\n{file}")
 
         try:
             return nn.DataFile(file, product=self.software)
@@ -836,7 +879,7 @@ class CommonShortcuts:
         elif len(list_of_files) == 1:
             warnings.warn("getDataFiles_in_folder(): Only one output file found!", category=RuntimeWarning)
 
-        logging.debug("Found:\n", list_of_files)
+        logging.debug(f"Found:\n{list_of_files}")
 
         try:
             datafiles = [nn.DataFile(file, product=self.software) for file in list_of_files]
@@ -880,7 +923,7 @@ class CommonShortcuts:
             else:
                 df = datafiles[0]
                 num_evs[model] = sum(1 for var in df.variables if ('Psi^2' in var.name))   # this conditional counting is necessary because probability output may contain also eigenvalues and/or bandedges.
-                logging.debug(f"\nNumber of eigenvalues for {model}: {num_evs[model]}")
+                logging.debug(f"Number of eigenvalues for {model}: {num_evs[model]}")
         return num_evs
 
 
@@ -979,6 +1022,7 @@ class CommonShortcuts:
                             if stateNo > num_evs[model]: 
                                 raise ValueError("State index greater than number of eigenvalues calculated!")
                             states_toBePlotted[model].append(stateNo - 1)   
+        logging.debug(f"states_toBePlotted (index base 0): {states_toBePlotted}")
         return states_toBePlotted, num_evs
 
     

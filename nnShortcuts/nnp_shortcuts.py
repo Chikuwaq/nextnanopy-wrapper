@@ -27,6 +27,8 @@ class nnpShortcuts(CommonShortcuts):
     model_names_valence    = ['HH', 'LH', 'SO', 'kp6']
     # matrix_elements_names = ['interband', 'intraband', 'dipole']
 
+    def __init__(self, loglevel=logging.INFO):
+        super().__init__(loglevel)
 
     def get_bandgap_atPosition(self, filename, position):
         df = self.getDataFile('bandgap.dat', filename)

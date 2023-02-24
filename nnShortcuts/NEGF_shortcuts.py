@@ -15,6 +15,7 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 import warnings
+import logging
 
 # nextnanopy includes
 import nextnanopy as nn
@@ -24,6 +25,9 @@ from nnShortcuts.common import CommonShortcuts
 class NEGFShortcuts(CommonShortcuts):
     # nextnano solver
     software = 'nextnano.NEGF'
+
+    def __init__(self, loglevel=logging.INFO):
+        super().__init__(loglevel)
 
     def get_IV(self, input_file_name):
         """
@@ -830,7 +834,7 @@ class NEGFShortcuts(CommonShortcuts):
         x             = datafile_bandedge.coords['Position'].value
         CBBandedge    = datafile_bandedge.variables['Conduction band edge with strain'].value
         LHBandedge    = datafile_bandedge.variables['LH band edge with strain'].value
-        # HHBandedge    = datafile_bandedge.variables['HH'].value  # TODO: C++ code needs improvement
+        # HHBandedge    = datafile_bandedge.variables['HH band edge with strain'].value  # TODO: C++ code needs improvement
         SOBandedge    = datafile_bandedge.variables['SO band edge with strain'].value
 
         states_toBePlotted, num_evs = self.get_states_to_be_plotted(datafiles_probability_dict, states_range_dict=states_range_dict, states_list_dict=states_list_dict)
@@ -883,7 +887,7 @@ class NEGFShortcuts(CommonShortcuts):
             for model in states_toBePlotted:
                 for cnt, stateIndex in enumerate(states_toBePlotted[model]):
                     for kIndex in range(num_kPoints[model]):
-                        psiSquared[model][cnt][kIndex] = super().mask_part_of_array(psiSquared[model][cnt][kIndex], method='flat', tolerance=1e-3)
+                        psiSquared[model][cnt][kIndex] = super().mask_part_of_array(psiSquared[model][cnt][kIndex], method='flat', tolerance=1e-2)
 
 
         if 'kp6' in datafiles_probability_dict.keys() or 'kp8' in datafiles_probability_dict.keys():
@@ -907,6 +911,8 @@ class NEGFShortcuts(CommonShortcuts):
             # dictionary containing quantum model keys and 1-dimensional np.ndarrays for each key that stores spinor composition for all (eigenstate, kIndex)
             compositions = dict()
 
+            spinor_label_s1 = ''  # TODO: nextnanopy negf parser or InputFile class has a bug, or, my output from NEGF++ is not optimal
+            spinor_label_s2 = 'z1'
             for model, state_indices in states_toBePlotted.items():
                 if model not in ['kp6', 'kp8']: continue
 
@@ -916,7 +922,7 @@ class NEGFShortcuts(CommonShortcuts):
                     for kIndex in range(num_kPoints[model]):
                         # store spinor composition data
                         if model == 'kp8':
-                            compositions[model][stateIndex, kIndex, 0] = datafiles_spinor[model][kIndex].variables['s1'].value[stateIndex] + datafiles_spinor[model][kIndex].variables['s2'].value[stateIndex]
+                            compositions[model][stateIndex, kIndex, 0] = datafiles_spinor[model][kIndex].variables[spinor_label_s1].value[stateIndex] + datafiles_spinor[model][kIndex].variables[spinor_label_s2].value[stateIndex]
 
                         compositions[model][stateIndex, kIndex, 1] = datafiles_spinor[model][kIndex].variables['x1'].value[stateIndex] + datafiles_spinor[model][kIndex].variables['x2'].value[stateIndex]
                         compositions[model][stateIndex, kIndex, 2] = datafiles_spinor[model][kIndex].variables['y1'].value[stateIndex] + datafiles_spinor[model][kIndex].variables['y2'].value[stateIndex]
@@ -928,14 +934,14 @@ class NEGFShortcuts(CommonShortcuts):
         def draw_bandedges(ax, model):
             self.set_plot_labels(ax, 'Position (nm)', 'Energy (eV)', title)
             if model == 'Gamma' or model == 'kp8':
-                ax.plot(x, CBBandedge, label='CB', linewidth=0.6, color=self.band_colors['CB'])
+                ax.plot(x, CBBandedge, label='conduction band', linewidth=0.6, color=self.band_colors['CB'])
             # TODO: C++ code needs improvement
             # if model == 'HH' or model == 'kp6' or model == 'kp8':
-            #     ax.plot(x, HHBandedge, label='HH', linewidth=0.6, color=self.band_colors['HH'])
+            #     ax.plot(x, HHBandedge, label='heavy hole', linewidth=0.6, color=self.band_colors['HH'])
             if model == 'LH' or model == 'kp6' or model == 'kp8':
-                ax.plot(x, LHBandedge, label='LH', linewidth=0.6, color=self.band_colors['LH'])
+                ax.plot(x, LHBandedge, label='light hole', linewidth=0.6, color=self.band_colors['LH'])
             if model == 'SO' or model == 'kp6' or model == 'kp8':
-                ax.plot(x, SOBandedge, label='SO', linewidth=0.6, color=self.band_colors['SO'])
+                ax.plot(x, SOBandedge, label='split-off hole', linewidth=0.6, color=self.band_colors['SO'])
 
         def draw_probabilities(ax, state_indices, model, kIndex, show_state_index):
             skip_annotation = False
@@ -965,7 +971,7 @@ class NEGFShortcuts(CommonShortcuts):
                     else:
                         # ax.annotate(f'n={stateIndex+1}', xy=(xmax, ymax), xytext=(xmax-0.05*simLength, ymax+0.07))
                         ax.annotate(f'{stateIndex+1}', xy=(xmax, ymax), xytext=(xmax, ymax+0.07))
-            ax.legend()
+            ax.legend(loc='lower left')
 
         def draw_spinor_pie_charts(gs_spinor, state_indices, model, stateIndex, kIndex, show_state_index):
             num_rows, num_columns = self.getRowColumnForDisplay(len(state_indices))  # determine arrangement of spinor composition plots
@@ -1007,7 +1013,7 @@ class NEGFShortcuts(CommonShortcuts):
                     divnorm = colors.TwoSlopeNorm(vcenter=0.5, vmin=0.0, vmax=1.0)
                     scalarmappable = plt.cm.ScalarMappable(cmap='seismic', norm=divnorm)
                     cbar = fig.colorbar(scalarmappable)
-                    cbar.set_label("Electron fraction", fontsize=labelsize)
+                    cbar.set_label("Conduction-band fraction", fontsize=labelsize)
                     cbar.ax.tick_params(labelsize=ticksize)
 
                 draw_probabilities(ax_probability, state_indices, model, kIndex, show_state_index)
@@ -1108,10 +1114,13 @@ class NEGFShortcuts(CommonShortcuts):
             return int(0)
 
         # find the lowest electron state
-        num_evs = len(datafile.variables['s1'].value)
+        spinor_label_s1 = ''  # TODO: nextnanopy negf parser or InputFile class has a bug, or, my output from NEGF++ is not optimal
+        spinor_label_s2 = 'z1'
+        num_evs = len(datafile.variables[spinor_label_s1].value)
         for stateIndex in range(num_evs):
-            electronFraction = datafile.variables['s1'].value[stateIndex] + datafile.variables['s2'].value[stateIndex]
+            electronFraction = datafile.variables[spinor_label_s1].value[stateIndex] + datafile.variables[spinor_label_s2].value[stateIndex]
             if electronFraction > threshold:
+                print(f"Lowest electron index = {stateIndex} because electronFraction = {electronFraction}")
                 return stateIndex
 
         raise RuntimeError(f"No electron states found in: {output_folder}")
@@ -1142,16 +1151,21 @@ class NEGFShortcuts(CommonShortcuts):
         """
         # get nn.DataFile object
         try:
-            datafile = self.getDataFile_in_folder(['spinor'], output_folder)   # spinor composition at in-plane k = 0
+            datafile = self.getDataFile_in_folder(['spinor_composition'], output_folder)   # spinor composition at in-plane k = 0
         except FileNotFoundError:
             warnings.warn("Spinor components output in CbHhLhSo basis is not found. Assuming decoupling of the conduction and valence bands...", category=self.NextnanoInputFileWarning)
             return int(0)
 
         # find the highest hole state
-        num_evs = len(datafile.variables['s1'].value)
+        label_s1 = ''   # TODO: nextnanopy bug in negf datafile, or, my output is not optimal on NEGF++ side
+        label_s2 = 'z1'
+        num_evs = len(datafile.variables[label_s1].value)
+        print(f"datafile variables {datafile.variables}")
+        print(f"s2 spinor compositions:\n{datafile.variables[label_s2].value}")
         for stateIndex in reversed(range(num_evs)):
-            electronFraction = datafile.variables['s1'].value[stateIndex] + datafile.variables['s2'].value[stateIndex]
+            electronFraction = datafile.variables[label_s1].value[stateIndex] + datafile.variables[label_s2].value[stateIndex]
             if electronFraction < threshold:
+                print(f"Highest hole index = {stateIndex} because electronFraction = {electronFraction}")
                 return stateIndex
 
         raise RuntimeError(f"No hole states found in: {output_folder}")
