@@ -24,8 +24,7 @@ import nextnanopy as nn
 # shortcuts
 from nnShortcuts.common import CommonShortcuts
 common = CommonShortcuts()
-from nnShortcuts.nnp_shortcuts import nnpShortcuts
-nnp = nnpShortcuts()
+
 
 
 class SweepHelper:
@@ -50,8 +49,8 @@ class SweepHelper:
         sweep_space : dict of numpy.ndarray - { 'sweep variable': array of values }
             axes and coordinates of the sweep parameter space
 
-        software : str
-            nextnano software used
+        shortcuts : shortcut object
+            shortcut object for the nextnano solver used for the master_input_file (automatically detected)
 
         master_input_file : nextnanopy.InputFile object
             master input file in which one or more variables are swept
@@ -126,12 +125,7 @@ class SweepHelper:
         # validate arguments
         if not isinstance(sweep_ranges, dict): raise TypeError("__init__(): argument 'sweep_ranges' must be a dict")
         # if not isinstance(master_input_file, nn.InputFile): raise TypeError("__init__(): argument 'master_input_file' must be a nextnanopy.InputFile object")   # TODO: object type has been modified in nextnanopy
-        if eigenstate_range is not None:
-            if not isinstance(eigenstate_range, dict): raise TypeError("__init__(): argument 'eigenstate_range' must be a dict")
-            for model, plot_range in eigenstate_range.items():
-                if model not in nnp.model_names: raise KeyError(f"__init__(): Illegal quantum model '{model}'")
-                if len(plot_range) != 2: raise ValueError("__init__(): argument 'eigenstate_range' must be of the form 'quantum model': [min, max]")
-
+        
         # log setting
         fmt = '[%(levelname)s] %(message)s'
         logging.basicConfig(level=loglevel, format=fmt)
@@ -150,16 +144,25 @@ class SweepHelper:
             bounds, num_points = sweep_ranges[var]
             self.sweep_space[var] = np.around(np.linspace(bounds[0], bounds[1], num_points), round_decimal)   # avoid lengthy filenames
 
-        # detect software
-        self.software, extension = common.detect_software_new(master_input_file)
-        if self.software != 'nextnano++': raise NotImplementedError("class SweepHelper currently supports only nextnano++ simulations.")
+        # prepare shortcuts for the nextnano solver used
+        self.shortcuts = common.get_shortcut(master_input_file)
+        if self.shortcuts.product_name not in ['nextnano++', 'nextnano.NEGF++']: 
+            raise NotImplementedError("class SweepHelper currently supports only nextnano++ and nextnano.NEGF++ simulations.")
+
+        
+        
+        if eigenstate_range is not None:
+            if not isinstance(eigenstate_range, dict): raise TypeError("__init__(): argument 'eigenstate_range' must be a dict")
+            for model, plot_range in eigenstate_range.items():
+                if model not in self.shortcuts.model_names: raise KeyError(f"__init__(): Quantum model '{model}' is not supported")
+                if len(plot_range) != 2: raise ValueError("__init__(): argument 'eigenstate_range' must be of the form 'quantum model': [min, max]")
 
         # store master input file object
         self.master_input_file = master_input_file
 
         # store parent output folder path of sweep simulations
         input_file_name = common.separateFileExtension(self.master_input_file.fullpath)[0]
-        self.output_folder_path = nnp.getSweepOutputFolderPath(input_file_name, *self.sweep_space.keys())
+        self.output_folder_path = self.shortcuts.getSweepOutputFolderPath(input_file_name, *self.sweep_space.keys())
 
         # instantiate nn.Sweep object
         self.sweep_obj = nn.Sweep(self.sweep_space, self.master_input_file.fullpath)
@@ -188,8 +191,8 @@ class SweepHelper:
                 self.states_to_be_plotted[model] = np.arange(plot_range[0]-1, plot_range[1], 1)
         else:   # default
             if self.__output_subfolders_exist():   # if output data exists, set to all states in the output data
-                datafiles_probability = nnp.getDataFile_probabilities_in_folder(self.data.loc[0, 'output_subfolder'])
-                self.states_to_be_plotted, num_evs = nnp.get_states_to_be_plotted(datafiles_probability)   # states_range_dict=None -> all states are plotted
+                datafiles_probability = self.shortcuts.getDataFile_probabilities_in_folder(self.data.loc[0, 'output_subfolder'])
+                self.states_to_be_plotted, num_evs = self.shortcuts.get_states_to_be_plotted(datafiles_probability)   # states_range_dict=None -> all states are plotted
             else:
                 self.states_to_be_plotted = None   # self.states_to_be_plotted will be set up after sweep execution. See execute_sweep()
 
@@ -201,7 +204,7 @@ class SweepHelper:
         """ this method is executed when print(SweepHelper object) is invoked """
         print("\n[SweepHelper]")
         print("\tMaster input file: ", self.master_input_file.fullpath)
-        print("\tSolver: ", self.software)
+        print("\tSolver: ", self.shortcuts.product_name)
         print("\tSweep space grids: ")
         for var, values in self.sweep_space.items():
             print(f"\t\t{var} = ", values)
@@ -475,7 +478,7 @@ class SweepHelper:
         # warn the user if many serial simulations are requested
         num_of_simulations = self.data['sweep_coords'].size
         if parallel_limit == 1:
-            if (num_of_simulations > 100 and self.software == 'nextnano++') or (num_of_simulations > 10 and self.software == 'nextnano.NEGF'):
+            if (num_of_simulations > 100 and self.shortcuts.product_name == 'nextnano++') or (num_of_simulations > 10 and self.shortcuts.product_name == 'nextnano.NEGF'):
                 while (True):
                     choice = input(f"WARNING: {num_of_simulations} simulations requested without parallelization. Are you sure you want to run all of them one-by-one? [y/n]")
                     if choice == 'y': break
@@ -495,8 +498,8 @@ class SweepHelper:
 
         # If not given at the class instantiation, determine how many eigenstates to plot (states_to_be_plotted attribute)
         if self.states_to_be_plotted is None:   # by default, plot all states in the output data
-            datafiles_probability = nnp.getDataFile_probabilities_in_folder(self.data.loc[0, 'output_subfolder'])
-            self.states_to_be_plotted, num_evs = nnp.get_states_to_be_plotted(datafiles_probability)   # states_range_dict=None -> all states are plotted
+            datafiles_probability = self.shortcuts.getDataFile_probabilities_in_folder(self.data.loc[0, 'output_subfolder'])
+            self.states_to_be_plotted, num_evs = self.shortcuts.get_states_to_be_plotted(datafiles_probability)   # states_range_dict=None -> all states are plotted
 
 
     ### Dispersion ###########################################################
@@ -530,7 +533,7 @@ class SweepHelper:
         for model in self.states_to_be_plotted.keys():
             for coords, outfolder in zip(self.data['sweep_coords'], self.data['output_subfolder']):
                 if isIn(coords):
-                    nnp.plot_dispersion(outfolder, np.amin(self.states_to_be_plotted[model]), np.amax(self.states_to_be_plotted[model]), savePDF=savePDF)
+                    self.shortcuts.plot_dispersion(outfolder, np.amin(self.states_to_be_plotted[model]), np.amax(self.states_to_be_plotted[model]), savePDF=savePDF)
         return
 
 
@@ -559,7 +562,7 @@ class SweepHelper:
         self.__validate_sweep_variables(sweep_variable)
 
         # generate GIF
-        nnp.generate_gif(self.master_input_file, sweep_variable, self.sweep_space[sweep_variable], self.states_to_be_plotted)
+        self.shortcuts.generate_gif(self.master_input_file, sweep_variable, self.sweep_space[sweep_variable], self.states_to_be_plotted)
 
 
     ### Optics analysis #######################################################
@@ -598,7 +601,7 @@ class SweepHelper:
 
         # Compute overlaps and store them in self.data
         logging.info("Calculating overlap...")
-        self.data['overlap'] = self.data['output_subfolder'].apply(nnp.calculate_overlap, force_lightHole=force_lightHole)
+        self.data['overlap'] = self.data['output_subfolder'].apply(self.shortcuts.calculate_overlap, force_lightHole=force_lightHole)
         # self.data['overlap_squared'] = self.data['overlap'].apply(common.absolute_squared)   # BUG: somehow the results become complex128, not float --> cannot be plotted
         
         # x- and y-axis coordinates and 2D array-like of overlap data
@@ -627,7 +630,7 @@ class SweepHelper:
         if figFilename is None or figFilename == "":
             name = os.path.split(self.output_folder_path)[1]
             figFilename = name + "_overlap"
-        nnp.export_figs(figFilename, "png", output_folder_path=self.output_folder_path, fig=fig)
+        self.shortcuts.export_figs(figFilename, "png", output_folder_path=self.output_folder_path, fig=fig)
 
 
         # write info to a file
@@ -695,7 +698,10 @@ class SweepHelper:
             raise ValueError(f"Energy unit {unit} is not supported.")
 
         # Get transition energies and store them in self.data
-        self.data['transition_energy'] = self.data['output_subfolder'].apply(nnp.get_transition_energy, force_lightHole=force_lightHole)
+        if self.shortcuts.product_name == 'nextnano++':
+            self.data['transition_energy'] = self.data['output_subfolder'].apply(self.shortcuts.get_transition_energy, force_lightHole=force_lightHole)
+        elif self.shortcuts.product_name == 'nextnano.NEGF++':
+            self.data['transition_energy'] = self.data['output_subfolder'].apply(self.shortcuts.get_transition_energy)
 
         # x- and y-axis coordinates and 2D array-like of overlap data
         if plot_2D:
@@ -711,21 +717,22 @@ class SweepHelper:
         elif unit == 'nm':
             transition_energies_scaled = common.electronvolt_to_micron(transition_energies) * 1e3
 
-        if plot_2D:
-            fig = self.__plot_transition_energies_2D(x_axis, y_axis, x_label, y_label, x_values, y_values, plot_title, colormap, set_center_to_zero, unit, transition_energies_scaled)
-        else:
-            fig = self.__plot_transition_energies_1D(x_axis, x_label, x_values, plot_title, unit, transition_energies_scaled)
-
+        
         if export_data:
             if plot_2D:
                 return x_values, y_values, transition_energies_scaled
             else:
                 return x_values, transition_energies_scaled
         else:
+            if plot_2D:
+                fig = self.__plot_transition_energies_2D(x_axis, y_axis, x_label, y_label, x_values, y_values, plot_title, colormap, set_center_to_zero, unit, transition_energies_scaled)
+            else:
+                fig = self.__plot_transition_energies_1D(x_axis, x_label, x_values, plot_title, unit, transition_energies_scaled)
+
             if figFilename is None or figFilename == "":
                 name = os.path.split(self.output_folder_path)[1]
                 figFilename = name + "_transitionEnergies"
-            nnp.export_figs(figFilename, "png", output_folder_path=self.output_folder_path, fig=fig)
+            self.shortcuts.export_figs(figFilename, "png", output_folder_path=self.output_folder_path, fig=fig)
             return fig
 
         
@@ -826,7 +833,7 @@ class SweepHelper:
         self.__validate_sweep_variables(y_axis)
 
         # Get transition energies and store them in self.data
-        self.data['hole_energy_difference'] = self.data['output_subfolder'].apply(nnp.get_hole_energy_difference)
+        self.data['hole_energy_difference'] = self.data['output_subfolder'].apply(self.shortcuts.get_hole_energy_difference)
 
         # x- and y-axis coordinates and 2D array-like of overlap data
         x_values, y_values, transition_energies = self.__slice_data_for_colormap_2D('hole_energy_difference', x_axis, y_axis, datatype=np.double)
@@ -859,7 +866,7 @@ class SweepHelper:
         if figFilename is None or figFilename == "":
             name = os.path.split(self.output_folder_path)[1]
             figFilename = name + "_holeEnergyDifference"
-        nnp.export_figs(figFilename, "png", output_folder_path=self.output_folder_path, fig=fig)
+        self.shortcuts.export_figs(figFilename, "png", output_folder_path=self.output_folder_path, fig=fig)
 
         return fig
 
@@ -867,5 +874,5 @@ class SweepHelper:
     ### in-plane k ###########################################################
     def plot_inplaneK(self):
 
-        inplane_k = nnp.getKPointsData1D_in_folder(self.data.loc[0, 'output_subfolder'])   # assuming k points are identical to all the sweeps
-        return nnp.plot_inplaneK(inplane_k)
+        inplane_k = self.shortcuts.getKPointsData1D_in_folder(self.data.loc[0, 'output_subfolder'])   # assuming k points are identical to all the sweeps
+        return self.shortcuts.plot_inplaneK(inplane_k)

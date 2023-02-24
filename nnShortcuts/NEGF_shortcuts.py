@@ -24,7 +24,7 @@ from nnShortcuts.common import CommonShortcuts
 
 class NEGFShortcuts(CommonShortcuts):
     # nextnano solver
-    software = 'nextnano.NEGF'
+    product_name = 'nextnano.NEGF++'
 
     def __init__(self, loglevel=logging.INFO):
         super().__init__(loglevel)
@@ -53,7 +53,7 @@ class NEGFShortcuts(CommonShortcuts):
         # ax.set_title(input_file_name)
 
         # export to an image file
-        outputFolder = nn.config.get(self.software, 'outputdirectory')
+        outputFolder = nn.config.get(self.product_name, 'outputdirectory')
         filename_no_extension = super().separateFileExtension(input_file_name)[0]
         outputSubfolder = os.path.join(outputFolder, filename_no_extension)
         self.export_figs("IV", "png", output_folder_path=outputSubfolder, fig=fig)
@@ -61,7 +61,7 @@ class NEGFShortcuts(CommonShortcuts):
 
 
     def getDataFile_NEGF_init(self, keywords, name):
-        output_folder = nn.config.get(self.software, 'outputdirectory')
+        output_folder = nn.config.get(self.product_name, 'outputdirectory')
         filename_no_extension = super().separateFileExtension(name)[0]
         subfolder = os.path.join(output_folder, filename_no_extension)
         d = nn.DataFolder(subfolder)
@@ -94,7 +94,7 @@ class NEGFShortcuts(CommonShortcuts):
         nextnanopy.DataFile object of the simulation data
 
         """
-        output_folder = nn.config.get(self.software, 'outputdirectory')
+        output_folder = nn.config.get(self.product_name, 'outputdirectory')
         filename_no_extension = super().separateFileExtension(name)[0]
         bias_subfolder = os.path.join(output_folder, filename_no_extension, str(bias) + 'mv')
 
@@ -115,7 +115,7 @@ class NEGFShortcuts(CommonShortcuts):
     #     }
 
     #     """
-    #     output_folder = nn.config.get(self.software, 'outputdirectory')
+    #     output_folder = nn.config.get(self.product_name, 'outputdirectory')
     #     filePath = os.path.join(output_folder, str(bias) + 'mv\\Convergence.txt')
     #     fp = open(filePath, 'r')
     #     lines = fp.readlines()
@@ -247,7 +247,7 @@ class NEGFShortcuts(CommonShortcuts):
         fig.tight_layout()
 
         # export to an image file
-        outputFolder = nn.config.get(self.software, 'outputdirectory')
+        outputFolder = nn.config.get(self.product_name, 'outputdirectory')
         filename_no_extension = super().separateFileExtension(name)[0]
         outputSubfolder = os.path.join(outputFolder, filename_no_extension)
         self.export_figs("WannierStarkStates_init", "png", output_folder_path=outputSubfolder, fig=fig)
@@ -323,7 +323,7 @@ class NEGFShortcuts(CommonShortcuts):
         fig.tight_layout()
 
         # export to an image file
-        outputFolder = nn.config.get(self.software, 'outputdirectory')
+        outputFolder = nn.config.get(self.product_name, 'outputdirectory')
         filename_no_extension = super().separateFileExtension(input_file_name)[0]
         outputSubfolder = os.path.join(outputFolder, filename_no_extension)
         self.export_figs("DOS", "png", output_folder_path=outputSubfolder, fig=fig)
@@ -370,7 +370,7 @@ class NEGFShortcuts(CommonShortcuts):
         fig.tight_layout()
 
         # export to an image file
-        outputFolder = nn.config.get(self.software, 'outputdirectory')
+        outputFolder = nn.config.get(self.product_name, 'outputdirectory')
         filename_no_extension = super().separateFileExtension(input_file_name)[0]
         outputSubfolder = os.path.join(outputFolder, filename_no_extension)
         self.export_figs("CarrierDensity", "png", output_folder_path=outputSubfolder, fig=fig)
@@ -417,7 +417,7 @@ class NEGFShortcuts(CommonShortcuts):
         fig.tight_layout()
 
         # export to an image file
-        outputFolder = nn.config.get(self.software, 'outputdirectory')
+        outputFolder = nn.config.get(self.product_name, 'outputdirectory')
         filename_no_extension = super().separateFileExtension(input_file_name)[0]
         outputSubfolder = os.path.join(outputFolder, filename_no_extension)
         self.export_figs("CurrentDensity", "png", output_folder_path=outputSubfolder, fig=fig)
@@ -461,7 +461,7 @@ class NEGFShortcuts(CommonShortcuts):
             bias values calculated in the simulation.
 
         """
-        output_folder = nn.config.get(self.software, 'outputdirectory')
+        output_folder = nn.config.get(self.product_name, 'outputdirectory')
         filename_no_extension = super().separateFileExtension(name)[0]
         datafolder = nn.DataFolder(os.path.join(output_folder, filename_no_extension))
 
@@ -569,7 +569,7 @@ class NEGFShortcuts(CommonShortcuts):
 
         """
         # find the output file
-        outputFolder = nn.config.get(self.software, 'outputdirectory')
+        outputFolder = nn.config.get(self.product_name, 'outputdirectory')
         filename_no_extension = super().separateFileExtension(name)[0]
         outputSubfolder = os.path.join(outputFolder, filename_no_extension)
         df = self.getDataFile_in_folder('L-I-V.dat', outputSubfolder)
@@ -1108,19 +1108,21 @@ class NEGFShortcuts(CommonShortcuts):
         """
         # get nn.DataFile object
         try:
-            datafile = self.getDataFile_in_folder(['spinor'], output_folder)   # spinor composition at in-plane k = 0
+            datafile = self.getDataFile_in_folder(['spinor_composition'], output_folder)   # spinor composition at in-plane k = 0
         except FileNotFoundError:
             warnings.warn("Spinor components output in CbHhLhSo basis is not found. Assuming decoupling of the conduction and valence bands...", category=self.NextnanoInputFileWarning)
             return int(0)
 
         # find the lowest electron state
-        spinor_label_s1 = ''  # TODO: nextnanopy negf parser or InputFile class has a bug, or, my output from NEGF++ is not optimal
-        spinor_label_s2 = 'z1'
-        num_evs = len(datafile.variables[spinor_label_s1].value)
+        # TODO: nextnanopy.DataFile parses the labels in NEGF++ output file wrong.
+        num_evs = len(datafile.variables[0].value)
+        # print(f"datafile coords {datafile.coords}")
+        # print(f"datafile variables {datafile.variables}")
+        # print(f"s2 spinor compositions:\n{datafile.variables[4].value}")
         for stateIndex in range(num_evs):
-            electronFraction = datafile.variables[spinor_label_s1].value[stateIndex] + datafile.variables[spinor_label_s2].value[stateIndex]
+            electronFraction = datafile.variables[0].value[stateIndex] + datafile.variables[4].value[stateIndex]
             if electronFraction > threshold:
-                print(f"Lowest electron index = {stateIndex} because electronFraction = {electronFraction}")
+                logging.info(f"Lowest electron index = {stateIndex} because electronFraction = {electronFraction}")
                 return stateIndex
 
         raise RuntimeError(f"No electron states found in: {output_folder}")
@@ -1157,19 +1159,28 @@ class NEGFShortcuts(CommonShortcuts):
             return int(0)
 
         # find the highest hole state
-        label_s1 = ''   # TODO: nextnanopy bug in negf datafile, or, my output is not optimal on NEGF++ side
-        label_s2 = 'z1'
-        num_evs = len(datafile.variables[label_s1].value)
-        print(f"datafile variables {datafile.variables}")
-        print(f"s2 spinor compositions:\n{datafile.variables[label_s2].value}")
+        # TODO: nextnanopy.DataFile parses the labels in NEGF++ output file wrong.
+        num_evs = len(datafile.variables[0].value)
         for stateIndex in reversed(range(num_evs)):
-            electronFraction = datafile.variables[label_s1].value[stateIndex] + datafile.variables[label_s2].value[stateIndex]
+            electronFraction = datafile.variables[0].value[stateIndex] + datafile.variables[4].value[stateIndex]
             if electronFraction < threshold:
-                print(f"Highest hole index = {stateIndex} because electronFraction = {electronFraction}")
+                logging.info(f"Highest hole index = {stateIndex} because electronFraction = {electronFraction}")
                 return stateIndex
 
         raise RuntimeError(f"No hole states found in: {output_folder}")
 
 
-    def get_transition_energy():
-        pass # TODO: urgent
+    def get_transition_energy(self, output_folder):
+        """
+        Get the transition energy = energy separation between the lowest electron and highest hole states.
+        Unit: eV
+        """
+        datafile = self.getDataFile_in_folder(["energy_spectrum"], output_folder)
+
+        iLowestElectron = self.find_lowest_electron_state_atK0(output_folder, threshold=0.5)
+        iHighestHole    = self.find_highest_hole_state_atK0(output_folder, threshold=0.5)
+
+        dE = datafile.variables['Energy'].value[iLowestElectron] - datafile.variables['Energy'].value[iHighestHole]
+
+        return dE / self.scale1ToMilli
+    

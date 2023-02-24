@@ -27,7 +27,7 @@ from nextnanopy.utils.misc import mkdir_if_not_exist
 
 class CommonShortcuts:
     # nextnano solver
-    software = None
+    product_name = 'common'
 
     # -------------------------------------------------------
     # Fundamental physical constants 
@@ -54,6 +54,8 @@ class CommonShortcuts:
             # return "%(filename)s:%(lineno)d:\n %(category.__name__)s: %(message)s"
         warnings.formatwarning = warning_on_one_line
         logging.getLogger('matplotlib.font_manager').disabled = True  # suppress excessive 'findfont' warnings
+
+        logging.info(f'{self.product_name} shortcuts initialized.')
 
     # -------------------------------------------------------
     # nextnano corporate colormap for matplotlib
@@ -274,9 +276,9 @@ class CommonShortcuts:
 
         Returns
         -------
-        software : str
+        product_name : str
             nextnano solver
-        software_short : str
+        product_name_short : str
             shorthand of nextnano solver
         extension : str
             file extension
@@ -291,29 +293,29 @@ class CommonShortcuts:
             with open(InputPath,'r') as file:
                 for line in file:
                     if 'simulation-flow-control' in line:
-                        software = 'nextnano3'
-                        software_short = '_nn3'
+                        product_name = 'nextnano3'
+                        product_name_short = '_nn3'
                         break
                     elif 'run{' in line:
-                        software = 'nextnano++'
-                        software_short = '_nnp'
+                        product_name = 'nextnano++'
+                        product_name_short = '_nnp'
                         break
                     elif ('<nextnano.QCL' in line) or ('<nextnano.NEGF' in line) or ('nextnano.NEGF{' in line):
-                        software = 'nextnano.NEGF'
-                        software_short = '_nnNEGF'
+                        product_name = 'nextnano.NEGF'
+                        product_name_short = '_nnNEGF'
                         break
                     elif '<nextnano.MSB' in line or 'nextnano.MSB{' in line:
-                        software = 'nextnano.MSB'
-                        software_short = '_nnMSB'
+                        product_name = 'nextnano.MSB'
+                        product_name_short = '_nnMSB'
         except FileNotFoundError as e:
             raise Exception(f'Input file {InputPath} not found!') from e
 
-        if not software:   # if the variable is empty
+        if not product_name:   # if the variable is empty
             raise self.NextnanoInputFileError('Software cannot be detected! Please check your input file.')
         else:
-            logging.info(f'Software detected: {software}')
+            logging.info(f'Software detected: {product_name}')
 
-        return software, software_short, extension
+        return product_name, product_name_short, extension
 
 
 
@@ -331,35 +333,69 @@ class CommonShortcuts:
             with open(inputfile.fullpath, 'r') as file:
                 for line in file:
                     if 'simulation-flow-control' in line:
-                        software = 'nextnano3'
+                        product_name = 'nextnano3'
                         extension = '.in'
                         break
                     elif 'run{' in line:
-                        software = 'nextnano++'
+                        product_name = 'nextnano++'
                         extension = '.in'
                         break
                     elif '<nextnano.NEGF' in line:
-                        software = 'nextnano.NEGF'
+                        product_name = 'nextnano.NEGF'
                         extension = '.xml'
                         break
                     elif 'nextnano.NEGF{' in line:
-                        software = 'nextnano.NEGF'
+                        product_name = 'nextnano.NEGF++'
                         extension = '.negf'
                     elif '<nextnano.MSB' in line:
-                        software = 'nextnano.MSB'
+                        product_name = 'nextnano.MSB'
                         extension = '.xml'
                     elif 'nextnano.MSB{' in line:
-                        software = 'nextnano.MSB'
+                        product_name = 'nextnano.MSB'
                         extension = '.negf'
         except FileNotFoundError as e:
             raise Exception(f'Input file {inputfile.fullpath} not found!') from e
 
-        if not software:   # if the variable is empty
+        if not product_name:   # if the variable is empty
             raise self.NextnanoInputFileError('Software cannot be detected! Please check your input file.')
         else:
-            logging.info(f'Software detected: {software}')
+            logging.info(f'Software detected: {product_name}')
 
-        return software, extension
+        return product_name, extension
+    
+
+
+    def get_shortcut(self, inputfile):
+        """
+        Detect software from nextnanopy.InputFile() object and returns corresponding shortcut object.
+
+        Parameters
+        ----------
+        inputfile : nextnanopy.InputFile object
+
+        Returns
+        -------
+        object of the class nnShortcuts.nnp_shortcuts / nnShortcuts.nn3_shortcuts / nnShortcuts.NEGF_shortcuts
+
+        """
+        try:
+            with open(inputfile.fullpath, 'r') as file:
+                for line in file:
+                    if 'simulation-flow-control' in line:
+                        from nnShortcuts.nn3_shortcuts import nn3Shortcuts
+                        return nn3Shortcuts()
+                    elif 'run{' in line:
+                        from nnShortcuts.nnp_shortcuts import nnpShortcuts
+                        return nnpShortcuts()
+                    elif '<nextnano.NEGF' in line or 'nextnano.NEGF{' in line:
+                        from nnShortcuts.NEGF_shortcuts import NEGFShortcuts
+                        return NEGFShortcuts()
+                    elif '<nextnano.MSB' in line or 'nextnano.MSB{' in line:
+                        raise NotImplementedError("MSB shortcuts are not implemented")
+                raise self.NextnanoInputFileError('Software cannot be detected! Please check your input file.')
+        
+        except FileNotFoundError as e:
+            raise Exception(f'Input file {inputfile.fullpath} not found!') from e
 
 
 
@@ -646,7 +682,7 @@ class CommonShortcuts:
 
         """
         filename_no_extension = self.separateFileExtension(filename)[0]
-        output_folder_path = os.path.join(nn.config.get(self.software, 'outputdirectory'), filename_no_extension + '_sweep')
+        output_folder_path = os.path.join(nn.config.get(self.product_name, 'outputdirectory'), filename_no_extension + '_sweep')
 
         if len(args) == 0: raise ValueError("Sweep variable string is missing in the argument!")
 
@@ -720,7 +756,7 @@ class CommonShortcuts:
             Files containing these keywords in the file name are excluded from search.
 
         """
-        outputFolder = nn.config.get(self.software, 'outputdirectory')
+        outputFolder = nn.config.get(self.product_name, 'outputdirectory')
         filename_no_extension = self.separateFileExtension(name)[0]
         outputSubfolder = os.path.join(outputFolder, filename_no_extension)
 
@@ -808,7 +844,7 @@ class CommonShortcuts:
         logging.debug(f"Found:\n{file}")
 
         try:
-            return nn.DataFile(file, product=self.software)
+            return nn.DataFile(file, product=self.product_name)
         except NotImplementedError as e:
             raise Exception(f'Nextnanopy does not support datafile for {file}') from e
 
@@ -827,7 +863,7 @@ class CommonShortcuts:
             Files containing these keywords in the file name are excluded from search.
 
         """
-        outputFolder = nn.config.get(self.software, 'outputdirectory')
+        outputFolder = nn.config.get(self.product_name, 'outputdirectory')
         filename_no_extension = self.separateFileExtension(name)[0]
         outputSubFolder = os.path.join(outputFolder, filename_no_extension)
 
@@ -892,7 +928,7 @@ class CommonShortcuts:
         logging.debug(f"Found:\n{list_of_files}")
 
         try:
-            datafiles = [nn.DataFile(file, product=self.software) for file in list_of_files]
+            datafiles = [nn.DataFile(file, product=self.product_name) for file in list_of_files]
         except NotImplementedError as e:
             raise Exception('Nextnanopy does not support datafile') from e
 
@@ -914,7 +950,7 @@ class CommonShortcuts:
             dictionary { quantum model key: corresponding list of nn.DataFile() objects for probability_shift }
         """
         filename_no_extension = self.separateFileExtension(name)[0]
-        outputFolder = nn.config.get(self.software, 'outputdirectory')
+        outputFolder = nn.config.get(self.product_name, 'outputdirectory')
         outputSubFolder = os.path.join(outputFolder, filename_no_extension)
 
         return self.getDataFile_probabilities_in_folder(outputSubFolder)
@@ -1013,7 +1049,7 @@ class CommonShortcuts:
                             states_toBePlotted[model].append(self.find_lowest_electron_state_atK0(outfolder, threshold=0.5))
                             
                         elif stateNo == 'occupied':
-                            if self.software == 'nextnano.NEGF':
+                            if self.product_name == 'nextnano.NEGF':
                                 raise NotImplementedError("Plotting only occupied states not yet implemented for NEGF")
                             if 'cutoff_occupation' not in states_list_dict.keys():
                                 raise ValueError("cutoff_occupation must be specified in 'states_list_dict'")
@@ -1035,6 +1071,8 @@ class CommonShortcuts:
         logging.debug(f"states_toBePlotted (index base 0): {states_toBePlotted}")
         return states_toBePlotted, num_evs
 
+    def get_transition_energy(self):
+        raise NotImplementedError("There is no common implementation")
     
     def find_highest_hole_state_atK0(self):
         raise NotImplementedError("There is no common implementation")
@@ -1419,7 +1457,7 @@ class CommonShortcuts:
             outputSubfolder = os.path.join(output_folder_path, "nextnanopy")
         else:
             outputSubfolderName = self.separateFileExtension(outputSubfolderName)[0]   # chop off file extension if any
-            outputSubfolder = os.path.join(nn.config.get(self.software, 'outputdirectory'), outputSubfolderName)
+            outputSubfolder = os.path.join(nn.config.get(self.product_name, 'outputdirectory'), outputSubfolderName)
 
         mkdir_if_not_exist(outputSubfolder)
         export_fullpath = os.path.join(outputSubfolder, figFilename + figFormat)

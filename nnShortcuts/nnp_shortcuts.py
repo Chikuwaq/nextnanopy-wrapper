@@ -20,7 +20,7 @@ from nnShortcuts.common import CommonShortcuts
 
 class nnpShortcuts(CommonShortcuts):
     # nextnano solver
-    software = 'nextnano++'
+    product_name = 'nextnano++'
     
     model_names = ['Gamma', 'L', 'X', 'Delta', 'HH', 'LH', 'SO', 'kp6', 'kp8']
     model_names_conduction = ['Gamma', 'L', 'X', 'Delta']
@@ -78,7 +78,7 @@ class nnpShortcuts(CommonShortcuts):
             dictionary { quantum model key: corresponding numpy.ndarray((num_kPoints, 2)) of in-plane k vector }
         """
 
-        outputFolder = nn.config.get(self.software, 'outputdirectory')
+        outputFolder = nn.config.get(self.product_name, 'outputdirectory')
         filename_no_extension = super().separateFileExtension(input_file.fullpath)[0]
         outputSubfolder = os.path.join(outputFolder, filename_no_extension)
         return self.getKPointsData1D_in_folder(outputSubfolder)
@@ -240,7 +240,7 @@ class nnpShortcuts(CommonShortcuts):
     #     """
     #     name = os.path.split(name)[1]   # remove paths if present
     #     filename_no_extension = super().separateFileExtension(name)[0]
-    #     outputFolder = nn.config.get(self.software, 'outputdirectory')
+    #     outputFolder = nn.config.get(self.product_name, 'outputdirectory')
     #     outputSubFolder = os.path.join(outputFolder, filename_no_extension)
     #     datafiles = self.getDataFiles_in_folder(['matrix_elements', '.txt'], outputSubFolder)
 
@@ -1680,8 +1680,6 @@ class nnpShortcuts(CommonShortcuts):
                     dE = dE_HH_Gamma
                 else:
                     dE = dE_LH_Gamma
-
-        # logging.debug(f"get_transition_energy: using data {df.fullpath}")
 
         return dE
 

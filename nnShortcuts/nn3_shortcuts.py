@@ -19,7 +19,7 @@ from nnShortcuts.common import CommonShortcuts
 
 class nn3Shortcuts(CommonShortcuts):
     # nextnano solver
-    software = 'nextnano3'
+    product_name = 'nextnano3'
     
     model_names = ['cb1', 'vb1', 'vb2', 'vb3', 'kp6', 'kp8']  # in nextnano3
     model_names_conduction = ['cb1']
