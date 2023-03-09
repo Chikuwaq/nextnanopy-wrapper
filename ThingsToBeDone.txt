@@ -17,7 +17,6 @@
 - create an option for legend loc='lower left'
 
 [object-oriented approach]
-- some methods need to branch out to nnp and NEGF after some initial preparation. Put common preparation in the parent class 'CommonShortcuts', and then override the method in child classes. Within the child classes, you can use super().prepare() to invoke parent class'es method.
 - benefit of using classes is that the methods don't need to be defined above the code line of invocation. Bring the major methods up, auxilirary methods to the bottom.
 E.g. get_states_to_be_plotted()
 - is it possible to move imports to __init__? or at least to the parent class
