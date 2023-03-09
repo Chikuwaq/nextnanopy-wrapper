@@ -193,11 +193,13 @@ class SweepHelper:
             for model, plot_range in eigenstate_range.items():
                 self.states_to_be_plotted[model] = np.arange(plot_range[0]-1, plot_range[1], 1)
         else:   # default
+            self.states_to_be_plotted = None   # if this remains None, it will be set up after sweep execution. See execute_sweep().
             if self.__output_subfolders_exist():   # if output data exists, set to all states in the output data
-                datafiles_probability = self.shortcuts.getDataFile_probabilities_in_folder(self.data.loc[0, 'output_subfolder'])
-                self.states_to_be_plotted, num_evs = self.shortcuts.get_states_to_be_plotted(datafiles_probability)   # states_range_dict=None -> all states are plotted
-            else:
-                self.states_to_be_plotted = None   # self.states_to_be_plotted will be set up after sweep execution. See execute_sweep()
+                try:
+                    datafiles_probability = self.shortcuts.getDataFile_probabilities_in_folder(self.data.loc[0, 'output_subfolder'])
+                    self.states_to_be_plotted, num_evs = self.shortcuts.get_states_to_be_plotted(datafiles_probability)   # states_range_dict=None -> all states are plotted
+                except FileNotFoundError as e:
+                    pass
 
 
     # def __repr__(self):
