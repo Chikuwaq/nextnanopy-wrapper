@@ -552,7 +552,7 @@ class SweepHelper:
 
         """
         if not self.__output_subfolders_exist():
-            raise RuntimeError("Simulation data does not exist for this sweep!")
+            raise RuntimeError("Simulation output does not exist for this sweep!")
 
         # validate argument
         self.__validate_sweep_variables(sweep_variable)
@@ -590,7 +590,7 @@ class SweepHelper:
 
         """
         if not self.__output_subfolders_exist():
-            raise RuntimeError("Simulation data does not exist for this sweep!")
+            raise RuntimeError("Simulation output does not exist for this sweep!")
 
         # validate argument
         self.__validate_sweep_variables(sweep_variable)
@@ -627,7 +627,7 @@ class SweepHelper:
 
         """
         if not self.__output_subfolders_exist():
-            raise RuntimeError("Simulation data does not exist for this sweep!")
+            raise RuntimeError("Simulation output does not exist for this sweep!")
 
         # validate input
         self.__validate_sweep_variables(x_axis)
@@ -719,7 +719,7 @@ class SweepHelper:
 
         """
         if not self.__output_subfolders_exist():
-            raise RuntimeError("Simulation data does not exist for this sweep!")
+            raise RuntimeError("Simulation output does not exist for this sweep!")
 
         # validate input
         self.__validate_sweep_variables(x_axis)
@@ -860,7 +860,7 @@ class SweepHelper:
 
         """
         if not self.__output_subfolders_exist():
-            raise RuntimeError("Simulation data does not exist for this sweep!")
+            raise RuntimeError("Simulation output does not exist for this sweep!")
 
         # validate input
         self.__validate_sweep_variables(x_axis)
