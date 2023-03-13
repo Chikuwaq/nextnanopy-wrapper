@@ -2,6 +2,7 @@
 - use nextnano corporate colormap in 2D plot methods
 - format warnings console output
 - within TypeError, print the object type to facilitate debug
+- visualization of warning in yellow (error will be in red, info in default colour)
 
 [nnShortcuts]
 - resolve TODOs in each file
@@ -15,6 +16,7 @@
 
 [NEGFShortcuts]
 - create an option for legend loc='lower left'
+- would be cool to have animation of band diagram & DOS as a function of bias (Winter School, Gerhard Klimeck)
 
 [object-oriented approach]
 - benefit of using classes is that the methods don't need to be defined above the code line of invocation. Bring the major methods up, auxilirary methods to the bottom.
