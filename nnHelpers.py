@@ -17,6 +17,9 @@ import itertools
 import pandas as pd
 import warnings
 import logging
+import copy
+import shutil
+
 
 # nextnanopy includes
 import nextnanopy as nn
@@ -52,13 +55,17 @@ class SweepHelper:
         shortcuts : shortcut object
             shortcut object for the nextnano solver used for the master_input_file (automatically detected)
 
-        master_input_file : nextnanopy.InputFile object
-            master input file in which one or more variables are swept
+        master_input_file : dict of nextnanopy.InputFile object
+            master input file in which one or more variables are swept.
+            'original'  = original file name
+            'short' = abbreviated file name
 
-        output_folder_path : str
+        output_folder_path : dict of str
             parent output folder path of sweep simulations
+            'original'  = original file name
+            'short' = abbreviated file name
 
-        sweep_obj : nextnanopy.Sweep object
+        sweep_obj : dict of nextnanopy.Sweep object
             instantiated based on self.sweep_space and self.master_input_file
 
         data : pandas.DataFrame object
@@ -149,42 +156,61 @@ class SweepHelper:
 
         # prepare shortcuts for the nextnano solver used
         self.shortcuts = common.get_shortcut(master_input_file)
-        if self.shortcuts.product_name not in ['nextnano++', 'nextnano.NEGF++']: 
+        if self.shortcuts.product_name not in ['nextnano++', 'nextnano.NEGF', 'nextnano.NEGF++']: 
             raise NotImplementedError("class SweepHelper currently supports only nextnano++ and nextnano.NEGF++ simulations.")
 
-        
-        
         if eigenstate_range is not None:
             if not isinstance(eigenstate_range, dict): raise TypeError("__init__(): argument 'eigenstate_range' must be a dict")
             for model, plot_range in eigenstate_range.items():
                 if model not in self.shortcuts.model_names: raise KeyError(f"__init__(): Quantum model '{model}' is not supported")
                 if len(plot_range) != 2: raise ValueError("__init__(): argument 'eigenstate_range' must be of the form 'quantum model': [min, max]")
 
+        self.master_input_file = dict()
+        self.output_folder_path = dict()
+        self.sweep_obj = dict()
+
         # store master input file object
-        self.master_input_file = master_input_file
+        self.master_input_file['original'] = copy.deepcopy(master_input_file)
+        outfolder = self.shortcuts.getSweepOutputFolderPath(self.master_input_file['original'].fullpath, *self.sweep_space.keys())
+        initSweepCoords = {key: arr[0] for key, arr in self.sweep_space.items()}
+        subfolder = self.shortcuts.getSweepOutputSubfolderName(self.master_input_file['original'].fullpath, initSweepCoords)
+        outpath = os.path.join(outfolder, subfolder)
+        if len(outpath) + 80 > 260:
+            import uuid
+            logging.info(f"Because the output path is too long ({len(outpath)}), creating a temporary input file with shorter name...")
+            dir = os.path.dirname(master_input_file.fullpath)
+            ext = os.path.splitext(master_input_file.fullpath)[1]
+            id = str(uuid.uuid4())
+            filename = id[:5] + ext  # using a part of the Universally Unique Identifier
+            temp_path = os.path.join(dir, filename)
+            master_input_file.save(temp_path, overwrite=True, automkdir=True)
+        self.master_input_file['short'] = master_input_file
 
         # store parent output folder path of sweep simulations
-        input_file_name = common.separateFileExtension(self.master_input_file.fullpath)[0]
-        self.output_folder_path = self.shortcuts.getSweepOutputFolderPath(input_file_name, *self.sweep_space.keys())
+        self.output_folder_path['original']  = self.shortcuts.getSweepOutputFolderPath(self.master_input_file['original'].fullpath, *self.sweep_space.keys())
+        self.output_folder_path['short']     = self.shortcuts.getSweepOutputFolderPath(self.master_input_file['short'].fullpath, *self.sweep_space.keys())
 
         # instantiate nn.Sweep object
-        self.sweep_obj = nn.Sweep(self.sweep_space, self.master_input_file.fullpath)
-        self.sweep_obj.save_sweep(round_decimal=round_decimal)  # ensure the same decimals for self.sweep_space and input file names
+        for name_type in ['original', 'short']:
+            self.sweep_obj[name_type] = nn.Sweep(self.sweep_space, self.master_input_file[name_type].fullpath)
+            self.sweep_obj[name_type].save_sweep(round_decimal=round_decimal)  # ensure the same decimals for self.sweep_space and input file names
 
         logging.debug("\nSweep space axes:")
         logging.debug(f"{ [ key for key in self.sweep_space.keys() ] }")
 
         # instantiate pandas.DataFrame to store sweep data
-        input_paths = [input_file.fullpath for input_file in self.sweep_obj.input_files]
+        input_paths_original = [input_file.fullpath for input_file in self.sweep_obj['original'].input_files]
+        input_paths_short    = [input_file.fullpath for input_file in self.sweep_obj['short'].input_files]
         self.data = pd.DataFrame({
             'sweep_coords' : list(itertools.product(*self.sweep_space.values())),  # create cartesian coordinates in the sweep space. Consistent to nextnanopy implementation.
-            'output_subfolder' : [common.get_output_subfolder_path(self.output_folder_path, input_path) for input_path in input_paths],
+            'output_subfolder' : [common.get_output_subfolder_path(self.output_folder_path['original'], input_path) for input_path in input_paths_original],
+            'output_subfolder_short' : [common.get_output_subfolder_path(self.output_folder_path['short'], input_path) for input_path in input_paths_short],
             'overlap' : None,
             'transition_energy' : None,
             'hole_energy_difference' : None
             })
         logging.info(f"Initialized data table:\n{self.data}")
-        assert len(self.data) == len(self.sweep_obj.input_files)
+        assert len(self.data) == len(self.sweep_obj['original'].input_files)
 
 
         # initialize eigenstate indices to be plotted
@@ -208,12 +234,12 @@ class SweepHelper:
     def __str__(self):
         """ this method is executed when print(SweepHelper object) is invoked """
         print("\n[SweepHelper]")
-        print("\tMaster input file: ", self.master_input_file.fullpath)
+        print("\tMaster input file: ", self.master_input_file['original'].fullpath)
         print("\tSolver: ", self.shortcuts.product_name)
         print("\tSweep space grids: ")
         for var, values in self.sweep_space.items():
             print(f"\t\t{var} = ", values)
-        print("\tOutput folder: ", self.output_folder_path)
+        print("\tOutput folder: ", self.output_folder_path['original'])
         print("\tOutput data exists: ", self.__output_subfolders_exist())
         return ""
 
@@ -234,7 +260,7 @@ class SweepHelper:
 
     def __validate_sweep_variables(self, sweep_var):
         if sweep_var not in self.sweep_space:
-            if sweep_var not in self.master_input_file.variables:
+            if sweep_var not in self.master_input_file['original'].variables:
                 raise KeyError(f"Variable {sweep_var} is not in the input file!")
             else:
                 raise KeyError(f"Variable {sweep_var} has not been swept.")
@@ -467,6 +493,7 @@ class SweepHelper:
     def execute_sweep(self, convergenceCheck=True, show_log=False, parallel_limit=1, **kwargs):
         """
         Run simulations.
+        If the input file name has been abbreviated due to limited output path length, recover the original input file name in the output folders after nextnano execution.
 
         Parameters
         ----------
@@ -489,10 +516,11 @@ class SweepHelper:
                     if choice == 'y': break
                     elif choice == 'n': raise RuntimeError('Nextnanopy terminated.')
 
-        logging.info(f"Running {num_of_simulations} simulations with max. {parallel_limit} parallelization ...")
+        logging.info(f"Running {num_of_simulations} simulations with max. {parallel_limit} parallelization for \n{self.master_input_file['short'].fullpath}")
 
         # execute sweep simulations
-        self.sweep_obj.execute_sweep(
+        # this writes output to self.data['output_subfolder_short']
+        self.sweep_obj['short'].execute_sweep(
                 delete_input_files = False,   # Do not delete input files so that SweepHelper.execute_sweep() can be invoked independently of __init__.
                 overwrite          = True,    # avoid enumeration of output folders for secure output data access. 
                 convergenceCheck   = convergenceCheck, 
@@ -500,6 +528,13 @@ class SweepHelper:
                 parallel_limit     = parallel_limit,
                 **kwargs
                 )   
+
+        logging.info(f"Setting output folder names to input file name...")
+        shutil.move(self.output_folder_path['short'], self.output_folder_path['original'])
+        for short, original in zip(self.sweep_obj['short'].input_files, self.sweep_obj['original'].input_files):
+            current_output_subfolder = common.get_output_subfolder_path(self.output_folder_path['original'], short.fullpath)
+            original_output_subfolder = common.get_output_subfolder_path(self.output_folder_path['original'] , original.fullpath)
+            shutil.move(current_output_subfolder, original_output_subfolder)
 
         # If not given at the class instantiation, determine how many eigenstates to plot (states_to_be_plotted attribute)
         if self.states_to_be_plotted is None:   # by default, plot all states in the output data
@@ -515,25 +550,26 @@ class SweepHelper:
         -----
         Convenient to have a separate method so that self.execute_sweep() can be invoked independently of __init__().
         """
-        input_file_folder = os.path.split(self.master_input_file.fullpath)[0]
-        extension = common.separateFileExtension(self.master_input_file.fullpath)[1]
+        input_path = self.master_input_file['short'].fullpath
+        input_file_folder = os.path.split(input_path)[0]
+        extension = common.separateFileExtension(input_path)[1]
         for sweep_var, values in self.sweep_space.items():
             for value in values:
-                filename = common.getSweepOutputSubfolderName(self.master_input_file.fullpath, {sweep_var: value}) + extension
+                filename = common.getSweepOutputSubfolderName(input_path, {sweep_var: value}) + extension
                 file = os.path.join(input_file_folder, filename)
                 os.remove(file)
+        logging.info("Sweep (temporary) input files deleted.")
 
 
     def delete_output(self):
         """
         Delete the output data of the sweep object.
         """
-        import shutil
-
-        if not os.path.exists(self.output_folder_path):
+        outfolder = self.output_folder_path['original']
+        if not os.path.exists(outfolder):
             raise RuntimeError("Output folder does not exist!")
         try:
-            shutil.rmtree(self.output_folder_path)
+            shutil.rmtree(outfolder)
         except OSError as e:
             raise
 
@@ -598,7 +634,7 @@ class SweepHelper:
         self.__validate_sweep_variables(sweep_variable)
 
         # generate GIF
-        self.shortcuts.generate_gif(self.master_input_file, sweep_variable, self.sweep_space[sweep_variable], self.states_to_be_plotted)
+        self.shortcuts.generate_gif(self.master_input_file['original'], sweep_variable, self.sweep_space[sweep_variable], self.states_to_be_plotted)
 
 
     ### Optics analysis #######################################################
@@ -664,15 +700,15 @@ class SweepHelper:
         plt.show()
 
         if figFilename is None or figFilename == "":
-            name = os.path.split(self.output_folder_path)[1]
+            name = os.path.split(self.output_folder_path['original'])[1]
             figFilename = name + "_overlap"
-        self.shortcuts.export_figs(figFilename, "png", output_folder_path=self.output_folder_path, fig=fig)
+        self.shortcuts.export_figs(figFilename, "png", output_folder_path=self.output_folder_path['original'], fig=fig)
 
 
         # write info to a file
         max_val, indices = common.find_maximum(overlap_squared)  
         y_index, x_index = indices
-        filepath = os.path.join(self.output_folder_path, os.path.join("nextnanopy", "info.txt"))
+        filepath = os.path.join(self.output_folder_path['original'], os.path.join("nextnanopy", "info.txt"))
         logging.info(f"Writing info to:\n{filepath}")
         f = open(filepath, "w")  # w = write = overwrite existing content
         f.write(f"Overlap squared maximum {max_val} at:\n")
@@ -766,9 +802,9 @@ class SweepHelper:
                 fig = self.__plot_transition_energies_1D(x_axis, x_label, x_values, plot_title, unit, transition_energies_scaled)
 
             if figFilename is None or figFilename == "":
-                name = os.path.split(self.output_folder_path)[1]
+                name = os.path.split(self.output_folder_path['original'])[1]
                 figFilename = name + "_transitionEnergies"
-            self.shortcuts.export_figs(figFilename, "png", output_folder_path=self.output_folder_path, fig=fig)
+            self.shortcuts.export_figs(figFilename, "png", output_folder_path=self.output_folder_path['original'], fig=fig)
             return fig
 
         
@@ -900,9 +936,9 @@ class SweepHelper:
         plt.show()
 
         if figFilename is None or figFilename == "":
-            name = os.path.split(self.output_folder_path)[1]
+            name = os.path.split(self.output_folder_path['original'])[1]
             figFilename = name + "_holeEnergyDifference"
-        self.shortcuts.export_figs(figFilename, "png", output_folder_path=self.output_folder_path, fig=fig)
+        self.shortcuts.export_figs(figFilename, "png", output_folder_path=self.output_folder_path['original'], fig=fig)
 
         return fig
 
