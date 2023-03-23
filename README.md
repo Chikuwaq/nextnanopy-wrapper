@@ -1,7 +1,7 @@
 # nextnanopy-wrapper
 The package `nnShortcuts` contains shortcut functions using nextnanopy features and simplifies the pre- and post-processing of nextnano simulations.
 
-The module `nnHelpers` is an object-oriented wrapper around nextnanopy. The class `SweepHelper` object facilitates preparing, running and post-processing nextnano sweep simulations by bridging the simulation inputs and outputs.
+The module `nnHelpers` is an object-oriented wrapper around [nextnanopy](https://github.com/nextnanopy/nextnanopy). The class `SweepHelper` object facilitates preparing, running and post-processing nextnano sweep simulations by bridging the simulation inputs and outputs.
 
 
 ## How to use

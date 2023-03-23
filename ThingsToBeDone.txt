@@ -1,5 +1,7 @@
 [both]
+- plot wfs: add an option to display HH and LH fraction by color, and CB-dominated states in black
 - use nextnano corporate colormap in 2D plot methods
+- implement unit tests
 - format warnings console output
 - within TypeError, print the object type to facilitate debug
 - visualization of warning in yellow (error will be in red, info in default colour)
@@ -26,5 +28,9 @@ E.g. get_states_to_be_plotted()
 
 [SweepHelper]
 - add an example to demonstrate usage
+- add an option 'outfolder_name' in execute_sweep()
 - get generate_gif working
 - add plot_probabilities
+
+[README]
+- add a visualisation of the features of this wrapper
