@@ -529,12 +529,34 @@ class SweepHelper:
                 **kwargs
                 )   
 
-        logging.info(f"Setting output folder names to input file name...")
-        shutil.move(self.output_folder_path['short'], self.output_folder_path['original'])
-        for short, original in zip(self.sweep_obj['short'].input_files, self.sweep_obj['original'].input_files):
-            current_output_subfolder = common.get_output_subfolder_path(self.output_folder_path['original'], short.fullpath)
-            original_output_subfolder = common.get_output_subfolder_path(self.output_folder_path['original'] , original.fullpath)
-            shutil.move(current_output_subfolder, original_output_subfolder)
+        if self.output_folder_path['short'] != self.output_folder_path['original']:
+            logging.info(f"Setting output folder names to input file name...")
+            
+            # move the subfolders from 'short' to 'original' root folder
+            # if os.path.isdir(self.output_folder_path['original']):
+            #     TODO: Fix: folders move to wrong places
+            #     for subfolder in os.listdir(self.output_folder_path['short']):  # os.listdir() cannot return full paths!
+            #         try:
+            #             logging.info(f"Moving {subfolder} to \n{self.output_folder_path['original']}")
+            #             shutil.move(os.path.join(self.output_folder_path['short'], subfolder), self.output_folder_path['original'])  # if the destination is an existing directory, move the source inside that directory
+            #         except:
+            #             warnings.warn(f"shutil.move() for file {subfolder} skipped.")
+            # else:
+            #     shutil.move(self.output_folder_path['short'], self.output_folder_path['original'])
+            
+            # if os.path.isdir(self.output_folder_path['original']), deleting the previous output for now...
+            if os.path.isdir(self.output_folder_path['original']):
+                try: 
+                    shutil.rmtree(self.output_folder_path['original'])
+                except OSError as e:
+                    raise
+            shutil.move(self.output_folder_path['short'], self.output_folder_path['original'])
+            
+            # within 'original' folder, rename subfolders
+            for short, original in zip(self.sweep_obj['short'].input_files, self.sweep_obj['original'].input_files):
+                current_output_subfolder = common.get_output_subfolder_path(self.output_folder_path['original'], short.fullpath)
+                original_output_subfolder = common.get_output_subfolder_path(self.output_folder_path['original'] , original.fullpath)
+                shutil.move(current_output_subfolder, original_output_subfolder)
 
         # If not given at the class instantiation, determine how many eigenstates to plot (states_to_be_plotted attribute)
         if self.states_to_be_plotted is None:   # by default, plot all states in the output data
