@@ -1,4 +1,4 @@
-[both]
+[all]
 - plot wfs: add an option to display HH and LH fraction by color, and CB-dominated states in black
 - use nextnano corporate colormap in 2D plot methods
 - implement unit tests
@@ -34,3 +34,10 @@ E.g. get_states_to_be_plotted()
 
 [README]
 - add a visualisation of the features of this wrapper
+
+[nnResults] object-oriented approach to post-processing, inspired by kwant
+- define a parent class Results
+- within Results, define plotter class
+- implement plotter methods using nnShortcuts 
+- add png image to ReadMe if possible. Looks proffesional
+
