@@ -649,6 +649,7 @@ class nnpShortcuts(CommonShortcuts):
             only_k0             = True,
             show_spinor         = False,
             show_state_index    = False,
+            color_by_fraction_of = '',
             plot_title          = '',
             labelsize           = None,
             ticksize            = None,
@@ -686,6 +687,8 @@ class nnpShortcuts(CommonShortcuts):
             plot pie chart of spinor composition for all eigenvalues and k points. The default is False.
         show_state_index : bool, optional
             indicate eigenstate indices on top of probability plot. The default is False.
+        color_by_fraction_of : str, optional
+            If 8-band k.p simulation, colour the probabilities by the spinor fraction of the specified band. The default is 'conduction_band'.
         plot_title : str, optional
             title of the probability plot. The default is ''.
         labelsize : int, optional
@@ -704,6 +707,8 @@ class nnpShortcuts(CommonShortcuts):
         """
         if labelsize is None: labelsize = self.labelsize_default
         if ticksize is None: ticksize = self.ticksize_default
+        if color_by_fraction_of not in ['conduction_band', 'heavy_hole']:
+            raise ValueError(f"color_by_fraction_of '{color_by_fraction_of}' is not supported")
 
         from matplotlib import colors
         from matplotlib.gridspec import GridSpec
@@ -833,12 +838,19 @@ class nnpShortcuts(CommonShortcuts):
             if model == 'SO' or model == 'kp6' or model == 'kp8':
                 ax.plot(x, SOBandedge, label='SO', linewidth=0.6, color=self.band_colors['SO'])
 
-        def draw_probabilities(ax, state_indices, model, kIndex, show_state_index):
+        def draw_probabilities(ax, state_indices, model, kIndex, show_state_index, color_by_fraction_of):
+            if model != 'kp8' and color_by_fraction_of:
+                warnings.warn(f"Option 'color_by_fraction_of' is only effective in 8kp simulations, but {model} results are being used")
+            if model == 'kp8' and not color_by_fraction_of:
+                color_by_fraction_of = 'conduction_band'  # default
             skip_annotation = False
             for cnt, stateIndex in enumerate(state_indices):
                 if model == 'kp8':
-                    # color according to electron fraction of the state
-                    plot_color = scalarmappable.to_rgba(compositions['kp8'][stateIndex, kIndex, 0])
+                    # color according to spinor compositions
+                    if color_by_fraction_of == 'conduction_band':
+                        plot_color = scalarmappable.to_rgba(compositions['kp8'][stateIndex, kIndex, 0])
+                    elif color_by_fraction_of == 'heavy_hole':
+                        plot_color = scalarmappable.to_rgba(compositions['kp8'][stateIndex, kIndex, 1])
                 else:
                     # color according to the quantum model that yielded the solution
                     plot_color = self.band_colors[model]
@@ -906,7 +918,7 @@ class nnpShortcuts(CommonShortcuts):
                     cbar.set_label("Electron fraction", fontsize=labelsize)
                     cbar.ax.tick_params(labelsize=ticksize)
 
-                draw_probabilities(ax_probability, state_indices, model, kIndex, show_state_index)
+                draw_probabilities(ax_probability, state_indices, model, kIndex, show_state_index, color_by_fraction_of)
 
                 if show_spinor and (model == 'kp6' or model == 'kp8'):
                     draw_spinor_pie_charts(grid_spinor, state_indices, model, stateIndex, kIndex, show_state_index)
@@ -931,7 +943,7 @@ class nnpShortcuts(CommonShortcuts):
             draw_bandedges(ax_combi, 'SO')
 
             for model in calculated_e_models + calculated_h_models:
-                draw_probabilities(ax_combi, states_toBePlotted[model], model, 0, show_state_index)
+                draw_probabilities(ax_combi, states_toBePlotted[model], model, 0, show_state_index, color_by_fraction_of)
             fig.tight_layout()
 
 

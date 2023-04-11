@@ -758,6 +758,7 @@ class NEGFShortcuts(CommonShortcuts):
             only_k0             = True,
             show_spinor         = False,
             show_state_index    = False,
+            color_by_fraction_of = '',
             plot_title          = '',
             labelsize           = None,
             ticksize            = None,
@@ -795,6 +796,8 @@ class NEGFShortcuts(CommonShortcuts):
             plot pie chart of spinor composition for all eigenvalues and k points. The default is False.
         show_state_index : bool, optional
             indicate eigenstate indices on top of probability plot. The default is False.
+        color_by_fraction_of : str, optional
+            If 8-band k.p simulation, colour the probabilities by the spinor fraction of the specified band. The default is 'conduction_band'.
         plot_title : str, optional
             title of the probability plot. The default is ''.
         labelsize : int, optional
@@ -813,6 +816,8 @@ class NEGFShortcuts(CommonShortcuts):
         """
         if labelsize is None: labelsize = self.labelsize_default
         if ticksize is None: ticksize = self.ticksize_default
+        if color_by_fraction_of not in ['conduction_band', 'heavy_hole']:
+            raise ValueError(f"color_by_fraction_of '{color_by_fraction_of}' is not supported")
 
         from matplotlib import colors
         from matplotlib.gridspec import GridSpec
@@ -923,10 +928,10 @@ class NEGFShortcuts(CommonShortcuts):
                         # store spinor composition data
                         if model == 'kp8':
                             compositions[model][stateIndex, kIndex, 0] = datafiles_spinor[model][kIndex].variables[spinor_label_s1].value[stateIndex] + datafiles_spinor[model][kIndex].variables[spinor_label_s2].value[stateIndex]
-
-                        compositions[model][stateIndex, kIndex, 1] = datafiles_spinor[model][kIndex].variables['x1'].value[stateIndex] + datafiles_spinor[model][kIndex].variables['x2'].value[stateIndex]
-                        compositions[model][stateIndex, kIndex, 2] = datafiles_spinor[model][kIndex].variables['y1'].value[stateIndex] + datafiles_spinor[model][kIndex].variables['y2'].value[stateIndex]
-                        compositions[model][stateIndex, kIndex, 3] = datafiles_spinor[model][kIndex].variables['z1'].value[stateIndex] + datafiles_spinor[model][kIndex].variables['z2'].value[stateIndex]
+                        # TODO: test if spinor compositions are read correctly
+                        compositions[model][stateIndex, kIndex, 1] = datafiles_spinor[model][kIndex].variables['hh1'].value[stateIndex] + datafiles_spinor[model][kIndex].variables['hh2'].value[stateIndex]
+                        compositions[model][stateIndex, kIndex, 2] = datafiles_spinor[model][kIndex].variables['lh1'].value[stateIndex] + datafiles_spinor[model][kIndex].variables['lh2'].value[stateIndex]
+                        compositions[model][stateIndex, kIndex, 3] = datafiles_spinor[model][kIndex].variables['so1'].value[stateIndex] + datafiles_spinor[model][kIndex].variables['so2'].value[stateIndex]
 
         # define plot title
         title = self.getPlotTitle(plot_title)
@@ -943,12 +948,19 @@ class NEGFShortcuts(CommonShortcuts):
             if model == 'SO' or model == 'kp6' or model == 'kp8':
                 ax.plot(x, SOBandedge, label='split-off hole', linewidth=0.6, color=self.band_colors['SO'])
 
-        def draw_probabilities(ax, state_indices, model, kIndex, show_state_index):
+        def draw_probabilities(ax, state_indices, model, kIndex, show_state_index, color_by_fraction_of):
+            if model != 'kp8' and color_by_fraction_of:
+                warnings.warn(f"Option 'color_by_fraction_of' is only effective in 8kp simulations, but {model} results are being used")
+            if model == 'kp8' and not color_by_fraction_of:
+                color_by_fraction_of = 'conduction_band'  # default
             skip_annotation = False
             for cnt, stateIndex in enumerate(state_indices):
                 if model == 'kp8':
-                    # color according to electron fraction of the state
-                    plot_color = scalarmappable.to_rgba(compositions['kp8'][stateIndex, kIndex, 0])
+                    # color according to spinor compositions
+                    if color_by_fraction_of == 'conduction_band':
+                        plot_color = scalarmappable.to_rgba(compositions['kp8'][stateIndex, kIndex, 0])
+                    elif color_by_fraction_of == 'heavy_hole':
+                        plot_color = scalarmappable.to_rgba(compositions['kp8'][stateIndex, kIndex, 1])
                 else:
                     # color according to the quantum model that yielded the solution
                     plot_color = self.band_colors[model]
@@ -1016,34 +1028,12 @@ class NEGFShortcuts(CommonShortcuts):
                     cbar.set_label("Conduction-band fraction", fontsize=labelsize)
                     cbar.ax.tick_params(labelsize=ticksize)
 
-                draw_probabilities(ax_probability, state_indices, model, kIndex, show_state_index)
+                draw_probabilities(ax_probability, state_indices, model, kIndex, show_state_index, color_by_fraction_of)
 
                 if show_spinor and (model == 'kp6' or model == 'kp8'):
                     draw_spinor_pie_charts(grid_spinor, state_indices, model, stateIndex, kIndex, show_state_index)
                 else:
                     fig.tight_layout()
-
-
-        # not needed for NEGF
-        # if both electrons and holes have been calculated separately (but not by kp8),
-        # plot bandedge and probabilities at k|| = 0
-        # calculated_e_models = [model for model in states_toBePlotted if model in model_names_conduction]
-        # calculated_h_models = [model for model in states_toBePlotted if model in model_names_valence]
-
-        # models = [model in model_names_conduction for model in states_toBePlotted]
-        # models.append([model in model_names_conduction for model in states_toBePlotted])
-
-        # if len(calculated_e_models) >= 1 and len(calculated_h_models) >= 1:
-        #     fig, ax_combi = plt.subplots()
-        #     ax_combi.set_title(f"{title} ({calculated_e_models}+{calculated_h_models}), zone-center")
-        #     draw_bandedges(ax_combi, 'Gamma')
-        #     draw_bandedges(ax_combi, 'HH')
-        #     draw_bandedges(ax_combi, 'LH')
-        #     draw_bandedges(ax_combi, 'SO')
-
-        #     for model in calculated_e_models + calculated_h_models:
-        #         draw_probabilities(ax_combi, states_toBePlotted[model], model, 0, show_state_index)
-        #     fig.tight_layout()
 
 
         #-------------------------------------------

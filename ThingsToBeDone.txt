@@ -1,5 +1,4 @@
 [all]
-- plot wfs: add an option to display HH and LH fraction by color, and CB-dominated states in black
 - use nextnano corporate colormap in 2D plot methods
 - implement unit tests
 - format warnings console output
