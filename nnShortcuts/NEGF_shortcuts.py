@@ -34,7 +34,7 @@ class NEGFShortcuts(CommonShortcuts):
         Get I-V curve.
         OUTPUT: 2 nn.DataFile() attributes for current & voltage
         """
-        datafile = self.getDataFile('Current_vs_Voltage', input_file_name)
+        datafile = self.get_DataFile('Current_vs_Voltage', input_file_name)
         voltage = datafile.coords['Potential per period']
         current = datafile.variables['Current density']
         return voltage, current
@@ -54,15 +54,15 @@ class NEGFShortcuts(CommonShortcuts):
 
         # export to an image file
         outputFolder = nn.config.get(self.product_name, 'outputdirectory')
-        filename_no_extension = super().separateFileExtension(input_file_name)[0]
+        filename_no_extension = super().separate_extension(input_file_name)[0]
         outputSubfolder = os.path.join(outputFolder, filename_no_extension)
         self.export_figs("IV", "png", output_folder_path=outputSubfolder, fig=fig)
 
 
 
-    def getDataFile_NEGF_init(self, keywords, name):
+    def get_DataFile_NEGF_init(self, keywords, name):
         output_folder = nn.config.get(self.product_name, 'outputdirectory')
-        filename_no_extension = super().separateFileExtension(name)[0]
+        filename_no_extension = super().separate_extension(name)[0]
         subfolder = os.path.join(output_folder, filename_no_extension)
         d = nn.DataFolder(subfolder)
 
@@ -72,11 +72,11 @@ class NEGFShortcuts(CommonShortcuts):
                 # listOfFiles = d.go_to(folder_name).find(keyword, deep=True)
                 init_folder_path = d.go_to(folder_name).fullpath
 
-        return self.getDataFile_in_folder(keywords, init_folder_path)  # TODO: add options available
+        return self.get_DataFile_in_folder(keywords, init_folder_path)  # TODO: add options available
 
 
 
-    def getDataFile_NEGF_atBias(self, keywords, name, bias):
+    def get_DataFile_NEGF_atBias(self, keywords, name, bias):
         """
         Get single nextnanopy.DataFile of NEGF output data with the given string keyword(s) at the specified bias.
 
@@ -95,10 +95,10 @@ class NEGFShortcuts(CommonShortcuts):
 
         """
         output_folder = nn.config.get(self.product_name, 'outputdirectory')
-        filename_no_extension = super().separateFileExtension(name)[0]
+        filename_no_extension = super().separate_extension(name)[0]
         bias_subfolder = os.path.join(output_folder, filename_no_extension, str(bias) + 'mv')
 
-        return self.getDataFile_in_folder(keywords, bias_subfolder)
+        return self.get_DataFile_in_folder(keywords, bias_subfolder)
 
 
     # def get_convergenceInfo(self, bias):
@@ -140,12 +140,12 @@ class NEGFShortcuts(CommonShortcuts):
             datafile.coords['Position']
             datafile.variables['Conduction_BandEdge']
         """
-        # datafile = getDataFile_NEGF_atBias('WannierStark_states.dat', input_file_name, bias)
+        # datafile = get_DataFile_NEGF_atBias('WannierStark_states.dat', input_file_name, bias)
         try:
-            datafile = self.getDataFile_NEGF_atBias('Conduction_BandEdge.dat', input_file_name, bias)
+            datafile = self.get_DataFile_NEGF_atBias('Conduction_BandEdge.dat', input_file_name, bias)
         except FileNotFoundError:
             try:
-                datafile = self.getDataFile_NEGF_atBias('ConductionBandEdge.dat', input_file_name, bias)
+                datafile = self.get_DataFile_NEGF_atBias('ConductionBandEdge.dat', input_file_name, bias)
             except FileNotFoundError:
                 raise
 
@@ -162,7 +162,7 @@ class NEGFShortcuts(CommonShortcuts):
             datafile.variables['Conduction BandEdge']
             datafile.variables['Psi_*']
         """
-        datafile = self.getDataFile_NEGF_init('WannierStark_states.dat', name)
+        datafile = self.get_DataFile_NEGF_init('WannierStark_states.dat', name)
 
         position = datafile.coords['Position']
         conduction_bandedge = datafile.variables['ConductionBandEdge']
@@ -184,7 +184,7 @@ class NEGFShortcuts(CommonShortcuts):
             datafile.variables['Conduction BandEdge']
             datafile.variables['Psi_*']
         """
-        datafile = self.getDataFile_NEGF_atBias('WannierStark_states.dat', input_file, bias)
+        datafile = self.get_DataFile_NEGF_atBias('WannierStark_states.dat', input_file, bias)
 
         position = datafile.coords['Position']
         conduction_bandedge = datafile.variables['ConductionBandEdge']
@@ -248,7 +248,7 @@ class NEGFShortcuts(CommonShortcuts):
 
         # export to an image file
         outputFolder = nn.config.get(self.product_name, 'outputdirectory')
-        filename_no_extension = super().separateFileExtension(name)[0]
+        filename_no_extension = super().separate_extension(name)[0]
         outputSubfolder = os.path.join(outputFolder, filename_no_extension)
         self.export_figs("WannierStarkStates_init", "png", output_folder_path=outputSubfolder, fig=fig)
 
@@ -276,7 +276,7 @@ class NEGFShortcuts(CommonShortcuts):
         else:
             raise KeyError(f'Illegal data {data} requested!')
 
-        datafile = self.getDataFile_NEGF_atBias(file, input_file_name, bias)
+        datafile = self.get_DataFile_NEGF_atBias(file, input_file_name, bias)
 
         x = datafile.coords['x']
         y = datafile.coords['y']
@@ -324,7 +324,7 @@ class NEGFShortcuts(CommonShortcuts):
 
         # export to an image file
         outputFolder = nn.config.get(self.product_name, 'outputdirectory')
-        filename_no_extension = super().separateFileExtension(input_file_name)[0]
+        filename_no_extension = super().separate_extension(input_file_name)[0]
         outputSubfolder = os.path.join(outputFolder, filename_no_extension)
         self.export_figs("DOS", "png", output_folder_path=outputSubfolder, fig=fig)
 
@@ -371,7 +371,7 @@ class NEGFShortcuts(CommonShortcuts):
 
         # export to an image file
         outputFolder = nn.config.get(self.product_name, 'outputdirectory')
-        filename_no_extension = super().separateFileExtension(input_file_name)[0]
+        filename_no_extension = super().separate_extension(input_file_name)[0]
         outputSubfolder = os.path.join(outputFolder, filename_no_extension)
         self.export_figs("CarrierDensity", "png", output_folder_path=outputSubfolder, fig=fig)
 
@@ -418,7 +418,7 @@ class NEGFShortcuts(CommonShortcuts):
 
         # export to an image file
         outputFolder = nn.config.get(self.product_name, 'outputdirectory')
-        filename_no_extension = super().separateFileExtension(input_file_name)[0]
+        filename_no_extension = super().separate_extension(input_file_name)[0]
         outputSubfolder = os.path.join(outputFolder, filename_no_extension)
         self.export_figs("CurrentDensity", "png", output_folder_path=outputSubfolder, fig=fig)
 
@@ -437,8 +437,8 @@ class NEGFShortcuts(CommonShortcuts):
     #     - Gain_SelfConsistent_vs_Frequency.dat (2D)
     #     - Gain_SelfConsistent_vs_Wavelength.dat (2D)
     #     """
-    #     # datafile = self.getDataFile(f'Gain_SelfConsistent_vs_{xaxis}.dat', input_file_name)
-    #     datafile = self.getDataFile('Gain_vs_Voltage', input_file_name)
+    #     # datafile = self.get_DataFile(f'Gain_SelfConsistent_vs_{xaxis}.dat', input_file_name)
+    #     datafile = self.get_DataFile('Gain_vs_Voltage', input_file_name)
     #     voltage = datafile.variables['Potential per period']
     #     gain = datafile.variables['Maximum gain']
     #     return voltage, gain
@@ -462,7 +462,7 @@ class NEGFShortcuts(CommonShortcuts):
 
         """
         output_folder = nn.config.get(self.product_name, 'outputdirectory')
-        filename_no_extension = super().separateFileExtension(name)[0]
+        filename_no_extension = super().separate_extension(name)[0]
         datafolder = nn.DataFolder(os.path.join(output_folder, filename_no_extension))
 
         biases = [int(folder_name.replace('mV', '')) for folder_name in datafolder.folders.keys() if ('mV' in folder_name) and ('Init' not in folder_name)]
@@ -490,7 +490,7 @@ class NEGFShortcuts(CommonShortcuts):
         if rightFig not in quantity_names:
             raise KeyError(f"Entry must be {quantity_names}!")
 
-        input_file_name = super().separateFileExtension(input_file_name)[0]
+        input_file_name = super().separate_extension(input_file_name)[0]
 
         array_of_biases = np.array(self.get_biases(input_file_name))
 
@@ -570,9 +570,9 @@ class NEGFShortcuts(CommonShortcuts):
         """
         # find the output file
         outputFolder = nn.config.get(self.product_name, 'outputdirectory')
-        filename_no_extension = super().separateFileExtension(name)[0]
+        filename_no_extension = super().separate_extension(name)[0]
         outputSubfolder = os.path.join(outputFolder, filename_no_extension)
-        df = self.getDataFile_in_folder('L-I-V.dat', outputSubfolder)
+        df = self.get_DataFile_in_folder('L-I-V.dat', outputSubfolder)
         
         data = np.loadtxt(df.fullpath, skiprows=1)
 
@@ -684,7 +684,7 @@ class NEGFShortcuts(CommonShortcuts):
 
         for i, name in enumerate(names):
             # I-V data, units adjusted
-            datafile_IV = self.getDataFile('Current_vs_Voltage.dat', name)
+            datafile_IV = self.get_DataFile('Current_vs_Voltage.dat', name)
             density = datafile_IV.variables['Current density'].value * self.scale1ToKilo
             V = datafile_IV.coords['Potential per period'].value * num_periods / self.scale1ToMilli
             current_densities_IV.append(density)
@@ -823,8 +823,8 @@ class NEGFShortcuts(CommonShortcuts):
         from matplotlib.gridspec import GridSpec
 
         # load output data files
-        datafile_bandedge = self.getDataFile('BandEdges', input_file.fullpath)
-        datafiles_probability_dict = self.getDataFile_probabilities_with_name(input_file.fullpath)
+        datafile_bandedge = self.get_DataFile('BandEdges', input_file.fullpath)
+        datafiles_probability_dict = self.get_DataFile_probabilities_with_name(input_file.fullpath)
 
         for model, datafiles in datafiles_probability_dict.items():
             if len(datafiles) == 0: continue
@@ -901,7 +901,7 @@ class NEGFShortcuts(CommonShortcuts):
                 'kp6': list(),
                 'kp8': list()
             }
-            datafiles = self.getDataFiles(['spinor_composition'], input_file.fullpath)
+            datafiles = self.get_DataFiles(['spinor_composition'], input_file.fullpath)
             # datafiles = [df for cnt in range(len(datafiles)) for df in datafiles if str(cnt).zfill(5) + '_CbHhLhSo' in os.path.split(df.fullpath)[1]]   # sort spinor composition datafiles in ascending kIndex  # TODO: C++ doesn't have multiple in-plane k output
             for df in datafiles:
                 quantum_model = 'kp8'
@@ -934,7 +934,7 @@ class NEGFShortcuts(CommonShortcuts):
                         compositions[model][stateIndex, kIndex, 3] = datafiles_spinor[model][kIndex].variables['so1'].value[stateIndex] + datafiles_spinor[model][kIndex].variables['so2'].value[stateIndex]
 
         # define plot title
-        title = self.getPlotTitle(plot_title)
+        title = self.get_plot_title(plot_title)
 
         def draw_bandedges(ax, model):
             self.set_plot_labels(ax, 'Position (nm)', 'Energy (eV)', title)
@@ -986,7 +986,7 @@ class NEGFShortcuts(CommonShortcuts):
             ax.legend(loc='lower left')
 
         def draw_spinor_pie_charts(gs_spinor, state_indices, model, stateIndex, kIndex, show_state_index):
-            num_rows, num_columns = self.getRowColumnForDisplay(len(state_indices))  # determine arrangement of spinor composition plots
+            num_rows, num_columns = self.get_rowColumn_for_display(len(state_indices))  # determine arrangement of spinor composition plots
             list_of_colors = [self.band_colors[model] for model in ['CB', 'HH', 'LH', 'SO']]
             for i in range(num_rows):
                 for j in range(num_columns):
@@ -1005,7 +1005,7 @@ class NEGFShortcuts(CommonShortcuts):
                 if only_k0 and kIndex > 0: break
 
                 if show_spinor and (model == 'kp6' or model == 'kp8'):
-                    num_rows, num_columns = self.getRowColumnForDisplay(len(state_indices))
+                    num_rows, num_columns = self.get_rowColumn_for_display(len(state_indices))
 
                     fig = plt.figure(figsize=plt.figaspect(0.4))
                     grid_probability = GridSpec(1, 1, figure=fig, left=0.10, right=0.48, bottom=0.15, wspace=0.05)
@@ -1040,17 +1040,17 @@ class NEGFShortcuts(CommonShortcuts):
         # Plots --- save all the figures to one PDF
         #-------------------------------------------
         if savePDF:
-            export_filename = f'{super().separateFileExtension(input_file.fullpath)[0]}_probabilities'
+            export_filename = f'{super().separate_extension(input_file.fullpath)[0]}_probabilities'
             self.export_figs(export_filename, 'pdf')
         if savePNG:
-            export_filename = f'{super().separateFileExtension(input_file.fullpath)[0]}_probabilities'
+            export_filename = f'{super().separate_extension(input_file.fullpath)[0]}_probabilities'
             self.export_figs(export_filename, 'png', fig=fig)   # NOTE: presumably only the last fig instance is exported
 
         # --- display in the GUI
         plt.show()
 
 
-    def getDataFile_probabilities_in_folder(self, folder_path):
+    def get_DataFile_probabilities_in_folder(self, folder_path):
         """
         Get single nextnanopy.DataFile of probability_shift data in the specified folder.
 
@@ -1064,7 +1064,7 @@ class NEGFShortcuts(CommonShortcuts):
         dictionary { quantum model key: corresponding list of nn.DataFile() objects for probability_shift }
 
         """
-        datafiles = self.getDataFiles_in_folder("probabilities_shifted", folder_path)
+        datafiles = self.get_DataFiles_in_folder("probabilities_shifted", folder_path)
 
         if len(datafiles) > 1: raise RuntimeError("Multiple data files found with keyword 'Probabilities_selected'!")
         probability_dict = {'kp8': list(datafiles)} # currently, wavefunctions are output only in 8-band models
@@ -1098,7 +1098,7 @@ class NEGFShortcuts(CommonShortcuts):
         """
         # get nn.DataFile object
         try:
-            datafile = self.getDataFile_in_folder(['spinor_composition'], output_folder)   # spinor composition at in-plane k = 0
+            datafile = self.get_DataFile_in_folder(['spinor_composition'], output_folder)   # spinor composition at in-plane k = 0
         except FileNotFoundError:
             warnings.warn("Spinor components output in CbHhLhSo basis is not found. Assuming decoupling of the conduction and valence bands...", category=self.NextnanoInputFileWarning)
             return int(0)
@@ -1143,7 +1143,7 @@ class NEGFShortcuts(CommonShortcuts):
         """
         # get nn.DataFile object
         try:
-            datafile = self.getDataFile_in_folder(['spinor_composition'], output_folder)   # spinor composition at in-plane k = 0
+            datafile = self.get_DataFile_in_folder(['spinor_composition'], output_folder)   # spinor composition at in-plane k = 0
         except FileNotFoundError:
             warnings.warn("Spinor components output in CbHhLhSo basis is not found. Assuming decoupling of the conduction and valence bands...", category=self.NextnanoInputFileWarning)
             return int(0)
@@ -1165,7 +1165,7 @@ class NEGFShortcuts(CommonShortcuts):
         Get the transition energy = energy separation between the lowest electron and highest hole states.
         Unit: eV
         """
-        datafile = self.getDataFile_in_folder(["energy_spectrum"], output_folder)
+        datafile = self.get_DataFile_in_folder(["energy_spectrum"], output_folder)
 
         iLowestElectron = self.find_lowest_electron_state_atK0(output_folder, threshold=0.5)
         iHighestHole    = self.find_highest_hole_state_atK0(output_folder, threshold=0.5)

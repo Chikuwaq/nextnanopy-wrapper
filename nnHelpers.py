@@ -171,9 +171,9 @@ class SweepHelper:
 
         # store master input file object
         self.master_input_file['original'] = copy.deepcopy(master_input_file)
-        outfolder = self.shortcuts.getSweepOutputFolderPath(self.master_input_file['original'].fullpath, *self.sweep_space.keys())
+        outfolder = self.shortcuts.get_sweep_output_folder_path(self.master_input_file['original'].fullpath, *self.sweep_space.keys())
         initSweepCoords = {key: arr[0] for key, arr in self.sweep_space.items()}
-        subfolder = self.shortcuts.getSweepOutputSubfolderName(self.master_input_file['original'].fullpath, initSweepCoords)
+        subfolder = self.shortcuts.get_sweep_output_subfolder_name(self.master_input_file['original'].fullpath, initSweepCoords)
         outpath = os.path.join(outfolder, subfolder)
         if len(outpath) + 80 > 260:
             import uuid
@@ -187,8 +187,8 @@ class SweepHelper:
         self.master_input_file['short'] = master_input_file
 
         # store parent output folder path of sweep simulations
-        self.output_folder_path['original']  = self.shortcuts.getSweepOutputFolderPath(self.master_input_file['original'].fullpath, *self.sweep_space.keys())
-        self.output_folder_path['short']     = self.shortcuts.getSweepOutputFolderPath(self.master_input_file['short'].fullpath, *self.sweep_space.keys())
+        self.output_folder_path['original']  = self.shortcuts.get_sweep_output_folder_path(self.master_input_file['original'].fullpath, *self.sweep_space.keys())
+        self.output_folder_path['short']     = self.shortcuts.get_sweep_output_folder_path(self.master_input_file['short'].fullpath, *self.sweep_space.keys())
 
         # instantiate nn.Sweep object
         for name_type in ['original', 'short']:
@@ -222,7 +222,7 @@ class SweepHelper:
             self.states_to_be_plotted = None   # if this remains None, it will be set up after sweep execution. See execute_sweep().
             if self.__output_subfolders_exist():   # if output data exists, set to all states in the output data
                 try:
-                    datafiles_probability = self.shortcuts.getDataFile_probabilities_in_folder(self.data.loc[0, 'output_subfolder'])
+                    datafiles_probability = self.shortcuts.get_DataFile_probabilities_in_folder(self.data.loc[0, 'output_subfolder'])
                     self.states_to_be_plotted, num_evs = self.shortcuts.get_states_to_be_plotted(datafiles_probability)   # states_range_dict=None -> all states are plotted
                 except FileNotFoundError as e:
                     pass
@@ -560,7 +560,7 @@ class SweepHelper:
 
         # If not given at the class instantiation, determine how many eigenstates to plot (states_to_be_plotted attribute)
         if self.states_to_be_plotted is None:   # by default, plot all states in the output data
-            datafiles_probability = self.shortcuts.getDataFile_probabilities_in_folder(self.data.loc[0, 'output_subfolder'])
+            datafiles_probability = self.shortcuts.get_DataFile_probabilities_in_folder(self.data.loc[0, 'output_subfolder'])
             self.states_to_be_plotted, num_evs = self.shortcuts.get_states_to_be_plotted(datafiles_probability)   # states_range_dict=None -> all states are plotted
 
 
@@ -574,10 +574,10 @@ class SweepHelper:
         """
         input_path = self.master_input_file['short'].fullpath
         input_file_folder = os.path.split(input_path)[0]
-        extension = common.separateFileExtension(input_path)[1]
+        extension = common.separate_extension(input_path)[1]
         for sweep_var, values in self.sweep_space.items():
             for value in values:
-                filename = common.getSweepOutputSubfolderName(input_path, {sweep_var: value}) + extension
+                filename = common.get_sweep_output_subfolder_name(input_path, {sweep_var: value}) + extension
                 file = os.path.join(input_file_folder, filename)
                 os.remove(file)
         logging.info("Sweep (temporary) input files deleted.")
