@@ -1430,11 +1430,13 @@ class CommonShortcuts:
         -------
         None.
 
-        NOTE:
+        Details
+        -------
             fig, ax = plt.subplots() must exist, i.e. subplot object(s) must be instantiated before calling this method.
             specify image format in the argument of this function if non-PDF format is desired.
 
-        LIMITATION:
+            This method must be invoked before calling plt.show(). Otherwise, the figure will be displayed on the screen and you won't be able to save it as an image.
+
             PNG and other non-PDF formats cannot generate multiple pages and ends up with one plot when multiple subplots instances exist.
 
         """
@@ -1444,7 +1446,7 @@ class CommonShortcuts:
         if '.' not in figFormat:
             figFormat = '.' + figFormat
         if figFormat not in self.figFormat_list:
-            raise ValueError(f"Non-supported figure format! It must be one of the following:\n{figFormat_list_display}")
+            raise ValueError(f"Non-supported figure format! It must be one of the following:\n{self.figFormat_list}")
 
         if fig is None and not figFormat == '.pdf':
             raise ValueError("Argument 'fig' must be specified to export non-PDF images!")
