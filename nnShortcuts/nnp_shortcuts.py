@@ -838,7 +838,7 @@ class nnpShortcuts(CommonShortcuts):
             if model == 'SO' or model == 'kp6' or model == 'kp8':
                 ax.plot(x, SOBandedge, label='SO', linewidth=0.6, color=self.band_colors['SO'])
 
-        def draw_probabilities(ax, state_indices, model, kIndex, show_state_index, color_by_fraction_of):
+        def draw_probabilities(self, ax, state_indices, model, kIndex, show_state_index, color_by_fraction_of):
             if model != 'kp8' and color_by_fraction_of:
                 warnings.warn(f"Option 'color_by_fraction_of' is only effective in 8kp simulations, but {model} results are being used")
             if model == 'kp8' and not color_by_fraction_of:
@@ -857,13 +857,13 @@ class nnpShortcuts(CommonShortcuts):
                 ax.plot(x, psiSquared[model][cnt][kIndex], color=plot_color)
 
                 if show_state_index:
-                    xmax, ymax = self.get_maximum_points(psiSquared[model][cnt][kIndex], x)
+                    xmax, ymax = super().get_maximum_points(psiSquared[model][cnt][kIndex], x)
                     if skip_annotation:   # if annotation was skipped in the previous iteration, annotate
                         # ax.annotate(f'n={stateIndex},{stateIndex+1}', xy=(xmax, ymax), xytext=(xmax-0.05*simLength, ymax+0.07))
                         ax.annotate(f'{stateIndex},{stateIndex+1}', xy=(xmax, ymax), xytext=(xmax, ymax+0.07))
                         skip_annotation = False   # wavefunction degeneracy is atmost 2
                     elif cnt < len(state_indices)-1:  # if not the last state
-                        xmax_next, ymax_next = self.get_maximum_points(psiSquared[model][cnt+1][kIndex], x)
+                        xmax_next, ymax_next = super().get_maximum_points(psiSquared[model][cnt+1][kIndex], x)
                         if abs(xmax_next - xmax) < 1.0 and abs(ymax_next - ymax) < 1e-1:
                             skip_annotation = True
                         else:
@@ -918,7 +918,7 @@ class nnpShortcuts(CommonShortcuts):
                     cbar.set_label("Electron fraction", fontsize=labelsize)
                     cbar.ax.tick_params(labelsize=ticksize)
 
-                draw_probabilities(ax_probability, state_indices, model, kIndex, show_state_index, color_by_fraction_of)
+                draw_probabilities(self, ax_probability, state_indices, model, kIndex, show_state_index, color_by_fraction_of)
 
                 if show_spinor and (model == 'kp6' or model == 'kp8'):
                     draw_spinor_pie_charts(grid_spinor, state_indices, model, stateIndex, kIndex, show_state_index)
@@ -943,7 +943,7 @@ class nnpShortcuts(CommonShortcuts):
             draw_bandedges(ax_combi, 'SO')
 
             for model in calculated_e_models + calculated_h_models:
-                draw_probabilities(ax_combi, states_toBePlotted[model], model, 0, show_state_index, color_by_fraction_of)
+                draw_probabilities(self, ax_combi, states_toBePlotted[model], model, 0, show_state_index, color_by_fraction_of)
             fig.tight_layout()
 
 

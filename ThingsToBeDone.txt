@@ -1,9 +1,11 @@
 [all]
 - use nextnano corporate colormap in 2D plot methods
-- implement unit tests
 - format warnings console output
 - within TypeError, print the object type to facilitate debug
 - visualization of warning in yellow (error will be in red, info in default colour)
+
+[unit test]
+- test get_states_to_be_plotted() because it's breaking nnp.plot_probabilities().
 
 [nnShortcuts]
 - resolve TODOs in each file

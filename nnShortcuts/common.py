@@ -1256,6 +1256,11 @@ class CommonShortcuts:
 
 
 
+    # We make it a static method because:
+    # - this utility function doesn't access any properties of the class but makes sense that it belongs to the class
+    # - we want to forbid method override in the inherited classes
+    # - we want to make this method available without instantiation of an object.
+    @staticmethod
     def get_maximum_points(quantity_arr, position_arr):
         if isinstance(quantity_arr, int) or isinstance(quantity_arr, float):
             warnings.warn(f"get_maximum_points(): Only one point exists in the array {quantity_arr}", category=RuntimeWarning)
