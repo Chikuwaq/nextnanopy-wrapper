@@ -15,7 +15,7 @@ import logging
 
 # nextnanopy includes
 import nextnanopy as nn
-from nnShortcuts.common import CommonShortcuts
+from nnShortcuts.common import CommonShortcuts, NextnanopyScriptError, NextnanoInputFileError, NextnanoInputFileWarning
 
 
 class nnpShortcuts(CommonShortcuts):
@@ -227,7 +227,7 @@ class nnpShortcuts(CommonShortcuts):
         amplitude_dict_trimmed = {model: amplitude_dict[model] for model in amplitude_dict if len(amplitude_dict[model]) > 0}
 
         if len(amplitude_dict_trimmed) == 0:
-            raise self.NextnanoInputFileError("Amplitudes are not output! Modify the input file.")
+            raise NextnanoInputFileError("Amplitudes are not output! Modify the input file.")
 
         return amplitude_dict_trimmed
 
@@ -723,7 +723,7 @@ class nnpShortcuts(CommonShortcuts):
             datafile_probability = datafiles[0]
             x_probability  = datafile_probability.coords['x'].value
         if not datafile_probability:
-            raise self.NextnanoInputFileError('Probabilities are not output! Modify the input file.')
+            raise NextnanoInputFileError('Probabilities are not output! Modify the input file.')
 
 
         # store data in arrays (independent of quantum models)
@@ -1080,7 +1080,7 @@ class nnpShortcuts(CommonShortcuts):
             newValue
             ):
         if plotOccupation and plotFillingFactors:
-            self.NextnanopyScriptError('Occupation and filling factors are not output in one simulation!')
+            NextnanopyScriptError('Occupation and filling factors are not output in one simulation!')
 
         if plotOccupation:
             if cutoffOccupation is None:
@@ -1302,7 +1302,7 @@ class nnpShortcuts(CommonShortcuts):
             if len(datafiles_probability) == len(datafiles_spinor):
                 num_kPoints = len(datafiles_probability)
             else:
-                self.NextnanoInputFileError('Number of k points is inconsistent between probabilities and spinor components! Spinor components in SXYZ basis are not allowed to exist in the output folder.')
+                NextnanoInputFileError('Number of k points is inconsistent between probabilities and spinor components! Spinor components in SXYZ basis are not allowed to exist in the output folder.')
 
             for stateNo in range(num_evs):
                 fig, ax = plt.subplots()
@@ -1466,13 +1466,13 @@ class nnpShortcuts(CommonShortcuts):
         try:
             datafile = self.get_DataFile_in_folder(['spinor', '00000_CbHhLhSo'], output_folder)   # spinor composition at in-plane k = 0
         except FileNotFoundError:
-            warnings.warn("Spinor components output in CbHhLhSo basis is not found. Assuming decoupling of the conduction and valence bands...", category=self.NextnanoInputFileWarning)
+            warnings.warn("Spinor components output in CbHhLhSo basis is not found. Assuming decoupling of the conduction and valence bands...", category=NextnanoInputFileWarning)
             return int(0)
 
         # check if it is an 8-band k.p simulation result
         filename = os.path.split(datafile.fullpath)[1]
         if self.detect_quantum_model(filename) != 'kp8':
-            warnings.warn("This is not an 8-band k.p simulation. Assuming decoupling of the conduction and valence bands...", category=self.NextnanoInputFileWarning)
+            warnings.warn("This is not an 8-band k.p simulation. Assuming decoupling of the conduction and valence bands...", category=NextnanoInputFileWarning)
             return int(0)
 
         # find the lowest electron state
@@ -1512,13 +1512,13 @@ class nnpShortcuts(CommonShortcuts):
         try:
             datafile = self.get_DataFile_in_folder(['spinor', '00000_CbHhLhSo'], output_folder)   # spinor composition at in-plane k = 0
         except FileNotFoundError:
-            warnings.warn("Spinor components output in CbHhLhSo basis is not found. Assuming decoupling of the conduction and valence bands...", category=self.NextnanoInputFileWarning)
+            warnings.warn("Spinor components output in CbHhLhSo basis is not found. Assuming decoupling of the conduction and valence bands...", category=NextnanoInputFileWarning)
             return int(0)
 
         # check if it is an 8-band k.p simulation result
         filename = os.path.split(datafile.fullpath)[1]
         if self.detect_quantum_model(filename) != 'kp8':
-            warnings.warn("This is not an 8-band k.p simulation. Assuming decoupling of the conduction and valence bands...", category=self.NextnanoInputFileWarning)
+            warnings.warn("This is not an 8-band k.p simulation. Assuming decoupling of the conduction and valence bands...", category=NextnanoInputFileWarning)
             return int(0)
 
         # find the highest hole state

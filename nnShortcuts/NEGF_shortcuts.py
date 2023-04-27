@@ -19,7 +19,7 @@ import logging
 
 # nextnanopy includes
 import nextnanopy as nn
-from nnShortcuts.common import CommonShortcuts
+from nnShortcuts.common import CommonShortcuts, NextnanopyScriptError, NextnanoInputFileError, NextnanoInputFileWarning
 
 
 class NEGFShortcuts(CommonShortcuts):
@@ -661,7 +661,7 @@ class NEGFShortcuts(CommonShortcuts):
 
         # validate arguments
         if len(names) != len(labels): 
-            raise self.NextnanopyScriptError(f"Number of input files ({len(names)}) do not match that of plot labels ({len(labels)})")
+            raise NextnanopyScriptError(f"Number of input files ({len(names)}) do not match that of plot labels ({len(labels)})")
 
         # volume in [cm^3]
         area_in_cm2 = area * pow(self.scale1ToCenti, 2)
@@ -832,7 +832,7 @@ class NEGFShortcuts(CommonShortcuts):
             datafile_probability = datafiles[0]
             x_probability  = datafile_probability.coords['Position'].value
         if not datafile_probability:
-            raise self.NextnanoInputFileError('Probabilities are not output! Modify the input file.')
+            raise NextnanoInputFileError('Probabilities are not output! Modify the input file.')
 
 
         # store data in arrays (independent of quantum models)
@@ -1100,7 +1100,7 @@ class NEGFShortcuts(CommonShortcuts):
         try:
             datafile = self.get_DataFile_in_folder(['spinor_composition'], output_folder)   # spinor composition at in-plane k = 0
         except FileNotFoundError:
-            warnings.warn("Spinor components output in CbHhLhSo basis is not found. Assuming decoupling of the conduction and valence bands...", category=self.NextnanoInputFileWarning)
+            warnings.warn("Spinor components output in CbHhLhSo basis is not found. Assuming decoupling of the conduction and valence bands...", category=NextnanoInputFileWarning)
             return int(0)
 
         # find the lowest electron state
@@ -1145,7 +1145,7 @@ class NEGFShortcuts(CommonShortcuts):
         try:
             datafile = self.get_DataFile_in_folder(['spinor_composition'], output_folder)   # spinor composition at in-plane k = 0
         except FileNotFoundError:
-            warnings.warn("Spinor components output in CbHhLhSo basis is not found. Assuming decoupling of the conduction and valence bands...", category=self.NextnanoInputFileWarning)
+            warnings.warn("Spinor components output in CbHhLhSo basis is not found. Assuming decoupling of the conduction and valence bands...", category=NextnanoInputFileWarning)
             return int(0)
 
         # find the highest hole state

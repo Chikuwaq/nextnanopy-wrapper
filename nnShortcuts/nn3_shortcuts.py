@@ -14,7 +14,7 @@ import warnings
 import logging
 
 # nextnanopy includes
-from nnShortcuts.common import CommonShortcuts
+from nnShortcuts.common import CommonShortcuts, NextnanopyScriptError, NextnanoInputFileError, NextnanoInputFileWarning
 
 
 class nn3Shortcuts(CommonShortcuts):
@@ -179,7 +179,7 @@ class nn3Shortcuts(CommonShortcuts):
         amplitude_dict_trimmed = {model: amplitude_dict[model] for model in amplitude_dict if len(amplitude_dict[model]) > 0}
 
         if len(amplitude_dict_trimmed) == 0:
-            raise self.NextnanoInputFileError("Amplitudes are not output! Modify the input file.")
+            raise NextnanoInputFileError("Amplitudes are not output! Modify the input file.")
 
         return amplitude_dict_trimmed
 
@@ -220,13 +220,13 @@ class nn3Shortcuts(CommonShortcuts):
         try:
             datafile = self.get_DataFile_in_folder(['eigenvalues', '_info'], output_folder)   # spinor composition at in-plane k = 0
         except FileNotFoundError:
-            warnings.warn("Spinor components output in CbHhLhSo basis is not found. Assuming decoupling of the conduction and valence bands...", category=self.NextnanoInputFileWarning)
+            warnings.warn("Spinor components output in CbHhLhSo basis is not found. Assuming decoupling of the conduction and valence bands...", category=NextnanoInputFileWarning)
             return int(0)
 
         # check if it is an 8-band k.p simulation result
         filename = os.path.split(datafile.fullpath)[1]
         if self.detect_quantum_model(filename) != 'kp8':
-            raise self.NextnanopyScriptError("This method only applies to 8-band k.p model!")
+            raise NextnanopyScriptError("This method only applies to 8-band k.p model!")
 
         # find the lowest electron state
         num_evs = len(datafile.variables['cb1'].value)
@@ -269,13 +269,13 @@ class nn3Shortcuts(CommonShortcuts):
         try:
             datafile = self.get_DataFile_in_folder(['eigenvalues', '_info'], output_folder)   # spinor composition at in-plane k = 0
         except FileNotFoundError:
-            warnings.warn("Spinor components output in CbHhLhSo basis is not found. Assuming decoupling of the conduction and valence bands...", category=self.NextnanoInputFileWarning)
+            warnings.warn("Spinor components output in CbHhLhSo basis is not found. Assuming decoupling of the conduction and valence bands...", category=NextnanoInputFileWarning)
             return int(0)
 
         # check if it is an 8-band k.p simulation result
         filename = os.path.split(datafile.fullpath)[1]
         if self.detect_quantum_model(filename) != 'kp8':
-            raise self.NextnanopyScriptError("This method only applies to 8-band k.p model!")
+            raise NextnanopyScriptError("This method only applies to 8-band k.p model!")
 
         # find the highest hole state
         num_evs = len(datafile.variables['cb1'].value)
