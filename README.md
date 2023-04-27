@@ -29,7 +29,14 @@ helper.execute_sweep(parallel_limit=<number of CPUs available>)
 helper.plot_transition_energies(<x axis>, <y axis>, <kwargs options>)
 ...
 ```
-See the examples for implemented features and the options.
+
+## Examples
+Please refer to the examples in `examples/`. 
+The following example in the nextnanopy repository uses this wrapper to perform a voltage sweep and postprocessing:
+`nextnanopy/templates/InterbandTunneling_Duboz2019_doc.ipynb` (documentation)
+`InterbandTunneling_Duboz2019_formulation.pdf` (formulation)
+`InterbandTunneling_Duboz2019_nnp.py` (Python script)
+
 
 
 ## Limitations
