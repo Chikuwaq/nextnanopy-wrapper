@@ -24,6 +24,24 @@ import nextnanopy as nn
 from nextnanopy.utils.misc import mkdir_if_not_exist
 
 
+# -------------------------------------------------------
+# Exceptions
+# -------------------------------------------------------
+class NextnanopyScriptError(Exception):
+    """ 
+    Exception when the user's nextnanopy script contains an issue
+    Should only be raised when the cause is certainly in the user's Python script/command and not in nextnanopy or its wrapper libraries.
+    """
+    pass
+
+class NextnanoInputFileError(Exception):
+    """ Exception when the user's nextnano input file contains an issue """
+    pass
+
+class NextnanoInputFileWarning(Warning):
+    """ Warns when the user's nextnano input file contains potential issue """
+    pass
+
 
 class CommonShortcuts:
     # nextnano solver
@@ -106,24 +124,6 @@ class CommonShortcuts:
 
 
     # -------------------------------------------------------
-    # Exceptions
-    # -------------------------------------------------------
-    class NextnanopyScriptError(Exception):
-        """ 
-        Exception when the user's nextnanopy script contains an issue
-        Should only be raised when the cause is certainly in the user's Python script/command and not in nextnanopy or its wrapper libraries.
-        """
-        pass
-
-    class NextnanoInputFileError(Exception):
-        """ Exception when the user's nextnano input file contains an issue """
-        pass
-
-    class NextnanoInputFileWarning(Warning):
-        """ Warns when the user's nextnano input file contains potential issue """
-        pass
-
-    # -------------------------------------------------------
     # Math
     # -------------------------------------------------------
     def is_half_integer(self, x : float):
@@ -143,6 +143,11 @@ class CommonShortcuts:
         return x - floor(x) == 0.5
 
 
+    # We make it a static method because:
+    # - this utility function doesn't depend on the class state but makes sense that it belongs to the class
+    # - we want to forbid method override in the inherited classes
+    # - we want to make this method available without instantiation of an object.
+    @staticmethod
     def find_maximum(arr):
         """
         Find the maximum of given multidimensional data and return the info.
@@ -218,24 +223,34 @@ class CommonShortcuts:
     scale_Angstrom_to_nm = 0.1
     scale_eV_to_J = elementary_charge
 
-    def electronvolt_to_micron(self, E):
+    # We make it a static method because:
+    # - this utility function doesn't depend on the class state but makes sense that it belongs to the class
+    # - we want to forbid method override in the inherited classes
+    # - we want to make this method available without instantiation of an object.
+    @staticmethod
+    def electronvolt_to_micron(E):
         """
         Convert energy in eV to micrometer.
 
         E : array-like
             energy in eV
         """
-        energy_in_J = E * self.elementary_charge   # eV to J
-        wavelength_in_meter = self.Planck * self.speed_of_light / energy_in_J   # J to m
-        return wavelength_in_meter * self.scale1ToMicro   # m to micron
+        energy_in_J = E * CommonShortcuts.elementary_charge   # eV to J
+        wavelength_in_meter = CommonShortcuts.Planck * CommonShortcuts.speed_of_light / energy_in_J   # J to m
+        return wavelength_in_meter * CommonShortcuts.scale1ToMicro   # m to micron
 
-    def wavenumber_to_energy(self, sound_velocity, k_in_inverseMeter):
+    # We make it a static method because:
+    # - this utility function doesn't depend on the class state but makes sense that it belongs to the class
+    # - we want to forbid method override in the inherited classes
+    # - we want to make this method available without instantiation of an object.
+    @staticmethod
+    def wavenumber_to_energy(sound_velocity, k_in_inverseMeter):
         """
         For linear dispersion, convert wavenumber in [1/m] to energy [eV].
         E = hbar * omega = hbar * c * k
         """
-        E_in_Joules = self.hbar * sound_velocity * k_in_inverseMeter
-        return E_in_Joules * self.scale_eV_to_J**(-1)
+        E_in_Joules = CommonShortcuts.hbar * sound_velocity * k_in_inverseMeter
+        return E_in_Joules * CommonShortcuts.scale_eV_to_J**(-1)
 
 
 
@@ -243,7 +258,7 @@ class CommonShortcuts:
     # Simulation preprocessing
     # -------------------------------------------------------
     # We make it a static method because:
-    # - this utility function doesn't access any properties of the class but makes sense that it belongs to the class
+    # - this utility function doesn't depend on the class state but makes sense that it belongs to the class
     # - we want to forbid method override in the inherited classes
     # - we want to make this method available without instantiation of an object.
     @staticmethod
@@ -311,7 +326,7 @@ class CommonShortcuts:
             raise Exception(f'Input file {InputPath} not found!') from e
 
         if not product_name:   # if the variable is empty
-            raise self.NextnanoInputFileError('Software cannot be detected! Please check your input file.')
+            raise NextnanoInputFileError('Software cannot be detected! Please check your input file.')
         else:
             logging.info(f'Software detected: {product_name}')
 
@@ -357,7 +372,7 @@ class CommonShortcuts:
             raise Exception(f'Input file {inputfile.fullpath} not found!') from e
 
         if not product_name:   # if the variable is empty
-            raise self.NextnanoInputFileError('Software cannot be detected! Please check your input file.')
+            raise NextnanoInputFileError('Software cannot be detected! Please check your input file.')
         else:
             logging.info(f'Software detected: {product_name}')
 
@@ -365,7 +380,12 @@ class CommonShortcuts:
     
 
 
-    def get_shortcut(self, inputfile):
+    # We make it a static method because:
+    # - this utility function doesn't depend on the class state but makes sense that it belongs to the class
+    # - we want to forbid method override in the inherited classes
+    # - we want to make this method available without instantiation of an object.
+    @staticmethod
+    def get_shortcut(inputfile):
         """
         Detect software from nextnanopy.InputFile() object and returns corresponding shortcut object.
 
@@ -392,7 +412,7 @@ class CommonShortcuts:
                         return NEGFShortcuts()
                     elif '<nextnano.MSB' in line or 'nextnano.MSB{' in line:
                         raise NotImplementedError("MSB shortcuts are not implemented")
-                raise self.NextnanoInputFileError('Software cannot be detected! Please check your input file.')
+                raise NextnanoInputFileError('Software cannot be detected! Please check your input file.')
         
         except FileNotFoundError as e:
             raise Exception(f'Input file {inputfile.fullpath} not found!') from e
@@ -439,7 +459,7 @@ class CommonShortcuts:
     # Bandedge and k.p parameters
     # -------------------------------------------------------
     # We make it a static method because:
-    # - this utility function doesn't access any properties of the class but makes sense that it belongs to the class
+    # - this utility function doesn't depend on the class state but makes sense that it belongs to the class
     # - we want to forbid method override in the inherited classes
     # - we want to make this method available without instantiation of an object.
     @staticmethod
@@ -449,7 +469,7 @@ class CommonShortcuts:
 
 
     # We make it a static method because:
-    # - this utility function doesn't access any properties of the class but makes sense that it belongs to the class
+    # - this utility function doesn't depend on the class state but makes sense that it belongs to the class
     # - we want to forbid method override in the inherited classes
     # - we want to make this method available without instantiation of an object.
     @staticmethod
@@ -537,7 +557,7 @@ class CommonShortcuts:
         return new_S, new_Ep, new_L, new_N
 
     # We make it a static method because:
-    # - this utility function doesn't access any properties of the class but makes sense that it belongs to the class
+    # - this utility function doesn't depend on the class state but makes sense that it belongs to the class
     # - we want to forbid method override in the inherited classes
     # - we want to make this method available without instantiation of an object.
     @staticmethod
@@ -552,7 +572,7 @@ class CommonShortcuts:
         return DKK_parameter + (new_Ep - old_Ep) / Eg_T
 
     # We make it a static method because:
-    # - this utility function doesn't access any properties of the class but makes sense that it belongs to the class
+    # - this utility function doesn't depend on the class state but makes sense that it belongs to the class
     # - we want to forbid method override in the inherited classes
     # - we want to make this method available without instantiation of an object.
     @staticmethod
@@ -694,7 +714,12 @@ class CommonShortcuts:
         return output_folder_path
 
 
-    def get_output_subfolder_path(self, sweep_output_folder_path, input_file_name):
+    # We make it a static method because:
+    # - this utility function doesn't depend on the class state but makes sense that it belongs to the class
+    # - we want to forbid method override in the inherited classes
+    # - we want to make this method available without instantiation of an object.
+    @staticmethod
+    def get_output_subfolder_path(sweep_output_folder_path, input_file_name):
         """
         Return output folder path corresponding to the input file
 
@@ -709,7 +734,7 @@ class CommonShortcuts:
             path to output folder
 
         """
-        subfolder_name = self.separate_extension(input_file_name)[0]
+        subfolder_name = CommonShortcuts.separate_extension(input_file_name)[0]
         return os.path.join(sweep_output_folder_path, subfolder_name)
 
 
@@ -1086,7 +1111,7 @@ class CommonShortcuts:
     # -------------------------------------------------------
 
     # We make it a static method because:
-    # - this utility function doesn't access any properties of the class but makes sense that it belongs to the class
+    # - this utility function doesn't depend on the class state but makes sense that it belongs to the class
     # - we want to forbid method override in the inherited classes
     # - we want to make this method available without instantiation of an object.
     @staticmethod
@@ -1122,7 +1147,7 @@ class CommonShortcuts:
 
 
     # We make it a static method because:
-    # - this utility function doesn't access any properties of the class but makes sense that it belongs to the class
+    # - this utility function doesn't depend on the class state but makes sense that it belongs to the class
     # - we want to forbid method override in the inherited classes
     # - we want to make this method available without instantiation of an object.
     @staticmethod
@@ -1257,7 +1282,7 @@ class CommonShortcuts:
 
 
     # We make it a static method because:
-    # - this utility function doesn't access any properties of the class but makes sense that it belongs to the class
+    # - this utility function doesn't depend on the class state but makes sense that it belongs to the class
     # - we want to forbid method override in the inherited classes
     # - we want to make this method available without instantiation of an object.
     @staticmethod
@@ -1288,7 +1313,7 @@ class CommonShortcuts:
 
 
     # We make it a static method because:
-    # - this utility function doesn't access any properties of the class but makes sense that it belongs to the class
+    # - this utility function doesn't depend on the class state but makes sense that it belongs to the class
     # - we want to forbid method override in the inherited classes
     # - we want to make this method available without instantiation of an object.
     @staticmethod

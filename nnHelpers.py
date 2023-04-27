@@ -26,7 +26,6 @@ import nextnanopy as nn
 
 # shortcuts
 from nnShortcuts.common import CommonShortcuts
-common = CommonShortcuts()
 
 
 
@@ -155,7 +154,7 @@ class SweepHelper:
             self.sweep_space[var] = np.around(np.linspace(bounds[0], bounds[1], num_points), round_decimal)   # avoid lengthy filenames
 
         # prepare shortcuts for the nextnano solver used
-        self.shortcuts = common.get_shortcut(master_input_file)
+        self.shortcuts = CommonShortcuts.get_shortcut(master_input_file)
         if self.shortcuts.product_name not in ['nextnano++', 'nextnano.NEGF', 'nextnano.NEGF++']: 
             raise NotImplementedError("class SweepHelper currently supports only nextnano++ and nextnano.NEGF++ simulations.")
 
@@ -203,8 +202,8 @@ class SweepHelper:
         input_paths_short    = [input_file.fullpath for input_file in self.sweep_obj['short'].input_files]
         self.data = pd.DataFrame({
             'sweep_coords' : list(itertools.product(*self.sweep_space.values())),  # create cartesian coordinates in the sweep space. Consistent to nextnanopy implementation.
-            'output_subfolder' : [common.get_output_subfolder_path(self.output_folder_path['original'], input_path) for input_path in input_paths_original],
-            'output_subfolder_short' : [common.get_output_subfolder_path(self.output_folder_path['short'], input_path) for input_path in input_paths_short],
+            'output_subfolder' : [CommonShortcuts.get_output_subfolder_path(self.output_folder_path['original'], input_path) for input_path in input_paths_original],
+            'output_subfolder_short' : [CommonShortcuts.get_output_subfolder_path(self.output_folder_path['short'], input_path) for input_path in input_paths_short],
             'overlap' : None,
             'transition_energy' : None,
             'hole_energy_difference' : None
@@ -556,8 +555,8 @@ class SweepHelper:
             
             # within 'original' folder, rename subfolders
             for short, original in zip(self.sweep_obj['short'].input_files, self.sweep_obj['original'].input_files):
-                current_output_subfolder = common.get_output_subfolder_path(self.output_folder_path['original'], short.fullpath)
-                original_output_subfolder = common.get_output_subfolder_path(self.output_folder_path['original'] , original.fullpath)
+                current_output_subfolder = CommonShortcuts.get_output_subfolder_path(self.output_folder_path['original'], short.fullpath)
+                original_output_subfolder = CommonShortcuts.get_output_subfolder_path(self.output_folder_path['original'] , original.fullpath)
                 shutil.move(current_output_subfolder, original_output_subfolder)
 
         # If not given at the class instantiation, determine how many eigenstates to plot (states_to_be_plotted attribute)
@@ -730,7 +729,7 @@ class SweepHelper:
 
 
         # write info to a file
-        max_val, indices = common.find_maximum(overlap_squared)  
+        max_val, indices = CommonShortcuts.find_maximum(overlap_squared)  
         y_index, x_index = indices
         filepath = os.path.join(self.output_folder_path['original'], os.path.join("nextnanopy", "info.txt"))
         logging.info(f"Writing info to:\n{filepath}")
@@ -807,11 +806,11 @@ class SweepHelper:
 
         # Align unit
         if unit == 'meV':
-            transition_energies_scaled = transition_energies * common.scale1ToMilli
+            transition_energies_scaled = transition_energies * CommonShortcuts.scale1ToMilli
         elif unit == 'micron' or unit == 'um':
-            transition_energies_scaled = common.electronvolt_to_micron(transition_energies)
+            transition_energies_scaled = CommonShortcuts.electronvolt_to_micron(transition_energies)
         elif unit == 'nm':
-            transition_energies_scaled = common.electronvolt_to_micron(transition_energies) * 1e3
+            transition_energies_scaled = CommonShortcuts.electronvolt_to_micron(transition_energies) * 1e3
 
         
         if export_data:
@@ -950,9 +949,9 @@ class SweepHelper:
         if set_center_to_zero:
             from matplotlib import colors
             divnorm = colors.TwoSlopeNorm(vcenter=0.)
-            pcolor = ax.pcolormesh(x_values, y_values, transition_energies*common.scale1ToMilli, cmap=colormap, norm=divnorm, shading='auto')
+            pcolor = ax.pcolormesh(x_values, y_values, transition_energies * CommonShortcuts.scale1ToMilli, cmap=colormap, norm=divnorm, shading='auto')
         else:
-            pcolor = ax.pcolormesh(x_values, y_values, transition_energies*common.scale1ToMilli, cmap=colormap, shading='auto')
+            pcolor = ax.pcolormesh(x_values, y_values, transition_energies * CommonShortcuts.scale1ToMilli, cmap=colormap, shading='auto')
         
         cbar = fig.colorbar(pcolor)
         cbar.set_label("Hole energy difference HH-LH ($\mathrm{meV}$)")
