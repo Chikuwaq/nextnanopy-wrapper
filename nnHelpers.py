@@ -170,7 +170,7 @@ class SweepHelper:
         self.sweep_obj = dict()
 
         # store master input file object
-        self.master_input_file['original'] = copy.deepcopy(master_input_file)
+        self.master_input_file['original'] = copy.copy(master_input_file)
         outfolder = self.shortcuts.get_sweep_output_folder_path(self.master_input_file['original'].fullpath, *self.sweep_space.keys())
         initSweepCoords = {key: arr[0] for key, arr in self.sweep_space.items()}
         subfolder = self.shortcuts.get_sweep_output_subfolder_name(self.master_input_file['original'].fullpath, initSweepCoords)
@@ -544,12 +544,14 @@ class SweepHelper:
             # else:
             #     shutil.move(self.output_folder_path['short'], self.output_folder_path['original'])
             
-            # if os.path.isdir(self.output_folder_path['original']), deleting the previous output for now...
+            # if the output of the original folder name exists, delete because shutil.move() cannot overwrite if the destination exists
             if os.path.isdir(self.output_folder_path['original']):
                 try: 
                     shutil.rmtree(self.output_folder_path['original'])
                 except OSError as e:
                     raise
+            
+            # rename folder
             shutil.move(self.output_folder_path['short'], self.output_folder_path['original'])
             
             # within 'original' folder, rename subfolders
@@ -566,20 +568,20 @@ class SweepHelper:
 
     def delete_input_files(self):
         """
-        Delete the input files of the sweep object.
+        Delete the temporary input files of the sweep object.
         
         Notes
         -----
         Convenient to have a separate method so that self.execute_sweep() can be invoked independently of __init__().
         """
-        input_path = self.master_input_file['short'].fullpath
-        input_file_folder = os.path.split(input_path)[0]
-        extension = common.separate_extension(input_path)[1]
-        for sweep_var, values in self.sweep_space.items():
-            for value in values:
-                filename = common.get_sweep_output_subfolder_name(input_path, {sweep_var: value}) + extension
-                file = os.path.join(input_file_folder, filename)
-                os.remove(file)
+        input_files = self.sweep_obj['original'].input_files + self.sweep_obj['short'].input_files
+        paths = { input_file.fullpath for input_file in input_files }  # avoid duplicates
+        for path in paths:
+            os.remove(path)
+
+        # if the filename has been abbreviated, delete the short-name input file
+        if len(paths) == len(input_files):
+            os.remove(self.master_input_file['short'].fullpath)
         logging.info("Sweep (temporary) input files deleted.")
 
 
