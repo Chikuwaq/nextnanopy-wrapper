@@ -79,7 +79,7 @@ class nnpShortcuts(CommonShortcuts):
         """
 
         outputFolder = nn.config.get(self.product_name, 'outputdirectory')
-        filename_no_extension = super().separate_extension(input_file.fullpath)[0]
+        filename_no_extension = CommonShortcuts.separate_extension(input_file.fullpath)[0]
         outputSubfolder = os.path.join(outputFolder, filename_no_extension)
         return self.getKPointsData1D_in_folder(outputSubfolder)
 
@@ -239,7 +239,7 @@ class nnpShortcuts(CommonShortcuts):
     #     dictionary with keys interband, intraband, and dipole, each consisting of list of file paths for matrix_elements
     #     """
     #     name = os.path.split(name)[1]   # remove paths if present
-    #     filename_no_extension = super().separate_extension(name)[0]
+    #     filename_no_extension = CommonShortcuts.separate_extension(name)[0]
     #     outputFolder = nn.config.get(self.product_name, 'outputdirectory')
     #     outputSubFolder = os.path.join(outputFolder, filename_no_extension)
     #     datafiles = self.get_DataFiles_in_folder(['matrix_elements', '.txt'], outputSubFolder)
@@ -343,11 +343,11 @@ class nnpShortcuts(CommonShortcuts):
         for index in states_toBePlotted:
             dispersions[index, ] = datafile_dispersion.variables[f'Band_{index+1}'].value
 
-        filename_no_extension = super().separate_extension(name)[0]
+        filename_no_extension = CommonShortcuts.separate_extension(name)[0]
 
         # define plot title
         if plot_title:
-            title = self.get_plot_title(plot_title)
+            title = CommonShortcuts.get_plot_title(plot_title)
         else:
             title = ''
 
@@ -469,7 +469,7 @@ class nnpShortcuts(CommonShortcuts):
             for kIndex in range(num_kPoints1):
                 dispersions[index, ] = np.append( np.flip(dispersions1[index,:]), dispersions2[index,:])
 
-        title = self.get_plot_title(name)
+        title = CommonShortcuts.get_plot_title(name)
 
         # instantiate matplotlib subplot objects
         fig, ax = plt.subplots()
@@ -487,7 +487,7 @@ class nnpShortcuts(CommonShortcuts):
         #-------------------------------------------
         # Plots - save all the figures to one PDF
         #-------------------------------------------
-        filename_no_extension = super().separate_extension(name)[0]
+        filename_no_extension = CommonShortcuts.separate_extension(name)[0]
         export_filename = f'{filename_no_extension}_patched_dispersion'
 
         if savePDF: self.export_figs(export_filename, 'pdf')
@@ -515,7 +515,7 @@ class nnpShortcuts(CommonShortcuts):
             states_toBePlotted      list of eigenstate numbers to be plotted
 
         """
-        inputfile_name = super().separate_extension(master_input_file.fullpath)[0]
+        inputfile_name = CommonShortcuts.separate_extension(master_input_file.fullpath)[0]
         output_folder_path = self.get_sweep_output_folder_path(inputfile_name, sweep_variable)
         logging.info(f'output folder path: {output_folder_path}')
 
@@ -544,7 +544,7 @@ class nnpShortcuts(CommonShortcuts):
             ax.legend(loc='upper left')
 
         # save all the figures to one PDF
-        PDFfilename = super().separate_extension(inputfile_name)[0]
+        PDFfilename = CommonShortcuts.separate_extension(inputfile_name)[0]
         self.export_figs(PDFfilename, 'pdf', output_folder_path=output_folder_path)
 
 
@@ -565,7 +565,7 @@ class nnpShortcuts(CommonShortcuts):
             states_toBePlotted      list of eigenstate numbers to be plotted
 
         """
-        inputfile_name = super().separate_extension(master_input_file.fullpath)[0]
+        inputfile_name = CommonShortcuts.separate_extension(master_input_file.fullpath)[0]
         output_folder_path = self.get_sweep_output_folder_path(inputfile_name, sweep_variable)
 
         # determine optimal plot range - x-axis
@@ -758,22 +758,22 @@ class nnpShortcuts(CommonShortcuts):
             for cnt, stateIndex in enumerate(states_toBePlotted[model]):
                 for kIndex in range(num_kPoints[model]):
                     psiSquared_oldgrid = dfs[kIndex].variables[f'Psi^2_{stateIndex+1}'].value
-                    psiSquared[model][cnt][kIndex] = super().convert_grid(psiSquared_oldgrid, x_probability, x)   # grid interpolation needed because of 'output_bandedges{ averaged=no }'
+                    psiSquared[model][cnt][kIndex] = CommonShortcuts.convert_grid(psiSquared_oldgrid, x_probability, x)   # grid interpolation needed because of 'output_bandedges{ averaged=no }'
 
 
         # chop off edges of the simulation region
-        CBBandedge = super().cutOff_edges1D(CBBandedge, x, start_position, end_position)
-        HHBandedge = super().cutOff_edges1D(HHBandedge, x, start_position, end_position)
-        LHBandedge = super().cutOff_edges1D(LHBandedge, x, start_position, end_position)
-        SOBandedge = super().cutOff_edges1D(SOBandedge, x, start_position, end_position)
+        CBBandedge = CommonShortcuts.cutOff_edges1D(CBBandedge, x, start_position, end_position)
+        HHBandedge = CommonShortcuts.cutOff_edges1D(HHBandedge, x, start_position, end_position)
+        LHBandedge = CommonShortcuts.cutOff_edges1D(LHBandedge, x, start_position, end_position)
+        SOBandedge = CommonShortcuts.cutOff_edges1D(SOBandedge, x, start_position, end_position)
 
 
         for model in states_toBePlotted:
             for cnt, stateIndex in enumerate(states_toBePlotted[model]):
                 for kIndex in range(num_kPoints[model]):
-                    psiSquared[model][cnt][kIndex] = super().cutOff_edges1D(psiSquared[model][cnt][kIndex], x, start_position, end_position)   # chop off edges of the simulation region
+                    psiSquared[model][cnt][kIndex] = CommonShortcuts.cutOff_edges1D(psiSquared[model][cnt][kIndex], x, start_position, end_position)   # chop off edges of the simulation region
 
-        x = super().cutOff_edges1D(x, x, start_position, end_position)
+        x = CommonShortcuts.cutOff_edges1D(x, x, start_position, end_position)
         simLength = x[-1]-x[0]   # (nm)
 
 
@@ -782,7 +782,7 @@ class nnpShortcuts(CommonShortcuts):
             for model in states_toBePlotted:
                 for cnt, stateIndex in enumerate(states_toBePlotted[model]):
                     for kIndex in range(num_kPoints[model]):
-                        psiSquared[model][cnt][kIndex] = super().mask_part_of_array(psiSquared[model][cnt][kIndex], 'flat', 1e-3)
+                        psiSquared[model][cnt][kIndex] = CommonShortcuts.mask_part_of_array(psiSquared[model][cnt][kIndex], 'flat', 1e-3)
 
 
         if 'kp6' in datafiles_probability_dict.keys() or 'kp8' in datafiles_probability_dict.keys():
@@ -825,7 +825,7 @@ class nnpShortcuts(CommonShortcuts):
                         compositions[model][stateIndex, kIndex, 3] = datafiles_spinor[model][kIndex].variables['so1'].value[stateIndex] + datafiles_spinor[model][kIndex].variables['so2'].value[stateIndex]
 
         # define plot title
-        title = self.get_plot_title(plot_title)
+        title = CommonShortcuts.get_plot_title(plot_title)
 
         def draw_bandedges(ax, model):
             self.set_plot_labels(ax, 'Position (nm)', 'Energy (eV)', title)
@@ -857,13 +857,13 @@ class nnpShortcuts(CommonShortcuts):
                 ax.plot(x, psiSquared[model][cnt][kIndex], color=plot_color)
 
                 if show_state_index:
-                    xmax, ymax = super().get_maximum_points(psiSquared[model][cnt][kIndex], x)
+                    xmax, ymax = CommonShortcuts.get_maximum_points(psiSquared[model][cnt][kIndex], x)
                     if skip_annotation:   # if annotation was skipped in the previous iteration, annotate
                         # ax.annotate(f'n={stateIndex},{stateIndex+1}', xy=(xmax, ymax), xytext=(xmax-0.05*simLength, ymax+0.07))
                         ax.annotate(f'{stateIndex},{stateIndex+1}', xy=(xmax, ymax), xytext=(xmax, ymax+0.07))
                         skip_annotation = False   # wavefunction degeneracy is atmost 2
                     elif cnt < len(state_indices)-1:  # if not the last state
-                        xmax_next, ymax_next = super().get_maximum_points(psiSquared[model][cnt+1][kIndex], x)
+                        xmax_next, ymax_next = CommonShortcuts.get_maximum_points(psiSquared[model][cnt+1][kIndex], x)
                         if abs(xmax_next - xmax) < 1.0 and abs(ymax_next - ymax) < 1e-1:
                             skip_annotation = True
                         else:
@@ -951,10 +951,10 @@ class nnpShortcuts(CommonShortcuts):
         # Plots --- save all the figures to one PDF
         #-------------------------------------------
         if savePDF:
-            export_filename = f'{super().separate_extension(input_file.fullpath)[0]}_probabilities'
+            export_filename = f'{CommonShortcuts.separate_extension(input_file.fullpath)[0]}_probabilities'
             self.export_figs(export_filename, 'pdf')
         if savePNG:
-            export_filename = f'{super().separate_extension(input_file.fullpath)[0]}_probabilities'
+            export_filename = f'{CommonShortcuts.separate_extension(input_file.fullpath)[0]}_probabilities'
             self.export_figs(export_filename, 'png', fig=fig)   # NOTE: presumably only the last fig instance is exported
 
         # --- display in the GUI
@@ -1016,18 +1016,18 @@ class nnpShortcuts(CommonShortcuts):
 
         densityEl_oldgrid   = datafile_densityEl.variables['Electron_density'].value # grid interpolation needed because of 'output_bandedges{ averaged=no }'
         densityHl_oldgrid   = datafile_densityHl.variables['Hole_density'].value
-        densityEl           = super().convert_grid(densityEl_oldgrid, x_density, x)
-        densityHl           = super().convert_grid(densityHl_oldgrid, x_density, x)
+        densityEl           = CommonShortcuts.convert_grid(densityEl_oldgrid, x_density, x)
+        densityHl           = CommonShortcuts.convert_grid(densityHl_oldgrid, x_density, x)
 
 
         # chop off edges of the simulation region
-        CBBandedge = super().cutOff_edges1D(CBBandedge, x, start_position, end_position)
-        HHBandedge = super().cutOff_edges1D(HHBandedge, x, start_position, end_position)
-        LHBandedge = super().cutOff_edges1D(LHBandedge, x, start_position, end_position)
-        SOBandedge = super().cutOff_edges1D(SOBandedge, x, start_position, end_position)
-        densityEl  = super().cutOff_edges1D(densityEl, x, start_position, end_position)
-        densityHl  = super().cutOff_edges1D(densityHl, x, start_position, end_position)
-        x = super().cutOff_edges1D(x, x, start_position, end_position)
+        CBBandedge = CommonShortcuts.cutOff_edges1D(CBBandedge, x, start_position, end_position)
+        HHBandedge = CommonShortcuts.cutOff_edges1D(HHBandedge, x, start_position, end_position)
+        LHBandedge = CommonShortcuts.cutOff_edges1D(LHBandedge, x, start_position, end_position)
+        SOBandedge = CommonShortcuts.cutOff_edges1D(SOBandedge, x, start_position, end_position)
+        densityEl  = CommonShortcuts.cutOff_edges1D(densityEl, x, start_position, end_position)
+        densityHl  = CommonShortcuts.cutOff_edges1D(densityHl, x, start_position, end_position)
+        x = CommonShortcuts.cutOff_edges1D(x, x, start_position, end_position)
 
         # plot k points
         inplaneK_dict = self.getKPointsData1D(input_file)
@@ -1056,7 +1056,7 @@ class nnpShortcuts(CommonShortcuts):
 
         # define plot title
         if plot_title:
-            title = self.get_plot_title(plot_title)
+            title = CommonShortcuts.get_plot_title(plot_title)
         else:
             title = ''
         ax.set_title(title)
@@ -1203,7 +1203,7 @@ class nnpShortcuts(CommonShortcuts):
                     # store psi^2 data
                     psiSquared_oldgrid = datafiles_probability[kIndex].variables[f'Psi^2_{stateNo}'].value
                     x_probability      = datafiles_probability[kIndex].coords['x'].value
-                    psiSquared[stateNo-1, kIndex, ] = super().convert_grid(psiSquared_oldgrid, x_probability, x)   # grid interpolation needed because of 'output_bandedges{ averaged=no }'
+                    psiSquared[stateNo-1, kIndex, ] = CommonShortcuts.convert_grid(psiSquared_oldgrid, x_probability, x)   # grid interpolation needed because of 'output_bandedges{ averaged=no }'
 
                     # store spinor composition data (for only occupied states)
                     if quantum_model == 'kp8':
@@ -1378,18 +1378,18 @@ class nnpShortcuts(CommonShortcuts):
     #         for stateIndex in states_toBePlotted[model]:
     #             for kIndex in range(num_kPoints[model]):
     #                 psiSquared_oldgrid = datafiles_probability_dict[model][kIndex].variables[f'Psi^2_{stateIndex+1}'].value
-    #                 psiSquared[model][stateIndex][kIndex] = super().convert_grid(psiSquared_oldgrid, x_probability, x)   # grid interpolation needed because of 'output_bandedges{ averaged=no }'
+    #                 psiSquared[model][stateIndex][kIndex] = CommonShortcuts.convert_grid(psiSquared_oldgrid, x_probability, x)   # grid interpolation needed because of 'output_bandedges{ averaged=no }'
 
 
     #     # chop off edges of the simulation region
-        # CBBandedge = super().cutOff_edges1D(CBBandedge, x, start_position, end_position)
-        # LHBandedge = super().cutOff_edges1D(LHBandedge, x, start_position, end_position)
-        # HHBandedge = super().cutOff_edges1D(HHBandedge, x, start_position, end_position)
+        # CBBandedge = CommonShortcuts.cutOff_edges1D(CBBandedge, x, start_position, end_position)
+        # LHBandedge = CommonShortcuts.cutOff_edges1D(LHBandedge, x, start_position, end_position)
+        # HHBandedge = CommonShortcuts.cutOff_edges1D(HHBandedge, x, start_position, end_position)
 
         # for stateIndex in states_toBePlotted[model]:
         #     for kIndex in range(num_kPoints[model]):
-        #         psiSquared[model][stateIndex][kIndex] = super().cutOff_edges1D(psiSquared[model][stateIndex][kIndex], x, start_position, end_position)   # chop off edges of the simulation region
-        # x = super().cutOff_edges1D(x, x, start_position, end_position)
+        #         psiSquared[model][stateIndex][kIndex] = CommonShortcuts.cutOff_edges1D(psiSquared[model][stateIndex][kIndex], x, start_position, end_position)   # chop off edges of the simulation region
+        # x = CommonShortcuts.cutOff_edges1D(x, x, start_position, end_position)
 
     #     simLength = x[-1]-x[0]   # (nm)
 
@@ -1398,9 +1398,9 @@ class nnpShortcuts(CommonShortcuts):
     #     for model in datafiles_probability_dict:
     #         for stateIndex in states_toBePlotted[model]:
     #             for kIndex in range(num_kPoints[model]):
-    #                 psiSquared[model][stateIndex][kIndex] = super().mask_part_of_array(psiSquared[model][stateIndex][kIndex], 'flat', 1e-3)
+    #                 psiSquared[model][stateIndex][kIndex] = CommonShortcuts.mask_part_of_array(psiSquared[model][stateIndex][kIndex], 'flat', 1e-3)
 
-    #     title = self.get_plot_title(input_file.fullpath)
+    #     title = CommonShortcuts.get_plot_title(input_file.fullpath)
 
     #     # instantiate matplotlib subplot objects
     #     for model in datafiles_probability_dict:

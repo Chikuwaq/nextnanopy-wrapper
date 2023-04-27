@@ -59,6 +59,28 @@ class CommonShortcuts:
     vacuum_permittivity = 8.854187e-12   # [F/m] 1F = 1 kg^{-1} m^{-2} s^2 C^2 = 1 C^2 / J
     Boltzmann = 1.380649e-23   # [J/K]
 
+    # -------------------------------------------------------
+    # Output default formats
+    # -------------------------------------------------------
+    figFormat_list = ['.pdf', '.png', '.jpg', '.svg']
+    figFormat_list_display = ['pdf', 'png', 'jpg', 'svg']
+
+    band_colors = {
+        'Gamma': 'tomato',
+        'CB': 'tomato',
+        'HH': 'royalblue',
+        'LH': 'forestgreen',
+        'SO': 'goldenrod',
+        'kp6': 'blueviolet',
+        'kp8': 'black'
+        }
+
+    labelsize_default = 16
+    ticksize_default = 14
+
+    # -------------------------------------------------------
+    # Constructor
+    # -------------------------------------------------------
     def __init__(self, loglevel=logging.INFO):
         # log setting
         fmt = '[%(levelname)s] %(message)s'
@@ -103,30 +125,16 @@ class CommonShortcuts:
             return ListedColormap(color_dark)
 
 
-    # -------------------------------------------------------
-    # Output default formats
-    # -------------------------------------------------------
-    figFormat_list = ['.pdf', '.png', '.jpg', '.svg']
-    figFormat_list_display = ['pdf', 'png', 'jpg', 'svg']
-
-    band_colors = {
-        'Gamma': 'tomato',
-        'CB': 'tomato',
-        'HH': 'royalblue',
-        'LH': 'forestgreen',
-        'SO': 'goldenrod',
-        'kp6': 'blueviolet',
-        'kp8': 'black'
-        }
-
-    labelsize_default = 16
-    ticksize_default = 14
-
 
     # -------------------------------------------------------
     # Math
+    #
+    # We make methods static because:
+    # - these utility functions do not depend on the class state but makes sense that they belong to the class
+    # - we want to make this method available without instantiation of an object.
     # -------------------------------------------------------
-    def is_half_integer(self, x : float):
+    @staticmethod
+    def is_half_integer(x : float):
         from math import floor
 
         def get_num_of_decimals(x : float):
@@ -143,10 +151,6 @@ class CommonShortcuts:
         return x - floor(x) == 0.5
 
 
-    # We make it a static method because:
-    # - this utility function doesn't depend on the class state but makes sense that it belongs to the class
-    # - we want to forbid method override in the inherited classes
-    # - we want to make this method available without instantiation of an object.
     @staticmethod
     def find_maximum(arr):
         """
@@ -211,7 +215,11 @@ class CommonShortcuts:
 
 
     # -------------------------------------------------------
-    # Conversion
+    # Conversion of units
+    #
+    # We make methods static because:
+    # - these utility functions do not depend on the class state but makes sense that they belong to the class
+    # - we want to make this method available without instantiation of an object.
     # -------------------------------------------------------
     scale1ToKilo = 1e-3
     scale1ToCenti = 1e2
@@ -223,10 +231,6 @@ class CommonShortcuts:
     scale_Angstrom_to_nm = 0.1
     scale_eV_to_J = elementary_charge
 
-    # We make it a static method because:
-    # - this utility function doesn't depend on the class state but makes sense that it belongs to the class
-    # - we want to forbid method override in the inherited classes
-    # - we want to make this method available without instantiation of an object.
     @staticmethod
     def electronvolt_to_micron(E):
         """
@@ -239,10 +243,6 @@ class CommonShortcuts:
         wavelength_in_meter = CommonShortcuts.Planck * CommonShortcuts.speed_of_light / energy_in_J   # J to m
         return wavelength_in_meter * CommonShortcuts.scale1ToMicro   # m to micron
 
-    # We make it a static method because:
-    # - this utility function doesn't depend on the class state but makes sense that it belongs to the class
-    # - we want to forbid method override in the inherited classes
-    # - we want to make this method available without instantiation of an object.
     @staticmethod
     def wavenumber_to_energy(sound_velocity, k_in_inverseMeter):
         """
@@ -255,12 +255,178 @@ class CommonShortcuts:
 
 
     # -------------------------------------------------------
-    # Simulation preprocessing
-    # -------------------------------------------------------
-    # We make it a static method because:
-    # - this utility function doesn't depend on the class state but makes sense that it belongs to the class
-    # - we want to forbid method override in the inherited classes
+    # Conversion for bandedge and k.p parameters
+    #
+    # We make methods static because:
+    # - these utility functions do not depend on the class state but makes sense that they belong to the class
     # - we want to make this method available without instantiation of an object.
+    # -------------------------------------------------------
+    @staticmethod
+    def get_bandgap_at_T(bandgap_at_0K, alpha, beta, T):
+        """ Varshni formula """
+        return bandgap_at_0K - alpha * T**2 / (T + beta)
+
+    @staticmethod
+    def get_factor_zb(Eg, deltaSO):
+        """
+        Temperature-dependent factor for the conversion among effective mass, S and Ep
+        """
+        return (Eg + 2. * deltaSO / 3.) / Eg / (Eg + deltaSO)
+
+    @staticmethod
+    def mass_from_kp_parameters(Ep, S, Eg, deltaSO):
+        factor = CommonShortcuts.get_factor_zb(Eg, deltaSO)   # independent of S and Ep, but temperature-dependent
+        mass = 1. / (S + Ep * factor)
+        return mass
+
+    @staticmethod
+    def Ep_from_mass_and_S(mass, S, Eg, deltaSO):
+        factor = CommonShortcuts.get_factor_zb(Eg, deltaSO)   # independent of S and Ep, but temperature-dependent
+        Ep = (1./mass - S) / factor
+        return Ep
+
+    @staticmethod
+    def Ep_from_P(P):
+        """
+        Convert the Kane parameter P [eV nm] into energy Ep [eV].
+        #NOTE: nextnano++ output is in units of [eV Angstrom].
+        """
+        P_in_SI = P * CommonShortcuts.scale_eV_to_J * CommonShortcuts.scale1ToNano**(-1)
+        Ep_in_SI = P_in_SI**2 * 2 * CommonShortcuts.electron_mass / (CommonShortcuts.hbar**2)
+        return Ep_in_SI / CommonShortcuts.scale_eV_to_J
+
+    @staticmethod
+    def P_from_Ep(Ep):
+        """
+        Convert the Kane energy Ep [eV] into P [eV nm].
+        #NOTE: nextnano++ output is in units of [eV Angstrom].
+        """
+        from math import sqrt
+        Ep_in_SI = Ep * CommonShortcuts.scale_eV_to_J
+        P_in_SI = CommonShortcuts.hbar * sqrt(Ep_in_SI / 2 / CommonShortcuts.electron_mass)
+        return P_in_SI * CommonShortcuts.scale_eV_to_J**(-1) * CommonShortcuts.scale1ToNano
+
+    @staticmethod
+    def evaluate_and_rescale_S( 
+            db_Ep, 
+            db_S, 
+            db_L, 
+            db_N, 
+            eff_mass, 
+            Eg, 
+            deltaSO, 
+            evaluateS, 
+            rescaleS, 
+            rescaleSTo
+            ):
+        """
+        Identical to nnp implementation. 'db_' denotes database values.
+        massFromKpParameters changes mass, but it isn't used to rescale S here because
+        (*) old_S + old_Ep * factor = new_S + new_Ep * factor
+        NEGF uses mass when rescaling S.
+        """
+        factor = CommonShortcuts.get_factor_zb(Eg, deltaSO)   # independent of S and Ep, but temperature-dependent
+
+        if evaluateS:
+            S = 1. / eff_mass - db_Ep * factor
+        else:
+            S = db_S
+
+
+        if rescaleS:   # rescale S to given value, and adjust Ep to preserve the effective mass
+            new_S = rescaleSTo
+            new_Ep = db_Ep + (S - new_S) / factor   # using formula (*)
+        else:
+            new_Ep = db_Ep
+            new_S = S
+
+        if (isinstance(new_Ep, float) and new_Ep < 0) or (hasattr(new_Ep, '__iter__') and any(x < 0 for x in new_Ep)):
+            raise RuntimeError('Ep parameter has become negative while rescaling S!')
+
+        # L' and N' get modified by the change of Ep
+        cSchroedinger = CommonShortcuts.hbar**2 / 2 / CommonShortcuts.electron_mass
+        new_L = db_L + cSchroedinger * (new_Ep - db_Ep) / Eg
+        new_N = db_N + cSchroedinger * (new_Ep - db_Ep) / Eg
+
+        return new_S, new_Ep, new_L, new_N
+
+    @staticmethod
+    def shift_DKK_as_nnp(DKK_parameter, Eg_T, old_Ep, new_Ep):
+        """ 
+        Shift the 8-band DKK parameters as in nn++/nn3.
+        
+        Return
+        ------
+            In units of hbar^2 / 2m_0
+        """
+        return DKK_parameter + (new_Ep - old_Ep) / Eg_T
+
+    @staticmethod
+    def shift_DKK_properly(DKK_parameter, Eg_0K, Eg_T, old_Ep, new_Ep):
+        """ 
+        Shift the 8-band DKK parameters considering the temperature-dependence of the bandgap.
+        This is appropriate IF 6-band DKK parameters are independent of temperature, which might not be the case.
+
+        In NEGF++ so far, we have not obtained smooth wavefunctions using this shift.
+        
+        Return
+        ------
+            In units of hbar^2 / 2m_0
+        """
+        return DKK_parameter - old_Ep / Eg_0K + new_Ep / Eg_T
+
+    @staticmethod
+    def rescale_Ep_and_get_S(
+            old_Ep, 
+            old_S, 
+            old_L, 
+            old_N, 
+            rescaleEpTo, 
+            Eg, 
+            deltaSO
+            ):
+        """
+        Rescale Ep to given value, and adjust S to preserve the electron effective mass:
+        (*) old_S + old_Ep * factor = new_S + rescaleEpTo * factor
+        """
+        factor = CommonShortcuts.get_factor_zb(Eg, deltaSO)   # independent of S and Ep, but temperature-dependent
+        new_S = old_S + (old_Ep - rescaleEpTo) * factor
+
+        # L' and N' get modified by the change of Ep
+        # This keeps the kp6 values at T=0K intact.
+        cSchroedinger = CommonShortcuts.hbar**2 / 2 / CommonShortcuts.electron_mass
+        new_L = old_L + cSchroedinger * (rescaleEpTo - old_Ep) / Eg
+        new_N = old_N + cSchroedinger * (rescaleEpTo - old_Ep) / Eg
+        return new_S, new_L, new_N
+
+    @staticmethod
+    def get_8kp_from_6kp_NEGF(mass, rescaleSTo, Eg_0K, Eg_finiteTemp, deltaSO, L_6kp, N_6kp):
+        """
+        Imitate NEGF implementation.
+        1. Calculate Ep by rescaling at T=0
+        2. Calculate L', M, N', S from this Ep but using Eg at nonzero T
+        """
+        Ep = CommonShortcuts.Ep_from_mass_and_S(mass, rescaleSTo, Eg_0K, deltaSO)
+        print(f"Calculated Ep from mass, S, and Eg(0): {Ep}")
+
+        correction = Ep / Eg_finiteTemp   # L, N in the database are in units of hbar^2/2m0
+        Lprime = L_6kp + correction
+        Nprime = N_6kp + correction
+        
+        factor = CommonShortcuts.get_factor_zb(Eg_finiteTemp, deltaSO)   # independent of S and Ep, but temperature-dependent
+        new_S = 1./mass - Ep*factor
+
+        return Lprime, Nprime, new_S
+
+
+
+    # -------------------------------------------------------
+    # Simulation preprocessing
+    #
+    # We make methods static because:
+    # - these utility functions do not depend on the class state but makes sense that they belong to the class
+    # - we want to make this method available without instantiation of an object.
+    # -------------------------------------------------------
     @staticmethod
     def separate_extension(filename):
         """
@@ -276,8 +442,8 @@ class CommonShortcuts:
         return filename_no_extension, extension
 
 
-
-    def detect_software(self, folder_path, filename):
+    @staticmethod
+    def detect_software(folder_path, filename):
         """
         Detect software from input file for the argument of nextnanopy.DataFile() and sweep output folder names.
         Useful when the user does not execute nn.InputFile but want to postprocess only.
@@ -299,7 +465,7 @@ class CommonShortcuts:
             file extension
         """
 
-        extension = self.separate_extension(filename)[1]
+        extension = CommonShortcuts.separate_extension(filename)[1]
         if extension == '':
             raise ValueError('Please specify input file with extension (.in, .xml or .negf)')
 
@@ -333,8 +499,8 @@ class CommonShortcuts:
         return product_name, product_name_short, extension
 
 
-
-    def detect_software_new(self, inputfile):
+    @staticmethod
+    def detect_software_new(inputfile):
         """
         Detect software from nextnanopy.InputFile() object.
         The return value software will be needed for the argument of nextnanopy.DataFile() and sweep output folder names.
@@ -379,11 +545,6 @@ class CommonShortcuts:
         return product_name, extension
     
 
-
-    # We make it a static method because:
-    # - this utility function doesn't depend on the class state but makes sense that it belongs to the class
-    # - we want to forbid method override in the inherited classes
-    # - we want to make this method available without instantiation of an object.
     @staticmethod
     def get_shortcut(inputfile):
         """
@@ -418,8 +579,8 @@ class CommonShortcuts:
             raise Exception(f'Input file {inputfile.fullpath} not found!') from e
 
 
-
-    def prepare_InputFile(self,
+    @staticmethod
+    def prepare_InputFile(
             folderPath, 
             originalFilename, 
             modifiedParamString=None, 
@@ -445,7 +606,7 @@ class CommonShortcuts:
         value = input_file.get_variable(modifiedParamString).value
         logging.info(f'Using modified input parameter:\t${name} = {value}')
 
-        filename_no_extension, extension = self.separate_extension(originalFilename)
+        filename_no_extension, extension = CommonShortcuts.separate_extension(originalFilename)
         if extension == '':
             raise ValueError('Input file name must include file extension!')
         newFilename = filename_no_extension + filename_appendix + extension
@@ -456,212 +617,11 @@ class CommonShortcuts:
 
 
     # -------------------------------------------------------
-    # Bandedge and k.p parameters
-    # -------------------------------------------------------
-    # We make it a static method because:
-    # - this utility function doesn't depend on the class state but makes sense that it belongs to the class
-    # - we want to forbid method override in the inherited classes
-    # - we want to make this method available without instantiation of an object.
-    @staticmethod
-    def get_bandgap_at_T(bandgap_at_0K, alpha, beta, T):
-        """ Varshni formula """
-        return bandgap_at_0K - alpha * T**2 / (T + beta)
-
-
-    # We make it a static method because:
-    # - this utility function doesn't depend on the class state but makes sense that it belongs to the class
-    # - we want to forbid method override in the inherited classes
-    # - we want to make this method available without instantiation of an object.
-    @staticmethod
-    def get_factor_zb(Eg, deltaSO):
-        """
-        Temperature-dependent factor for the conversion among effective mass, S and Ep
-        """
-        return (Eg + 2. * deltaSO / 3.) / Eg / (Eg + deltaSO)
-
-    def mass_from_kp_parameters(self, Ep, S, Eg, deltaSO):
-        factor = self.get_factor_zb(Eg, deltaSO)   # independent of S and Ep, but temperature-dependent
-        mass = 1. / (S + Ep * factor)
-        return mass
-
-
-    def Ep_from_mass_and_S(self, mass, S, Eg, deltaSO):
-        factor = self.get_factor_zb(Eg, deltaSO)   # independent of S and Ep, but temperature-dependent
-        Ep = (1./mass - S) / factor
-        return Ep
-
-
-    def Ep_from_P(self, P):
-        """
-        Convert the Kane parameter P [eV nm] into energy Ep [eV].
-        #NOTE: nextnano++ output is in units of [eV Angstrom].
-        """
-        P_in_SI = P * self.scale_eV_to_J * self.scale1ToNano**(-1)
-        Ep_in_SI = P_in_SI**2 * 2 * self.electron_mass / (self.hbar**2)
-        return Ep_in_SI / self.scale_eV_to_J
-
-
-    def P_from_Ep(self, Ep):
-        """
-        Convert the Kane energy Ep [eV] into P [eV nm].
-        #NOTE: nextnano++ output is in units of [eV Angstrom].
-        """
-        from math import sqrt
-        Ep_in_SI = Ep * self.scale_eV_to_J
-        P_in_SI = self.hbar * sqrt(Ep_in_SI / 2 / self.electron_mass)
-        return P_in_SI * self.scale_eV_to_J**(-1) * self.scale1ToNano
-
-
-    # TODO: extend to WZ
-    def evaluate_and_rescale_S(self, 
-            db_Ep, 
-            db_S, 
-            db_L, 
-            db_N, 
-            eff_mass, 
-            Eg, 
-            deltaSO, 
-            evaluateS, 
-            rescaleS, 
-            rescaleSTo
-            ):
-        """
-        Identical to nnp implementation. 'db_' denotes database values.
-        massFromKpParameters changes mass, but it isn't used to rescale S here because
-        (*) old_S + old_Ep * factor = new_S + new_Ep * factor
-        NEGF uses mass when rescaling S.
-        """
-        factor = self.get_factor_zb(Eg, deltaSO)   # independent of S and Ep, but temperature-dependent
-
-        if evaluateS:
-            S = 1. / eff_mass - db_Ep * factor
-        else:
-            S = db_S
-
-
-        if rescaleS:   # rescale S to given value, and adjust Ep to preserve the effective mass
-            new_S = rescaleSTo
-            new_Ep = db_Ep + (S - new_S) / factor   # using formula (*)
-        else:
-            new_Ep = db_Ep
-            new_S = S
-
-        if (isinstance(new_Ep, float) and new_Ep < 0) or (hasattr(new_Ep, '__iter__') and any(x < 0 for x in new_Ep)):
-            raise RuntimeError('Ep parameter has become negative while rescaling S!')
-
-        # L' and N' get modified by the change of Ep
-        cSchroedinger = self.hbar**2 / 2 / self.electron_mass
-        new_L = db_L + cSchroedinger * (new_Ep - db_Ep) / Eg
-        new_N = db_N + cSchroedinger * (new_Ep - db_Ep) / Eg
-
-        return new_S, new_Ep, new_L, new_N
-
-    # We make it a static method because:
-    # - this utility function doesn't depend on the class state but makes sense that it belongs to the class
-    # - we want to forbid method override in the inherited classes
-    # - we want to make this method available without instantiation of an object.
-    @staticmethod
-    def shift_DKK_as_nnp(DKK_parameter, Eg_T, old_Ep, new_Ep):
-        """ 
-        Shift the 8-band DKK parameters as in nn++/nn3.
-        
-        Return
-        ------
-            In units of hbar^2 / 2m_0
-        """
-        return DKK_parameter + (new_Ep - old_Ep) / Eg_T
-
-    # We make it a static method because:
-    # - this utility function doesn't depend on the class state but makes sense that it belongs to the class
-    # - we want to forbid method override in the inherited classes
-    # - we want to make this method available without instantiation of an object.
-    @staticmethod
-    def shift_DKK_properly(DKK_parameter, Eg_0K, Eg_T, old_Ep, new_Ep):
-        """ 
-        Shift the 8-band DKK parameters considering the temperature-dependence of the bandgap.
-        This is appropriate IF 6-band DKK parameters are independent of temperature, which might not be the case.
-
-        In NEGF++ so far, we have not obtained smooth wavefunctions using this shift.
-        
-        Return
-        ------
-            In units of hbar^2 / 2m_0
-        """
-        return DKK_parameter - old_Ep / Eg_0K + new_Ep / Eg_T
-
-    # TODO: extend to WZ
-    def rescale_Ep_and_get_S(self,
-            old_Ep, 
-            old_S, 
-            old_L, 
-            old_N, 
-            rescaleEpTo, 
-            Eg, 
-            deltaSO
-            ):
-        """
-        Rescale Ep to given value, and adjust S to preserve the electron effective mass:
-        (*) old_S + old_Ep * factor = new_S + rescaleEpTo * factor
-        """
-        factor = self.get_factor_zb(Eg, deltaSO)   # independent of S and Ep, but temperature-dependent
-        new_S = old_S + (old_Ep - rescaleEpTo) * factor
-
-        # L' and N' get modified by the change of Ep
-        # This keeps the kp6 values at T=0K intact.
-        cSchroedinger = self.hbar**2 / 2 / self.electron_mass
-        new_L = old_L + cSchroedinger * (rescaleEpTo - old_Ep) / Eg
-        new_N = old_N + cSchroedinger * (rescaleEpTo - old_Ep) / Eg
-        return new_S, new_L, new_N
-
-
-    def get_8kp_from_6kp_NEGF(self, mass, rescaleSTo, Eg_0K, Eg_finiteTemp, deltaSO, L_6kp, N_6kp):
-        """
-        Imitate NEGF implementation.
-        1. Calculate Ep by rescaling at T=0
-        2. Calculate L', M, N', S from this Ep but using Eg at nonzero T
-        """
-        Ep = self.Ep_from_mass_and_S(mass, rescaleSTo, Eg_0K, deltaSO)
-        print(f"Calculated Ep from mass, S, and Eg(0): {Ep}")
-
-        correction = Ep / Eg_finiteTemp   # L, N in the database are in units of hbar^2/2m0
-        Lprime = L_6kp + correction
-        Nprime = N_6kp + correction
-        
-        factor = self.get_factor_zb(Eg_finiteTemp, deltaSO)   # independent of S and Ep, but temperature-dependent
-        new_S = 1./mass - Ep*factor
-
-        return Lprime, Nprime, new_S
-
-
-
-
-    # -------------------------------------------------------
     # Access to output data
     # -------------------------------------------------------
 
-    def check_if_simulation_has_run(input_file):
-        """
-        Check if simulation has been run. If not, ask the user if the postprocessing should continue.
-
-        INPUT:
-            input_file      nn.InputFile() object
-        """
-        try:
-            folder = input_file.folder_output
-        except KeyError:
-            determined = False
-            while not determined:
-                choice = input('Simulation has not been executed. Continue? [y/n]')
-                if choice == 'n':
-                    raise RuntimeError('Terminated nextnanopy.') from None
-                elif choice == 'y':
-                    determined = True
-                else:
-                    print("Invalid input.")
-                    continue
-
-
-    def get_sweep_output_folder_name(self, filename, *args):
+    @staticmethod
+    def get_sweep_output_folder_name(filename, *args):
         """
         nextnanopy.sweep.execute_sweep() generates output folder with this name
 
@@ -673,7 +633,7 @@ class CommonShortcuts:
             string of sweep output folder name
 
         """
-        filename_no_extension = self.separate_extension(filename)[0]
+        filename_no_extension = CommonShortcuts.separate_extension(filename)[0]
         output_folderName = filename_no_extension + '_sweep'
 
         for sweepVar in args:
@@ -701,7 +661,7 @@ class CommonShortcuts:
             sweep output folder path
 
         """
-        filename_no_extension = self.separate_extension(filename)[0]
+        filename_no_extension = CommonShortcuts.separate_extension(filename)[0]
         output_folder_path = os.path.join(nn.config.get(self.product_name, 'outputdirectory'), filename_no_extension + '_sweep')
 
         if len(args) == 0: raise ValueError("Sweep variable string is missing in the argument!")
@@ -714,9 +674,8 @@ class CommonShortcuts:
         return output_folder_path
 
 
-    # We make it a static method because:
-    # - this utility function doesn't depend on the class state but makes sense that it belongs to the class
-    # - we want to forbid method override in the inherited classes
+    # We make methods static because:
+    # - these utility functions do not depend on the class state but makes sense that they belong to the class
     # - we want to make this method available without instantiation of an object.
     @staticmethod
     def get_output_subfolder_path(sweep_output_folder_path, input_file_name):
@@ -738,7 +697,8 @@ class CommonShortcuts:
         return os.path.join(sweep_output_folder_path, subfolder_name)
 
 
-    def get_sweep_output_subfolder_name(self, filename, sweepCoordinates):
+    @staticmethod
+    def get_sweep_output_subfolder_name(filename, sweepCoordinates):
         """
         nextnanopy.sweep.execute_sweep() generates output subfolders with this name
 
@@ -750,7 +710,7 @@ class CommonShortcuts:
             string of sweep output subfolder name
 
         """
-        filename_no_extension = self.separate_extension(filename)[0]
+        filename_no_extension = CommonShortcuts.separate_extension(filename)[0]
         output_subfolderName = filename_no_extension + '__'
 
         for sweepVar, value in sweepCoordinates.items():
@@ -782,7 +742,7 @@ class CommonShortcuts:
 
         """
         outputFolder = nn.config.get(self.product_name, 'outputdirectory')
-        filename_no_extension = self.separate_extension(name)[0]
+        filename_no_extension = CommonShortcuts.separate_extension(name)[0]
         outputSubfolder = os.path.join(outputFolder, filename_no_extension)
 
         return self.get_DataFile_in_folder(keywords, outputSubfolder, exclude_keywords=exclude_keywords)
@@ -889,7 +849,7 @@ class CommonShortcuts:
 
         """
         outputFolder = nn.config.get(self.product_name, 'outputdirectory')
-        filename_no_extension = self.separate_extension(name)[0]
+        filename_no_extension = CommonShortcuts.separate_extension(name)[0]
         outputSubFolder = os.path.join(outputFolder, filename_no_extension)
 
         return self.get_DataFiles_in_folder(keywords, outputSubFolder, exclude_keywords=exclude_keywords)
@@ -974,7 +934,7 @@ class CommonShortcuts:
         RETURN:
             dictionary { quantum model key: corresponding list of nn.DataFile() objects for probability_shift }
         """
-        filename_no_extension = self.separate_extension(name)[0]
+        filename_no_extension = CommonShortcuts.separate_extension(name)[0]
         outputFolder = nn.config.get(self.product_name, 'outputdirectory')
         outputSubFolder = os.path.join(outputFolder, filename_no_extension)
 
@@ -985,7 +945,7 @@ class CommonShortcuts:
         raise NotImplementedError("There is no common implementation")
 
 
-    def __get_num_evs(self, probability_dict):
+    def __get_num_evs(probability_dict):
         """ number of eigenvalues for each quantum model """
         num_evs = dict()
         for model, datafiles in probability_dict.items():
@@ -1030,7 +990,7 @@ class CommonShortcuts:
             raise ValueError("Only one of 'states_range_dict' or 'states_list_dict' is allowed as an argument")
 
         # get number of eigenvalues
-        num_evs = self.__get_num_evs(datafiles_probability_dict)
+        num_evs = CommonShortcuts.__get_num_evs(datafiles_probability_dict)
 
         # TODO: nn3 has two output files '_el' and '_hl' also in 8kp calculation
         states_toBePlotted = dict.fromkeys(datafiles_probability_dict.keys())
@@ -1108,12 +1068,11 @@ class CommonShortcuts:
 
     # -------------------------------------------------------
     # Data postprocessing
-    # -------------------------------------------------------
-
-    # We make it a static method because:
-    # - this utility function doesn't depend on the class state but makes sense that it belongs to the class
-    # - we want to forbid method override in the inherited classes
+    #
+    # We make methods static because:
+    # - these utility functions do not depend on the class state but makes sense that they belong to the class
     # - we want to make this method available without instantiation of an object.
+    # -------------------------------------------------------
     @staticmethod
     def convert_grid(arr, old_grid, new_grid):
         """
@@ -1146,10 +1105,6 @@ class CommonShortcuts:
         return arr_new
 
 
-    # We make it a static method because:
-    # - this utility function doesn't depend on the class state but makes sense that it belongs to the class
-    # - we want to forbid method override in the inherited classes
-    # - we want to make this method available without instantiation of an object.
     @staticmethod
     def cutOff_edges1D(arr, x_grid, start_position, end_position):
         """
@@ -1196,7 +1151,7 @@ class CommonShortcuts:
         return arr[start_index : end_index + 1]
 
 
-
+    @staticmethod
     def findCell(arr, wanted_value):
         """
         Find the grid cell that contains given wanted position and return index.
@@ -1217,8 +1172,8 @@ class CommonShortcuts:
         return start_index, end_index
 
 
-
-    def get_value_at_position(self, quantity_arr, position_arr, wantedPosition):
+    @staticmethod
+    def get_value_at_position(quantity_arr, position_arr, wantedPosition):
         """
         Get value at given position.
         If the position does not match any of array elements due to inconsistent gridding, interpolate array and return the value at wanted position.
@@ -1226,7 +1181,7 @@ class CommonShortcuts:
         if len(quantity_arr) != len(position_arr):
             raise ValueError('Array size does not match!')
 
-        start_idx, end_idx = self.findCell(position_arr, wantedPosition)
+        start_idx, end_idx = CommonShortcuts.findCell(position_arr, wantedPosition)
 
         # linear interpolation
         x_start = position_arr[start_idx]
@@ -1241,9 +1196,13 @@ class CommonShortcuts:
 
     # -------------------------------------------------------
     # Plotting
+    #
+    # We make some methods static because:
+    # - these utility functions do not depend on the class state but makes sense that they belong to the class
+    # - we want to make this method available without instantiation of an object.
     # -------------------------------------------------------
 
-
+    @staticmethod
     def get_rowColumn_for_display(num_elements):
         """
         Determine arrangement of multiple plots in one sheet.
@@ -1281,10 +1240,6 @@ class CommonShortcuts:
 
 
 
-    # We make it a static method because:
-    # - this utility function doesn't depend on the class state but makes sense that it belongs to the class
-    # - we want to forbid method override in the inherited classes
-    # - we want to make this method available without instantiation of an object.
     @staticmethod
     def get_maximum_points(quantity_arr, position_arr):
         if isinstance(quantity_arr, int) or isinstance(quantity_arr, float):
@@ -1303,19 +1258,15 @@ class CommonShortcuts:
         return xmax, ymax
 
 
-
+    @staticmethod
     def generate_colorscale(colormap, minValue, maxValue):
         """
         Generate a color scale with given colormap and range of values.
         """
-        return plt.cm.ScalarMappable( cmap=colormap, norm=plt.Normalize(vmin=minValue, vmax=maxValue) )
+        return plt.cm.ScalarMappable(cmap=colormap, norm=plt.Normalize(vmin=minValue, vmax=maxValue) )
 
 
 
-    # We make it a static method because:
-    # - this utility function doesn't depend on the class state but makes sense that it belongs to the class
-    # - we want to forbid method override in the inherited classes
-    # - we want to make this method available without instantiation of an object.
     @staticmethod
     def mask_part_of_array(arr, method='flat', tolerance=1e-4, cut_range=[]):
         """
@@ -1409,11 +1360,12 @@ class CommonShortcuts:
         return ax
 
 
-    def get_plot_title(self, originalTitle):
+    @staticmethod
+    def get_plot_title(originalTitle):
         """
         If the title is too long for display, omit the intermediate letters
         """
-        title = self.separate_extension(originalTitle)[0]   # remove extension if present
+        title = CommonShortcuts.separate_extension(originalTitle)[0]   # remove extension if present
 
         if len(title) > 25:
             beginning = title[:10]
@@ -1475,8 +1427,8 @@ class CommonShortcuts:
         # validate arguments
         if '.' not in figFormat:
             figFormat = '.' + figFormat
-        if figFormat not in self.figFormat_list:
-            raise ValueError(f"Non-supported figure format! It must be one of the following:\n{self.figFormat_list}")
+        if figFormat not in CommonShortcuts.figFormat_list:
+            raise ValueError(f"Non-supported figure format! It must be one of the following:\n{CommonShortcuts.figFormat_list}")
 
         if fig is None and not figFormat == '.pdf':
             raise ValueError("Argument 'fig' must be specified to export non-PDF images!")
@@ -1488,7 +1440,7 @@ class CommonShortcuts:
         if output_folder_path:
             outputSubfolder = os.path.join(output_folder_path, "nextnanopy")
         else:
-            output_subfolder_name = self.separate_extension(output_subfolder_name)[0]   # chop off file extension if any
+            output_subfolder_name = CommonShortcuts.separate_extension(output_subfolder_name)[0]   # chop off file extension if any
             outputSubfolder = os.path.join(nn.config.get(self.product_name, 'outputdirectory'), output_subfolder_name)
 
         mkdir_if_not_exist(outputSubfolder)

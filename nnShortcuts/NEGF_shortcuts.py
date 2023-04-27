@@ -54,7 +54,7 @@ class NEGFShortcuts(CommonShortcuts):
 
         # export to an image file
         outputFolder = nn.config.get(self.product_name, 'outputdirectory')
-        filename_no_extension = super().separate_extension(input_file_name)[0]
+        filename_no_extension = CommonShortcuts.separate_extension(input_file_name)[0]
         outputSubfolder = os.path.join(outputFolder, filename_no_extension)
         self.export_figs("IV", "png", output_folder_path=outputSubfolder, fig=fig)
 
@@ -62,7 +62,7 @@ class NEGFShortcuts(CommonShortcuts):
 
     def get_DataFile_NEGF_init(self, keywords, name):
         output_folder = nn.config.get(self.product_name, 'outputdirectory')
-        filename_no_extension = super().separate_extension(name)[0]
+        filename_no_extension = CommonShortcuts.separate_extension(name)[0]
         subfolder = os.path.join(output_folder, filename_no_extension)
         d = nn.DataFolder(subfolder)
 
@@ -95,7 +95,7 @@ class NEGFShortcuts(CommonShortcuts):
 
         """
         output_folder = nn.config.get(self.product_name, 'outputdirectory')
-        filename_no_extension = super().separate_extension(name)[0]
+        filename_no_extension = CommonShortcuts.separate_extension(name)[0]
         bias_subfolder = os.path.join(output_folder, filename_no_extension, str(bias) + 'mv')
 
         return self.get_DataFile_in_folder(keywords, bias_subfolder)
@@ -229,11 +229,11 @@ class NEGFShortcuts(CommonShortcuts):
 
         # Store data arrays.
         # Cut off edges of the simulation region if needed.
-        conduction_bandedge = super().cutOff_edges1D(CB.value, position.value, start_position, end_position)
-        WS_states           = [super().cutOff_edges1D(Psi_squared.value, position.value, start_position, end_position) for Psi_squared in Psi_squareds]
-        x                   = super().cutOff_edges1D(position.value, position.value, start_position, end_position)
+        conduction_bandedge = CommonShortcuts.cutOff_edges1D(CB.value, position.value, start_position, end_position)
+        WS_states           = [CommonShortcuts.cutOff_edges1D(Psi_squared.value, position.value, start_position, end_position) for Psi_squared in Psi_squareds]
+        x                   = CommonShortcuts.cutOff_edges1D(position.value, position.value, start_position, end_position)
 
-        WS_states = [super().mask_part_of_array(WS_state) for WS_state in WS_states]   # hide flat tails
+        WS_states = [CommonShortcuts.mask_part_of_array(WS_state) for WS_state in WS_states]   # hide flat tails
 
         fig, ax = plt.subplots()
         ax.set_xlabel(position.label, fontsize=labelsize)
@@ -248,7 +248,7 @@ class NEGFShortcuts(CommonShortcuts):
 
         # export to an image file
         outputFolder = nn.config.get(self.product_name, 'outputdirectory')
-        filename_no_extension = super().separate_extension(name)[0]
+        filename_no_extension = CommonShortcuts.separate_extension(name)[0]
         outputSubfolder = os.path.join(outputFolder, filename_no_extension)
         self.export_figs("WannierStarkStates_init", "png", output_folder_path=outputSubfolder, fig=fig)
 
@@ -324,7 +324,7 @@ class NEGFShortcuts(CommonShortcuts):
 
         # export to an image file
         outputFolder = nn.config.get(self.product_name, 'outputdirectory')
-        filename_no_extension = super().separate_extension(input_file_name)[0]
+        filename_no_extension = CommonShortcuts.separate_extension(input_file_name)[0]
         outputSubfolder = os.path.join(outputFolder, filename_no_extension)
         self.export_figs("DOS", "png", output_folder_path=outputSubfolder, fig=fig)
 
@@ -371,7 +371,7 @@ class NEGFShortcuts(CommonShortcuts):
 
         # export to an image file
         outputFolder = nn.config.get(self.product_name, 'outputdirectory')
-        filename_no_extension = super().separate_extension(input_file_name)[0]
+        filename_no_extension = CommonShortcuts.separate_extension(input_file_name)[0]
         outputSubfolder = os.path.join(outputFolder, filename_no_extension)
         self.export_figs("CarrierDensity", "png", output_folder_path=outputSubfolder, fig=fig)
 
@@ -418,7 +418,7 @@ class NEGFShortcuts(CommonShortcuts):
 
         # export to an image file
         outputFolder = nn.config.get(self.product_name, 'outputdirectory')
-        filename_no_extension = super().separate_extension(input_file_name)[0]
+        filename_no_extension = CommonShortcuts.separate_extension(input_file_name)[0]
         outputSubfolder = os.path.join(outputFolder, filename_no_extension)
         self.export_figs("CurrentDensity", "png", output_folder_path=outputSubfolder, fig=fig)
 
@@ -462,7 +462,7 @@ class NEGFShortcuts(CommonShortcuts):
 
         """
         output_folder = nn.config.get(self.product_name, 'outputdirectory')
-        filename_no_extension = super().separate_extension(name)[0]
+        filename_no_extension = CommonShortcuts.separate_extension(name)[0]
         datafolder = nn.DataFolder(os.path.join(output_folder, filename_no_extension))
 
         biases = [int(folder_name.replace('mV', '')) for folder_name in datafolder.folders.keys() if ('mV' in folder_name) and ('Init' not in folder_name)]
@@ -490,7 +490,7 @@ class NEGFShortcuts(CommonShortcuts):
         if rightFig not in quantity_names:
             raise KeyError(f"Entry must be {quantity_names}!")
 
-        input_file_name = super().separate_extension(input_file_name)[0]
+        input_file_name = CommonShortcuts.separate_extension(input_file_name)[0]
 
         array_of_biases = np.array(self.get_biases(input_file_name))
 
@@ -570,7 +570,7 @@ class NEGFShortcuts(CommonShortcuts):
         """
         # find the output file
         outputFolder = nn.config.get(self.product_name, 'outputdirectory')
-        filename_no_extension = super().separate_extension(name)[0]
+        filename_no_extension = CommonShortcuts.separate_extension(name)[0]
         outputSubfolder = os.path.join(outputFolder, filename_no_extension)
         df = self.get_DataFile_in_folder('L-I-V.dat', outputSubfolder)
         
@@ -868,22 +868,22 @@ class NEGFShortcuts(CommonShortcuts):
             for cnt, stateIndex in enumerate(states_toBePlotted[model]):
                 for kIndex in range(num_kPoints[model]):
                     psiSquared_oldgrid = dfs[kIndex].variables[f"Psi^2_{stateIndex+1} (lev.{stateIndex+1} per.0)"].value  # TODO: generalize. nPeriod is not always 1
-                    psiSquared[model][cnt][kIndex] = super().convert_grid(psiSquared_oldgrid, x_probability, x)   # grid interpolation needed because of 'output_bandedges{ averaged=no }'
+                    psiSquared[model][cnt][kIndex] = CommonShortcuts.convert_grid(psiSquared_oldgrid, x_probability, x)   # grid interpolation needed because of 'output_bandedges{ averaged=no }'
 
 
         # chop off edges of the simulation region
-        CBBandedge = super().cutOff_edges1D(CBBandedge, x, start_position, end_position)
-        # HHBandedge = super().cutOff_edges1D(HHBandedge, x, start_position, end_position)  # TODO: C++ code needs improvement
-        LHBandedge = super().cutOff_edges1D(LHBandedge, x, start_position, end_position)
-        SOBandedge = super().cutOff_edges1D(SOBandedge, x, start_position, end_position)
+        CBBandedge = CommonShortcuts.cutOff_edges1D(CBBandedge, x, start_position, end_position)
+        # HHBandedge = CommonShortcuts.cutOff_edges1D(HHBandedge, x, start_position, end_position)  # TODO: C++ code needs improvement
+        LHBandedge = CommonShortcuts.cutOff_edges1D(LHBandedge, x, start_position, end_position)
+        SOBandedge = CommonShortcuts.cutOff_edges1D(SOBandedge, x, start_position, end_position)
 
 
         for model in states_toBePlotted:
             for cnt, stateIndex in enumerate(states_toBePlotted[model]):
                 for kIndex in range(num_kPoints[model]):
-                    psiSquared[model][cnt][kIndex] = super().cutOff_edges1D(psiSquared[model][cnt][kIndex], x, start_position, end_position)   # chop off edges of the simulation region
+                    psiSquared[model][cnt][kIndex] = CommonShortcuts.cutOff_edges1D(psiSquared[model][cnt][kIndex], x, start_position, end_position)   # chop off edges of the simulation region
 
-        x = super().cutOff_edges1D(x, x, start_position, end_position)
+        x = CommonShortcuts.cutOff_edges1D(x, x, start_position, end_position)
         simLength = x[-1]-x[0]   # (nm)
 
 
@@ -892,7 +892,7 @@ class NEGFShortcuts(CommonShortcuts):
             for model in states_toBePlotted:
                 for cnt, stateIndex in enumerate(states_toBePlotted[model]):
                     for kIndex in range(num_kPoints[model]):
-                        psiSquared[model][cnt][kIndex] = super().mask_part_of_array(psiSquared[model][cnt][kIndex], method='flat', tolerance=1e-2)
+                        psiSquared[model][cnt][kIndex] = CommonShortcuts.mask_part_of_array(psiSquared[model][cnt][kIndex], method='flat', tolerance=1e-2)
 
 
         if 'kp6' in datafiles_probability_dict.keys() or 'kp8' in datafiles_probability_dict.keys():
@@ -934,7 +934,7 @@ class NEGFShortcuts(CommonShortcuts):
                         compositions[model][stateIndex, kIndex, 3] = datafiles_spinor[model][kIndex].variables['so1'].value[stateIndex] + datafiles_spinor[model][kIndex].variables['so2'].value[stateIndex]
 
         # define plot title
-        title = self.get_plot_title(plot_title)
+        title = CommonShortcuts.get_plot_title(plot_title)
 
         def draw_bandedges(ax, model):
             self.set_plot_labels(ax, 'Position (nm)', 'Energy (eV)', title)
@@ -967,13 +967,13 @@ class NEGFShortcuts(CommonShortcuts):
                 ax.plot(x, psiSquared[model][cnt][kIndex], color=plot_color)
 
                 if show_state_index:
-                    xmax, ymax = super().get_maximum_points(psiSquared[model][cnt][kIndex], x)
+                    xmax, ymax = CommonShortcuts.get_maximum_points(psiSquared[model][cnt][kIndex], x)
                     if skip_annotation:   # if annotation was skipped in the previous iteration, annotate
                         # ax.annotate(f'n={stateIndex},{stateIndex+1}', xy=(xmax, ymax), xytext=(xmax-0.05*simLength, ymax+0.07))
                         ax.annotate(f'{stateIndex},{stateIndex+1}', xy=(xmax, ymax), xytext=(xmax, ymax+0.07))
                         skip_annotation = False   # wavefunction degeneracy is atmost 2
                     elif cnt < len(state_indices)-1:  # if not the last state
-                        xmax_next, ymax_next = super().get_maximum_points(psiSquared[model][cnt+1][kIndex], x)
+                        xmax_next, ymax_next = CommonShortcuts.get_maximum_points(psiSquared[model][cnt+1][kIndex], x)
                         if abs(xmax_next - xmax) < 1.0 and abs(ymax_next - ymax) < 1e-1:
                             skip_annotation = True
                         else:
@@ -1040,10 +1040,10 @@ class NEGFShortcuts(CommonShortcuts):
         # Plots --- save all the figures to one PDF
         #-------------------------------------------
         if savePDF:
-            export_filename = f'{super().separate_extension(input_file.fullpath)[0]}_probabilities'
+            export_filename = f'{CommonShortcuts.separate_extension(input_file.fullpath)[0]}_probabilities'
             self.export_figs(export_filename, 'pdf')
         if savePNG:
-            export_filename = f'{super().separate_extension(input_file.fullpath)[0]}_probabilities'
+            export_filename = f'{CommonShortcuts.separate_extension(input_file.fullpath)[0]}_probabilities'
             self.export_figs(export_filename, 'png', fig=fig)   # NOTE: presumably only the last fig instance is exported
 
         # --- display in the GUI
