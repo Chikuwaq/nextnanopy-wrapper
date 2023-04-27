@@ -5,7 +5,7 @@ The module `nnHelpers` is an object-oriented wrapper around [nextnanopy](https:/
 
 
 ## How to use
-The shortcut functions are available if you import respective modules:
+After 'git pull'ing this repo, the shortcut functions are available if you import respective modules:
 ```python
 # nextnano++ shortcut functions
 import nnShortcuts.nnp_shortcuts as nnp
@@ -18,7 +18,7 @@ import nnShortcuts.NEGF_shortcuts as negf
 
 ```
 
-A SweepHelper object allows you to execute a sweep simulation and its post-processing. 
+A SweepHelper object allows you sweep execution and its post-processing. 
 ```python
 from nnHelpers import SweepHelper
 
@@ -32,15 +32,15 @@ helper.plot_transition_energies(<x axis>, <y axis>, <kwargs options>)
 
 ## Examples
 Please refer to the examples in `examples/`. 
-The following example in the nextnanopy repository uses this wrapper to perform a voltage sweep and postprocessing:
-`nextnanopy/templates/InterbandTunneling_Duboz2019_doc.ipynb` (documentation)
-`InterbandTunneling_Duboz2019_formulation.pdf` (formulation)
-`InterbandTunneling_Duboz2019_nnp.py` (Python script)
+The following example in the [nextnanopy](https://github.com/nextnanopy/nextnanopy) repository uses this wrapper to perform a voltage sweep and postprocessing:
+* `nextnanopy/templates/InterbandTunneling_Duboz2019_doc.ipynb` (documentation)
+* `InterbandTunneling_Duboz2019_formulation.pdf` (formulation)
+* `InterbandTunneling_Duboz2019_nnp.py` (Python script)
 
 
 
 ## Limitations
-Currently, the SweepHelper class only supports sweep simulation of nextnano++.
+Currently, the SweepHelper class only supports sweep simulation of nextnano++ and nextnano.NEGF++.
 
 
 ## Contributing
