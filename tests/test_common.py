@@ -9,11 +9,11 @@ some_positive_int = 3
 some_negative_int = -2
 some_ndArray = np.array([3, 5.2, -2.4])
 
-some_file_path_linux_in   = r'/home/user/nextnano/input_file.in'
-some_file_path_linux_negf = r'/home/user/nextnano/input_file.negf'
+some_file_path_linux_in   = r'tests/input/sample_nnp.in'
+some_file_path_linux_negf = r'tests/input/sample_negf.negf'
 
-some_input_file_obj_nnp  = nextnanopy.InputFile(r'tests/sample_nnp.in')
-some_input_file_obj_negf = nextnanopy.InputFile(r'tests/sample_negf.negf')
+some_input_file_obj_nnp  = nextnanopy.InputFile(some_file_path_linux_in)
+some_input_file_obj_negf = nextnanopy.InputFile(some_file_path_linux_negf)
 
 
 class Test_common(unittest.TestCase):
@@ -38,13 +38,13 @@ class Test_common(unittest.TestCase):
         self.assertEqual(indices[0], 2)
         self.assertRaises(TypeError, self.shortcuts.find_minimum, some_positive_int)
 
-    def test_separate_file_extension(self):
+    def test_separate_extension(self):
         filename_no_ext, ext = self.shortcuts.separate_extension(some_file_path_linux_in)
-        self.assertEqual(filename_no_ext, 'input_file')
+        self.assertEqual(filename_no_ext, 'sample_nnp')
         self.assertEqual(ext, '.in')
 
         filename_no_ext, ext = self.shortcuts.separate_extension(some_file_path_linux_negf)
-        self.assertEqual(filename_no_ext, 'input_file')
+        self.assertEqual(filename_no_ext, 'sample_negf')
         self.assertEqual(ext, '.negf')
 
         self.assertRaises(RuntimeError, self.shortcuts.separate_extension, 'file.txt')

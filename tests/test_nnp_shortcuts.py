@@ -5,7 +5,7 @@ from nnShortcuts.nnp_shortcuts import nnpShortcuts
 
 class Test_nnp_shortcuts(unittest.TestCase):
     shortcuts = nnpShortcuts()
-    folder = r"tests/WRegion_BorislavDesign2_wfTest_kp8_nnp_0field_eval_rescaleS1"
+    folder = r"tests/output/WRegion_BorislavDesign2_wfTest_kp8_nnp_0field_eval_rescaleS1"
 
 
     def test_get_DataFiles_in_folder(self):

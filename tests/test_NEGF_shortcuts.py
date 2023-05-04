@@ -15,7 +15,7 @@ some_file_path_linux_negf = r'/home/user/nextnano/input_file.negf'
 
 class Test_NEGF_shortcuts(unittest.TestCase):
     shortcuts = NEGFShortcuts()
-    folder = r"tests/8band_WRegion_InAsGaInSb_nnpParam_strained"
+    folder = r"tests/output/8band_WRegion_InAsGaInSb_nnpParam_strained"
 
 
     def test_get_transition_energy(self):
