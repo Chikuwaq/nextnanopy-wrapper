@@ -774,7 +774,7 @@ class nnpShortcuts(CommonShortcuts):
                     psiSquared[model][cnt][kIndex] = CommonShortcuts.cutOff_edges1D(psiSquared[model][cnt][kIndex], x, start_position, end_position)   # chop off edges of the simulation region
 
         x = CommonShortcuts.cutOff_edges1D(x, x, start_position, end_position)
-        simLength = x[-1]-x[0]   # (nm)
+        # simLength = x[-1]-x[0]   # (nm)
 
 
         # mask psiSquared data where it is flat
@@ -1259,7 +1259,7 @@ class nnpShortcuts(CommonShortcuts):
                 fig, ax = plt.subplots()
                 ax.set_xlabel(f"{datafile_bandedge.coords['x'].label}")
                 ax.set_ylabel('energy (eV)')
-                simLength = x[-1]-x[0]   # (nm)
+                # simLength = x[-1]-x[0]   # (nm)
 
                 ax.plot(x, CBBandedge, label='CB', linewidth=0.6)
                 ax.plot(x, HHBandedge, label='HH', linewidth=0.6)

@@ -1,0 +1,63 @@
+$Temperature
+
+global{
+    simulate1D{}
+
+    temperature = $Temperature
+    substrate{ name = 'GaAs' }
+
+    crystal_zb{
+        x_hkl = [1, 0, 0]
+        y_hkl = [0, 1, 0]
+    }
+
+    periodic{ x = no }
+}
+
+grid{
+    xgrid{
+        line{ pos = 0  spacing = 0.1 }
+        line{ pos = 10  spacing = 0.1 }
+    }
+}
+
+contacts{
+    charge_neutral{
+        name = 'contact'
+        bias = 0.0
+    }
+}
+
+structure{
+    region{
+        everywhere{}
+        binary{ name = GaAs }
+    }
+}
+
+classical{
+    Gamma{}
+    output_bandedges{}
+}
+
+quantum{
+    region{
+        name = 'quantum_region'
+        x = [0, 10]
+        boundary{ x = dirichlet }
+        no_density = yes
+        output_wavefunctions{
+            max_num = 4
+            energy_shift = shifted
+        }
+    }
+}
+
+strain{
+    pseudomorphic_strain{}
+}
+
+run{
+    strain{}
+    quantum{}
+}

@@ -181,6 +181,7 @@ class CommonShortcuts:
         return max_val, indices
 
 
+    @staticmethod
     def find_minimum(arr):
         """
         Find the minimum of given multidimensional data and return the info.
@@ -445,6 +446,8 @@ class CommonShortcuts:
     @staticmethod
     def detect_software(folder_path, filename):
         """
+        DEPRECATED: Use get_shortcut() instead.
+
         Detect software from input file for the argument of nextnanopy.DataFile() and sweep output folder names.
         Useful when the user does not execute nn.InputFile but want to postprocess only.
 
@@ -502,6 +505,8 @@ class CommonShortcuts:
     @staticmethod
     def detect_software_new(inputfile):
         """
+        DEPRECATED: Use get_shortcut() instead.
+
         Detect software from nextnanopy.InputFile() object.
         The return value software will be needed for the argument of nextnanopy.DataFile() and sweep output folder names.
 
@@ -976,7 +981,7 @@ class CommonShortcuts:
         RETURN:
             states_toBePlotted              for each quantum model, array of eigenstate indices to be plotted in the figure. Has the form:
                                             { 'quantum model': list of values }
-            num_evs                         for each quantum model, number of eigenstates
+            num_evs                         for each quantum model, number of all eigenstates existing in the output data
 
         NOTE:
             state index is base 0 (differ from nextnano++ output), state No is base 1 (identical to nextnano++ output)
@@ -999,16 +1004,16 @@ class CommonShortcuts:
         if states_list_dict is None:
             if states_range_dict is None:
                 for model in datafiles_probability_dict:
-                    states_toBePlotted[model] = np.arange(0, num_evs[model])   # by default, plot all the eigenstates
+                    states_toBePlotted[model] = list(np.arange(0, num_evs[model]))   # by default, plot all the eigenstates
             else:
                 # from states_range_dict
                 for model in datafiles_probability_dict:
                     if model not in states_range_dict:
-                        states_toBePlotted[model] = np.arange(0, num_evs[model])   # by default, plot all the eigenstates
+                        states_toBePlotted[model] = list(np.arange(0, num_evs[model]))   # by default, plot all the eigenstates
                     else:
                         startIdx = states_range_dict[model][0] - 1
                         stopIdx  = states_range_dict[model][1] - 1
-                        states_toBePlotted[model] = np.arange(startIdx, stopIdx+1, 1)   # np.arange(min, max) stops one step before the max
+                        states_toBePlotted[model] = list(np.arange(startIdx, stopIdx+1, 1))   # np.arange(min, max) stops one step before the max
         else:
             # from states_list_dict
             first_element = list(datafiles_probability_dict.values())[0][0]
@@ -1016,7 +1021,7 @@ class CommonShortcuts:
             outfolder = os.path.split(filepath)[0]
             for model in datafiles_probability_dict:
                 if model not in states_list_dict:
-                    states_toBePlotted[model] = np.arange(0, num_evs[model])   # by default, plot all the eigenstates
+                    states_toBePlotted[model] = list(np.arange(0, num_evs[model]))   # by default, plot all the eigenstates
                 else:
                     states_toBePlotted[model] = list()
                     for stateNo in states_list_dict[model]:
@@ -1048,7 +1053,7 @@ class CommonShortcuts:
                             if cutoff_occupation < 0: 
                                 raise ValueError("cutoff_occupation must be positive!")
 
-                            states_toBePlotted[model] += [int(stateNo) - 1 for stateNo, occupation in zip(df.coords['no.'].value, df.variables['Occupation'].value) if occupation >= cutoff_occupation]
+                            states_toBePlotted[model] += [int(stateNo) - 1 for stateNo, occupation in zip(df.coords['no.'].value, df.variables['SignedOccupation'].value) if occupation >= cutoff_occupation]
                         elif isinstance(stateNo, int):
                             if stateNo > num_evs[model]: 
                                 raise ValueError("State index greater than number of eigenvalues calculated!")

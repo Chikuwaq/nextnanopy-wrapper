@@ -884,7 +884,7 @@ class NEGFShortcuts(CommonShortcuts):
                     psiSquared[model][cnt][kIndex] = CommonShortcuts.cutOff_edges1D(psiSquared[model][cnt][kIndex], x, start_position, end_position)   # chop off edges of the simulation region
 
         x = CommonShortcuts.cutOff_edges1D(x, x, start_position, end_position)
-        simLength = x[-1]-x[0]   # (nm)
+        # simLength = x[-1]-x[0]   # (nm)
 
 
         # mask psiSquared data where it is flat
@@ -1170,7 +1170,8 @@ class NEGFShortcuts(CommonShortcuts):
         iLowestElectron = self.find_lowest_electron_state_atK0(output_folder, threshold=0.5)
         iHighestHole    = self.find_highest_hole_state_atK0(output_folder, threshold=0.5)
 
-        dE = datafile.variables['Energy'].value[iLowestElectron] - datafile.variables['Energy'].value[iHighestHole]
+        print(datafile.variables[0].value)
+        dE = datafile.variables[0].value[iLowestElectron] - datafile.variables[0].value[iHighestHole]  # TODO: the key 'Energy' isn't read by nextnanopy correctly
 
         return dE / self.scale1ToMilli
     
