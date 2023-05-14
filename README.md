@@ -6,6 +6,9 @@ The module `nnHelpers` is an object-oriented wrapper around [nextnanopy](https:/
 1. facilitates preparing, running and post-processing nextnano sweep simulations by bridging the simulation inputs and outputs. This is in contrast to nextnanopy, which does not associate simulation input and output.
 2. create a copy of your input file with a shorter name if the original filename is too long, so that the output path length does not exceed the system limit. The method `SweepHelper.execute_sweep()` will bring back the original filename to the output folders after the simulations have finished.
 
+![alt text](https://github.com/Chikuwaq/nextnanopy-wrapper/images/nnp_shortcuts.pdf)
+![alt text](https://github.com/Chikuwaq/nextnanopy-wrapper/images/NEGF_shortcuts.pdf)
+
 
 ## How to use
 After 'git pull'ing this repo, the shortcut functions are available if you import respective modules:

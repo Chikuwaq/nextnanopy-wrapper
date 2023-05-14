@@ -4,7 +4,7 @@
 - visualization of warning in yellow (error will be in red, info in default colour)
 
 [unit test]
-- test get_states_to_be_plotted() because it's breaking nnp.plot_probabilities().
+
 
 [nnShortcuts]
 - resolve TODOs in each file
@@ -33,7 +33,7 @@ E.g. get_states_to_be_plotted()
 - add plot_probabilities
 
 [README]
-- add a visualisation of the features of this wrapper
+
 
 [nnResults] object-oriented approach to post-processing, inspired by kwant
 - define a parent class Results
