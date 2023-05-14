@@ -1084,13 +1084,13 @@ class nnpShortcuts(CommonShortcuts):
 
         if plotOccupation:
             if cutoffOccupation is None:
-                TypeError('Cutoff occupation not specified!')
+                ValueError('Cutoff occupation not specified!')
             if cutoffOccupation < 0:
                 ValueError('Cutoff occupation out of range (occupation >= 0)')
 
         if parameter_to_modify:
             if newValue is None:
-                TypeError('Specify new value for the modified input parameter!')
+                ValueError('Specify new value for the modified input parameter!')
 
 
 
@@ -1545,7 +1545,7 @@ class nnpShortcuts(CommonShortcuts):
     #         list_of_overlaps = [calculate_overlap(folder) for folder in output_folders]
     #         overlaps = np.array(list_of_overlaps, dtype=np.cdouble)
     #     else:
-    #         raise TypeError("Argument 'output_folders' must be either str or list of str!")
+    #         raise TypeError(f"Argument 'output_folders' must be either str or list of str, but is {type(output_folders)}")
 
     #     return overlaps
 

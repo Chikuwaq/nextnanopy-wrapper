@@ -132,8 +132,8 @@ class SweepHelper:
 
         """
         # validate arguments
-        if not isinstance(sweep_ranges, dict): raise TypeError("__init__(): argument 'sweep_ranges' must be a dict")
-        # if not isinstance(master_input_file, nn.InputFile): raise TypeError("__init__(): argument 'master_input_file' must be a nextnanopy.InputFile object")   # TODO: object type has been modified in nextnanopy
+        if not isinstance(sweep_ranges, dict): raise TypeError(f"__init__(): argument 'sweep_ranges' must be a dict, but is {type(sweep_ranges)}")
+        # if not isinstance(master_input_file, nn.InputFile): raise TypeError(f"__init__(): argument 'master_input_file' must be a nextnanopy.InputFile object, but is {type(master_input_file)}")   # TODO: object type has been modified in nextnanopy
         
         # log setting
         fmt = '[%(levelname)s] %(message)s'
@@ -159,7 +159,7 @@ class SweepHelper:
             raise NotImplementedError("class SweepHelper currently supports only nextnano++ and nextnano.NEGF++ simulations.")
 
         if eigenstate_range is not None:
-            if not isinstance(eigenstate_range, dict): raise TypeError("__init__(): argument 'eigenstate_range' must be a dict")
+            if not isinstance(eigenstate_range, dict): raise TypeError(f"__init__(): argument 'eigenstate_range' must be a dict, but is {type(eigenstate_range)}")
             for model, plot_range in eigenstate_range.items():
                 if model not in self.shortcuts.model_names: raise KeyError(f"__init__(): Quantum model '{model}' is not supported")
                 if len(plot_range) != 2: raise ValueError("__init__(): argument 'eigenstate_range' must be of the form 'quantum model': [min, max]")

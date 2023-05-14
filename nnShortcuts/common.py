@@ -173,7 +173,7 @@ class CommonShortcuts:
         arr[indices] = max_val holds.
         """
         if not isinstance(arr, np.ndarray):
-            raise TypeError("Input must be numpy.ndarray!")
+            raise TypeError(f"Input must be numpy.ndarray, but is {type(arr)}")
 
         max_val = np.amax(arr)
         indices = np.unravel_index(np.argmax(arr), np.shape(arr))  # get index of the maximum
@@ -203,7 +203,7 @@ class CommonShortcuts:
         arr[indices] = min_val holds.
         """
         if not isinstance(arr, np.ndarray):
-            raise TypeError("Input must be numpy.ndarray!")
+            raise TypeError(f"Input must be numpy.ndarray, but is {type(arr)}")
 
         min_val = np.amin(arr)
         indices = np.unravel_index(np.argmin(arr), np.shape(arr))  # get index of the minimum
@@ -643,7 +643,7 @@ class CommonShortcuts:
 
         for sweepVar in args:
             if not isinstance(sweepVar, str):
-                raise TypeError(f'Argument {sweepVar} must be a string!')
+                raise TypeError(f'Argument {sweepVar} must be a string, but is {type(sweepVar)}')
             output_folderName += '__' + sweepVar
 
         return output_folderName
@@ -673,7 +673,7 @@ class CommonShortcuts:
 
         for sweepVar in args:
             if not isinstance(sweepVar, str):
-                raise TypeError(f'Argument {sweepVar} must be a string!')
+                raise TypeError(f'Argument {sweepVar} must be a string, but is {type(sweepVar)}')
             output_folder_path += '__' + sweepVar
 
         return output_folder_path
@@ -720,7 +720,7 @@ class CommonShortcuts:
 
         for sweepVar, value in sweepCoordinates.items():
             if not isinstance(sweepVar, str):
-                raise TypeError('key must be a string!')
+                raise TypeError(f'Sweep variable must be a string, but is {type(sweepVar)}')
             try:
                 val = str(value)
             except ValueError as e:
@@ -775,11 +775,11 @@ class CommonShortcuts:
         if isinstance(keywords, str):
             keywords = [keywords]
         elif not isinstance(keywords, list):
-            raise TypeError("Argument 'keywords' must be either str or list")
+            raise TypeError(f"Argument 'keywords' must be either str or list, but is {type(keywords)}")
         if isinstance(exclude_keywords, str):
             exclude_keywords = [exclude_keywords]
         elif not isinstance(exclude_keywords, list) and exclude_keywords is not None:
-            raise TypeError("Argument 'exclude_keywords' must be either str or list")
+            raise TypeError(f"Argument 'exclude_keywords' must be either str or list, but is {type(exclude_keywords)}")
 
         if exclude_keywords is None:
             message = " '" + "', '".join(keywords) + "'"
@@ -882,11 +882,11 @@ class CommonShortcuts:
         if isinstance(keywords, str):
             keywords = [keywords]
         elif not isinstance(keywords, list):
-            raise TypeError("Argument 'keywords' must be either str or list")
+            raise TypeError(f"Argument 'keywords' must be either str or list, but is {type(keywords)}")
         if isinstance(exclude_keywords, str):
             exclude_keywords = [exclude_keywords]
         elif not isinstance(exclude_keywords, list) and exclude_keywords is not None:
-            raise TypeError("Argument 'exclude_keywords' must be either str or list")
+            raise TypeError(f"Argument 'exclude_keywords' must be either str or list, but is {type(exclude_keywords)}")
 
         if exclude_keywords is None:
             message = "with keyword(s) '" + "', '".join(keywords) + "'"
@@ -988,9 +988,9 @@ class CommonShortcuts:
         """
         # validate input
         if states_range_dict is not None and not isinstance(states_range_dict, dict):
-            raise TypeError("Argument 'states_range_dict' must be a dict")
+            raise TypeError(f"Argument 'states_range_dict' must be a dict, but is {type(states_range_dict)}")
         if states_list_dict is not None and not isinstance(states_list_dict, dict):
-            raise TypeError("Argument 'states_list_dict' must be a dict")
+            raise TypeError(f"Argument 'states_list_dict' must be a dict, but is {type(states_list_dict)}")
         if (states_range_dict is not None) and (states_list_dict is not None):
             raise ValueError("Only one of 'states_range_dict' or 'states_list_dict' is allowed as an argument")
 
@@ -1288,7 +1288,7 @@ class CommonShortcuts:
 
         """
         if not isinstance(arr, np.ndarray):
-            raise TypeError(f"Array must be numpy.ndarray. Type is {type(arr)}")
+            raise TypeError(f"Array must be numpy.ndarray, but is {type(arr)}")
 
         arr_size = len(arr)
         new_arr = np.ma.array(arr, mask = [0 for i in range(arr_size)])   # non-masked np.ma.array with given data arr
