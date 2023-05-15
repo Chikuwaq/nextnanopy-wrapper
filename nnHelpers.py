@@ -108,6 +108,9 @@ class SweepHelper:
         plot_inplaneK()
             Plot the in-plane k points at which the Schroedinger equation has been solved.
 
+        create_sbatch_scripts()
+            Generate sbatch files to submit the sweep simulations to cloud computers by SLURM.
+
     """
 
     def __init__(self, sweep_ranges, master_input_file, eigenstate_range=None, round_decimal=8, loglevel=logging.INFO):
@@ -597,6 +600,58 @@ class SweepHelper:
             raise
 
 
+    def submit_sweep_to_slurm(self):
+        self.create_sbatch_scripts()
+        import subprocess
+        subprocess.run(['bash', 'run.sh'])
+        
+
+    def create_sbatch_scripts(self, node='microcloud', exe=None, output_folder=None, database=None):
+        """
+        Generate sbatch files to submit the sweep simulations to cloud computers by SLURM.
+        """
+        if exe is None:           exe = nn.config.get(self.shortcuts.product_name, 'exe'),
+        if output_folder is None: output_folder = nn.config.get(self.shortcuts.product_name, 'outputdirectory'),
+        if database is None:      database = nn.config.get(self.shortcuts.product_name, 'database')
+        license = nn.config.get(self.shortcuts.product_name, 'license')
+
+        with open('run.sh', 'w') as f_meta:  # meta script
+            f_meta.write("#!/bin/bash\n")
+            
+            for input_file in self.sweep_obj['original'].input_files:
+                filename, extension = CommonShortcuts.separate_extension(input_file.fullpath)
+                scriptpath = "run_" + filename + ".sh"
+                f_meta.write(f"sbatch {scriptpath}")
+
+                # individual script
+                SweepHelper.write_sbatch_script(scriptpath, input_file.fullpath, node, exe, output_folder, database, license)
+
+
+    @staticmethod
+    def write_sbatch_script(scriptpath, inputpath, node, exe, output_folder, database, license, suffix, num_threads, num_CPU=8, memory_limit='8G', time_limit_hrs=5):
+        """
+        Write a sbatch script for a nextnano simulation.
+        Note: Currently, only supports nextnano.NEGF++ command line syntax
+        """
+        filename, extension = CommonShortcuts.separate_extension(inputpath)
+        unique_name = filename + "_on_" + node + suffix
+        with open(scriptpath, 'w') as f:
+            f.write("#!/bin/bash\n")
+            f.write(f"#SBATCH --partition={node}")
+            f.write(f"#SBATCH --cpus-per-task={num_CPU}")
+            f.write(f"#SBATCH --mem={memory_limit}")
+            f.write("#SBATCH --nodes=1")  # multinode parallelism with MPI not implemented in nextnano
+            f.write(f"#SBATCH --time={time_limit_hrs}:00:00")
+            f.write(f"#SBATCH --hint=multithread")
+            f.write(f"#SBATCH --output={output_folder}/{unique_name}/{unique_name}.log")
+            f.write("\n")
+            f.write("#SBATCH --job-name=nextnano")
+            f.write(f"#SBATCH --comment='Python Sweep simulation'")
+            f.write("#SBATCH --mail-type=end")
+            f.write(f"{exe} -i {inputpath} -o {output_folder}/{unique_name} -m {database} -c -l {license} -v splitfile -t {num_threads}")
+
+
+
     ### Dispersion ###########################################################
     def plot_dispersions(self, sweep_variable, savePDF=False):
         """
@@ -971,3 +1026,5 @@ class SweepHelper:
 
         inplane_k = self.shortcuts.getKPointsData1D_in_folder(self.data.loc[0, 'output_subfolder'])   # assuming k points are identical to all the sweeps
         return self.shortcuts.plot_inplaneK(inplane_k)
+
+
