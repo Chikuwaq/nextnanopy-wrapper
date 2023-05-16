@@ -1130,7 +1130,7 @@ class nnpShortcuts(CommonShortcuts):
 
         # which data to plot
         plotOccupation:       density of (n,k=0) states
-        plotFillingFactors:   filling factor of (n,k) states  # TODO: implement plot of filling factos at all k
+        plotFillingFactors:   filling factor of (n,k) states  # TODO: implement plot of filling factors at all k
         plotProbAndSpinor_k:  psi^2 and spinor compositions for each k
         plotFermiLevels:
         plotDensity:

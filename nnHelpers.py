@@ -601,54 +601,95 @@ class SweepHelper:
 
 
     def submit_sweep_to_slurm(self):
+        """
+        Submit sweep simulations to Slurm workload manager.
+        """
         self.create_sbatch_scripts()
         import subprocess
+        import time
         subprocess.run(['bash', 'run.sh'])
+        logging.info("Submitting jobs to Slurm...")
+        time.sleep(5)
+        subprocess.run(['sacct'])  # show the job status
         
 
-    def create_sbatch_scripts(self, node='microcloud', exe=None, output_folder=None, database=None):
+    def create_sbatch_scripts(self, suffix, node='microcloud', num_CPU=4, exe=None, output_folder=None, database=None):
         """
-        Generate sbatch files to submit the sweep simulations to cloud computers by SLURM.
+        Generate sbatch files to submit the sweep simulations to cloud computers by Slurm.
+
+        Parameters
+        ----------
+            node : str
+                name of the computer node
+            num_CPU : int
+                number of CPUs available. Used for the nextnano command line parameter '--threads'
         """
-        if exe is None:           exe = nn.config.get(self.shortcuts.product_name, 'exe'),
-        if output_folder is None: output_folder = nn.config.get(self.shortcuts.product_name, 'outputdirectory'),
+        # defaults
+        if exe is None:           exe, = nn.config.get(self.shortcuts.product_name, 'exe'),
+        if output_folder is None: output_folder, = nn.config.get(self.shortcuts.product_name, 'outputdirectory'),
         if database is None:      database = nn.config.get(self.shortcuts.product_name, 'database')
         license = nn.config.get(self.shortcuts.product_name, 'license')
 
+        logging.info("Writing sbatch scripts...")
+
         with open('run.sh', 'w') as f_meta:  # meta script
-            f_meta.write("#!/bin/bash\n")
+            f_meta.write("#!/bin/bash\n\n")
             
             for input_file in self.sweep_obj['original'].input_files:
                 filename, extension = CommonShortcuts.separate_extension(input_file.fullpath)
                 scriptpath = "run_" + filename + ".sh"
-                f_meta.write(f"sbatch {scriptpath}")
+                f_meta.write(f"sbatch {scriptpath}\n")
 
                 # individual script
-                SweepHelper.write_sbatch_script(scriptpath, input_file.fullpath, node, exe, output_folder, database, license)
+                self.write_sbatch_script(scriptpath, input_file.fullpath, node, exe, output_folder, database, license, suffix, num_CPU)
 
 
-    @staticmethod
-    def write_sbatch_script(scriptpath, inputpath, node, exe, output_folder, database, license, suffix, num_threads, num_CPU=8, memory_limit='8G', time_limit_hrs=5):
+    def write_sbatch_script(self, scriptpath, inputpath, node, exe, output_folder, database, license, suffix, num_CPU, memory_limit='8G', time_limit_hrs=5):
         """
-        Write a sbatch script for a nextnano simulation.
-        Note: Currently, only supports nextnano.NEGF++ command line syntax
+        Write a sbatch script for a single nextnano simulation.
+            Note
+            ----
+            Currently, only supports nextnano++ and nextnano.NEGF++ command line syntax.
+
+            Number of physical cores = num_CPU
+            Number of threads when hyperthreading = 2 * num_CPU
+            Optimal number of threads for omp parallelism <= (2 * num_CPU) / 2 = num_CPU
         """
+        # validate inputs
+        if not isinstance(scriptpath, str): TypeError(f"Executable path must be a string, not {type(scriptpath)}")
+        if not isinstance(inputpath, str): TypeError(f"Input file path must be a string, not {type(inputpath)}")
+        if not isinstance(node, str): TypeError(f"Node name must be a string, not {type(node)}")
+        if not isinstance(exe, str): TypeError(f"Executable path must be a string, not {type(exe)}")
+        if not isinstance(output_folder, str): TypeError(f"Output folder must be a string, not {type(output_folder)}")
+        if not isinstance(database, str): TypeError(f"Database path must be a string, not {type(database)}")
+        if not isinstance(license, str): TypeError(f"License path must be a string, not {type(license)}")
+        if not isinstance(suffix, str): TypeError(f"Executable path must be a string, not {type(suffix)}")
+        if not isinstance(num_CPU, int) or num_CPU < 0: ValueError(f"Illegal number of CPUs: {num_CPU}")
+        if not isinstance(time_limit_hrs, int) or time_limit_hrs < 0: ValueError(f"Illegal time limit: '{time_limit_hrs} hours'")
+
         filename, extension = CommonShortcuts.separate_extension(inputpath)
         unique_name = filename + "_on_" + node + suffix
+        output_subfolder = os.path.join(output_folder, unique_name)
+        logfile = os.path.join(output_subfolder, unique_name + ".log")
+
         with open(scriptpath, 'w') as f:
-            f.write("#!/bin/bash\n")
-            f.write(f"#SBATCH --partition={node}")
-            f.write(f"#SBATCH --cpus-per-task={num_CPU}")
-            f.write(f"#SBATCH --mem={memory_limit}")
-            f.write("#SBATCH --nodes=1")  # multinode parallelism with MPI not implemented in nextnano
-            f.write(f"#SBATCH --time={time_limit_hrs}:00:00")
-            f.write(f"#SBATCH --hint=multithread")
-            f.write(f"#SBATCH --output={output_folder}/{unique_name}/{unique_name}.log")
+            f.write("#!/bin/bash\n\n")
+            f.write(f"#SBATCH --partition={node}\n")
+            f.write(f"#SBATCH --cpus-per-task={num_CPU}\n")
+            f.write(f"#SBATCH --mem={memory_limit}\n")
+            f.write("#SBATCH --nodes=1\n")  # multinode parallelism with MPI not implemented in nextnano
+            f.write(f"#SBATCH --time={time_limit_hrs}:00:00\n")
+            f.write(f"#SBATCH --hint=multithread\n")
+            f.write(f"#SBATCH --output=\"{logfile}\"\n")
             f.write("\n")
-            f.write("#SBATCH --job-name=nextnano")
-            f.write(f"#SBATCH --comment='Python Sweep simulation'")
-            f.write("#SBATCH --mail-type=end")
-            f.write(f"{exe} -i {inputpath} -o {output_folder}/{unique_name} -m {database} -c -l {license} -v splitfile -t {num_threads}")
+            f.write("#SBATCH --job-name=nextnano\n")
+            f.write(f"#SBATCH --comment='Python Sweep simulation'\n")
+            f.write("#SBATCH --mail-type=end\n")
+            f.write("#SBATCH --mail-user=takuma.sato@nextnano.com\n")
+            if self.shortcuts.product_name == 'nextnano.NEGF++':
+                f.write(f"\"{exe}\" -i \"{inputpath}\" -o \"{output_subfolder}\" -m \"{database}\" -c -l \"{license}\" -t {num_CPU} -v splitfile")
+            elif self.shortcuts.product_name == 'nextnano++':
+                f.write(f"\"{exe}\" -o \"{output_subfolder}\" -d \"{database}\" -l \"{license}\" -t {num_CPU} \"{inputpath}\"")
 
 
 

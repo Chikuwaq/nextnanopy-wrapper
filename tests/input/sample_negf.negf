@@ -1,3 +1,5 @@
+$Temperature = 300
+
 nextnano.NEGF{ 				# Version = 1.1.5
     Header{
         Author = "Thomas Grange"
@@ -18,7 +20,7 @@ nextnano.NEGF{ 				# Version = 1.1.5
         PotentialDrop = 58 				# unit = meV
     }
 
-    Temperature = 300 				# unit = K
+    Temperature = $Temperature 				# unit = K
     Materials{
         Material{
             Name = GaAs
