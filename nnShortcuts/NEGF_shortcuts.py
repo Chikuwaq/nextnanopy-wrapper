@@ -26,6 +26,8 @@ class NEGFShortcuts(CommonShortcuts):
     # nextnano solver
     product_name = 'nextnano.NEGF++'
 
+    model_names = ['Gamma', 'kp8']
+
     def __init__(self, loglevel=logging.INFO):
         super().__init__(loglevel)
 
@@ -1170,7 +1172,7 @@ class NEGFShortcuts(CommonShortcuts):
         iLowestElectron = self.find_lowest_electron_state_atK0(output_folder, threshold=0.5)
         iHighestHole    = self.find_highest_hole_state_atK0(output_folder, threshold=0.5)
 
-        print(datafile.variables[0].value)
+        # print(datafile.variables[0].value)
         dE = datafile.variables[0].value[iLowestElectron] - datafile.variables[0].value[iHighestHole]  # TODO: the key 'Energy' isn't read by nextnanopy correctly
 
         return dE / self.scale1ToMilli
