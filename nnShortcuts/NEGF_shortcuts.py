@@ -24,11 +24,14 @@ from nnShortcuts.common import CommonShortcuts, NextnanopyScriptError, NextnanoI
 
 class NEGFShortcuts(CommonShortcuts):
     # nextnano solver
-    product_name = 'nextnano.NEGF++'
-
+    product_name = 'null'
     model_names = ['Gamma', 'kp8']
 
-    def __init__(self, loglevel=logging.INFO):
+    def __init__(self, is_xml, loglevel=logging.INFO):
+        if is_xml:
+            self.product_name = 'nextnano.NEGF'
+        else:
+            self.product_name = 'nextnano.NEGF++'
         super().__init__(loglevel)
 
     def get_IV(self, input_file_name):

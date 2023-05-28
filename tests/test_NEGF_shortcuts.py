@@ -14,7 +14,7 @@ some_file_path_linux_negf = r'/home/user/nextnano/input_file.negf'
 
 
 class Test_NEGF_shortcuts(unittest.TestCase):
-    shortcuts = NEGFShortcuts()
+    shortcuts = NEGFShortcuts(False)
     folder = r"tests/output/8band_WRegion_InAsGaInSb_nnpParam_strained"
 
 

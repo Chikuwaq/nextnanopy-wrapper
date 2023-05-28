@@ -564,8 +564,11 @@ class SweepHelper:
 
         # If not given at the class instantiation, determine how many eigenstates to plot (states_to_be_plotted attribute)
         if self.states_to_be_plotted is None:   # by default, plot all states in the output data
-            datafiles_probability = self.shortcuts.get_DataFile_probabilities_in_folder(self.data.loc[0, 'output_subfolder'])
-            self.states_to_be_plotted, num_evs = self.shortcuts.get_states_to_be_plotted(datafiles_probability)   # states_range_dict=None -> all states are plotted
+            try: 
+                datafiles_probability = self.shortcuts.get_DataFile_probabilities_in_folder(self.data.loc[0, 'output_subfolder'])
+                self.states_to_be_plotted, num_evs = self.shortcuts.get_states_to_be_plotted(datafiles_probability)   # states_range_dict=None -> all states are plotted
+            except FileNotFoundError:  # 1,2,3-band NEGF doesn't have probability output
+                warnings.warn("SweepHelper.execute_sweep(): Probability distribution not found")
 
 
     def delete_input_files(self):
@@ -600,11 +603,11 @@ class SweepHelper:
             raise
 
 
-    def submit_sweep_to_slurm(self):
+    def submit_sweep_to_slurm(self, suffix, node='microcloud'):
         """
         Submit sweep simulations to Slurm workload manager.
         """
-        self.create_sbatch_scripts()
+        self.create_sbatch_scripts(suffix, node=node)
         import subprocess
         import time
         subprocess.run(['bash', 'run.sh'])
@@ -613,7 +616,7 @@ class SweepHelper:
         subprocess.run(['sacct'])  # show the job status
         
 
-    def create_sbatch_scripts(self, suffix, node='microcloud', num_CPU=4, exe=None, output_folder=None, database=None):
+    def create_sbatch_scripts(self, suffix, node, num_CPU=4, exe=None, output_folder=None, database=None):
         """
         Generate sbatch files to submit the sweep simulations to cloud computers by Slurm.
 
@@ -670,6 +673,7 @@ class SweepHelper:
         filename, extension = CommonShortcuts.separate_extension(inputpath)
         unique_name = filename + "_on_" + node + suffix
         output_subfolder = os.path.join(output_folder, unique_name)
+        if not os.path.exists(output_subfolder): os.makedirs(output_subfolder)
         logfile = os.path.join(output_subfolder, unique_name + ".log")
 
         with open(scriptpath, 'w') as f:
@@ -680,16 +684,17 @@ class SweepHelper:
             f.write("#SBATCH --nodes=1\n")  # multinode parallelism with MPI not implemented in nextnano
             f.write(f"#SBATCH --time={time_limit_hrs}:00:00\n")
             f.write(f"#SBATCH --hint=multithread\n")
-            f.write(f"#SBATCH --output=\"{logfile}\"\n")
+            f.write(f"#SBATCH --output={logfile}\n")
             f.write("\n")
             f.write("#SBATCH --job-name=nextnano\n")
             f.write(f"#SBATCH --comment='Python Sweep simulation'\n")
             f.write("#SBATCH --mail-type=end\n")
             f.write("#SBATCH --mail-user=takuma.sato@nextnano.com\n")
+            f.write("\n")
             if self.shortcuts.product_name == 'nextnano.NEGF++':
-                f.write(f"\"{exe}\" -i \"{inputpath}\" -o \"{output_subfolder}\" -m \"{database}\" -c -l \"{license}\" -t {num_CPU} -v splitfile")
+                f.write(f"{exe} -i \"{inputpath}\" -o \"{output_subfolder}\" -m \"{database}\" -c -l \"{license}\" -t {num_CPU} -v splitfile")
             elif self.shortcuts.product_name == 'nextnano++':
-                f.write(f"\"{exe}\" -o \"{output_subfolder}\" -d \"{database}\" -l \"{license}\" -t {num_CPU} \"{inputpath}\"")
+                f.write(f"{exe} -o \"{output_subfolder}\" -d \"{database}\" -l \"{license}\" -t {num_CPU} \"{inputpath}\"")
 
 
 

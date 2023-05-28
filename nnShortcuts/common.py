@@ -573,9 +573,12 @@ class CommonShortcuts:
                     elif 'run{' in line:
                         from nnShortcuts.nnp_shortcuts import nnpShortcuts
                         return nnpShortcuts()
-                    elif '<nextnano.NEGF' in line or 'nextnano.NEGF{' in line:
+                    elif '<nextnano.NEGF' in line:
                         from nnShortcuts.NEGF_shortcuts import NEGFShortcuts
-                        return NEGFShortcuts()
+                        return NEGFShortcuts(True)
+                    elif 'nextnano.NEGF{' in line:
+                        from nnShortcuts.NEGF_shortcuts import NEGFShortcuts
+                        return NEGFShortcuts(False)
                     elif '<nextnano.MSB' in line or 'nextnano.MSB{' in line:
                         raise NotImplementedError("MSB shortcuts are not implemented")
                 raise NextnanoInputFileError('Software cannot be detected! Please check your input file.')
@@ -771,6 +774,9 @@ class CommonShortcuts:
         nextnanopy.DataFile object of the simulation data
 
         """
+        # validate the path
+        if not os.path.exists(folder_path): raise ValueError(f"Specified path {folder_path} does not exist")
+
         # if only one keyword is provided, make a list with single element to simplify code
         if isinstance(keywords, str):
             keywords = [keywords]
@@ -805,7 +811,7 @@ class CommonShortcuts:
 
         # validate the search result
         if len(list_of_files) == 0:
-            raise FileNotFoundError(f"No output file found!")
+            raise FileNotFoundError(f"No output file found at {folder_path}")
         elif len(list_of_files) == 1:
             file = list_of_files[0]
         else:
@@ -878,6 +884,9 @@ class CommonShortcuts:
         list of nextnanopy.DataFile objects of the simulation data
 
         """
+        # validate the path
+        if not os.path.exists(folder_path): raise ValueError(f"Specified path {folder_path} does not exist")
+
         # if only one keyword is provided, make a list with single element to simplify code
         if isinstance(keywords, str):
             keywords = [keywords]
@@ -911,7 +920,7 @@ class CommonShortcuts:
 
         # validate the search result
         if len(list_of_files) == 0:
-            raise FileNotFoundError(f"No output file found!")
+            raise FileNotFoundError(f"No output file found at {folder_path}")
         elif len(list_of_files) == 1:
             warnings.warn("get_DataFiles_in_folder(): Only one output file found!", category=RuntimeWarning)
 
