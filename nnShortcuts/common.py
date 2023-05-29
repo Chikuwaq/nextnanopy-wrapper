@@ -1039,13 +1039,13 @@ class CommonShortcuts:
                                 raise ValueError(f"Quantum model '{model}' does not contain hole states.")
                             
                             # TODO: nn3 has two output files '_el' and '_hl' also in 8kp calculation
-                            states_toBePlotted[model].append(self.find_highest_hole_state_atK0(outfolder, threshold=0.5))
+                            states_toBePlotted[model].append(self.find_highest_valence_state_atK0(outfolder, threshold=0.5))
                                 
                         elif stateNo == 'lowestElectron':
                             if model != 'kp8' and model not in self.model_names_conduction:
                                 raise ValueError(f"Quantum model '{model}' does not contain electron states.")
 
-                            states_toBePlotted[model].append(self.find_lowest_electron_state_atK0(outfolder, threshold=0.5))
+                            states_toBePlotted[model].append(self.find_lowest_conduction_state_atK0(outfolder, threshold=0.5))
                             
                         elif stateNo == 'occupied':
                             if self.product_name == 'nextnano.NEGF':
@@ -1073,10 +1073,10 @@ class CommonShortcuts:
     def get_transition_energy(self):
         raise NotImplementedError("There is no common implementation")
     
-    def find_highest_hole_state_atK0(self):
+    def find_highest_valence_state_atK0(self):
         raise NotImplementedError("There is no common implementation")
 
-    def find_lowest_electron_state_atK0(self):
+    def find_lowest_conduction_state_atK0(self):
         raise NotImplementedError("There is no common implementation")
 
 

@@ -1439,7 +1439,7 @@ class nnpShortcuts(CommonShortcuts):
 
 
     ############### find ground states from kp8 result ############################
-    def find_lowest_electron_state_atK0(self, output_folder, threshold=0.5):
+    def find_lowest_conduction_state_atK0(self, output_folder, threshold=0.5):
         """
         From spinor composition data, determine the lowest electron state in an 8-band k.p simulation.
         This method should be able to detect it properly even when the effective bandgap is negative,
@@ -1485,7 +1485,7 @@ class nnpShortcuts(CommonShortcuts):
         raise RuntimeError(f"No electron states found in: {output_folder}")
 
 
-    def find_highest_hole_state_atK0(self, output_folder, threshold=0.5):
+    def find_highest_valence_state_atK0(self, output_folder, threshold=0.5):
         """
         From spinor composition data, determine the highest hole state in an 8-band k.p simulation.
         This method should be able to detect it properly even when the effective bandgap is negative,
@@ -1612,8 +1612,8 @@ class nnpShortcuts(CommonShortcuts):
                     h_state_basis = ['LH']
 
         x = df_e.coords['x'].value
-        iLowestElectron = self.find_lowest_electron_state_atK0(output_folder, threshold=0.5)
-        iHighestHole    = self.find_highest_hole_state_atK0(output_folder, threshold=0.5)
+        iLowestElectron = self.find_lowest_conduction_state_atK0(output_folder, threshold=0.5)
+        iHighestHole    = self.find_highest_valence_state_atK0(output_folder, threshold=0.5)
 
 
         # extract amplitude of electron-like state
@@ -1662,8 +1662,8 @@ class nnpShortcuts(CommonShortcuts):
         """
         datafiles = self.get_DataFiles_in_folder(["transition_energies", ".fld"], output_folder)
 
-        iLowestElectron = self.find_lowest_electron_state_atK0(output_folder, threshold=0.5)
-        iHighestHole    = self.find_highest_hole_state_atK0(output_folder, threshold=0.5)
+        iLowestElectron = self.find_lowest_conduction_state_atK0(output_folder, threshold=0.5)
+        iHighestHole    = self.find_highest_valence_state_atK0(output_folder, threshold=0.5)
 
         # get the energy separation dE = (electron state level) - (hole state level)
         if any('kp8' in df.fullpath for df in datafiles):

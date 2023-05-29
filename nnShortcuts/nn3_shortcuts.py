@@ -189,7 +189,7 @@ class nn3Shortcuts(CommonShortcuts):
 
 
     ############### find ground states from kp8 result ############################
-    def find_lowest_electron_state_atK0(self, output_folder, threshold=0.5):
+    def find_lowest_conduction_state_atK0(self, output_folder, threshold=0.5):
         """
         TODO: Since nn3 outputs e- and h-like eigenstates in separate output files, 
         1. this method should return 0
@@ -238,7 +238,7 @@ class nn3Shortcuts(CommonShortcuts):
         raise RuntimeError(f"No electron states found in: {output_folder}")
 
 
-    def find_highest_hole_state_atK0(self, output_folder, threshold=0.5):
+    def find_highest_valence_state_atK0(self, output_folder, threshold=0.5):
         """
         TODO: Since nn3 outputs e- and h-like eigenstates in separate output files, 
         1. this method should return 0
@@ -354,8 +354,8 @@ class nn3Shortcuts(CommonShortcuts):
                     h_state_basis = ['LH']
             
         x = df_e.coords['x'].value
-        iLowestElectron = self.find_lowest_electron_state_atK0(output_folder, threshold=0.5)
-        iHighestHole    = self.find_highest_hole_state_atK0(output_folder, threshold=0.5)
+        iLowestElectron = self.find_lowest_conduction_state_atK0(output_folder, threshold=0.5)
+        iHighestHole    = self.find_highest_valence_state_atK0(output_folder, threshold=0.5)
         
 
         # extract amplitude of electron-like state

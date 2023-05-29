@@ -49,13 +49,13 @@ class Test_nnp_shortcuts(unittest.TestCase):
             self.assertIsInstance(df, nn.DataFile)
 
 
-    def test_find_highest_hole_state_atK0(self):
-        index = self.shortcuts.find_highest_hole_state_atK0(self.folder)
+    def test_find_highest_valence_state_atK0(self):
+        index = self.shortcuts.find_highest_valence_state_atK0(self.folder)
         self.assertEqual(index, 13)  # state index is base 0
 
 
-    def test_find_lowest_electron_state_atK0(self):
-        index = self.shortcuts.find_lowest_electron_state_atK0(self.folder)
+    def test_find_lowest_conduction_state_atK0(self):
+        index = self.shortcuts.find_lowest_conduction_state_atK0(self.folder)
         self.assertEqual(index, 10)  # state index is base 0
 
 

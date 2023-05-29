@@ -1078,7 +1078,7 @@ class NEGFShortcuts(CommonShortcuts):
 
 
     ############### find ground states from kp8 result ############################
-    def find_lowest_electron_state_atK0(self, output_folder, threshold=0.5):
+    def find_lowest_conduction_state_atK0(self, output_folder, threshold=0.5):
         """
         From spinor composition data, determine the lowest electron state in an 8-band k.p simulation.
         This method should be able to detect it properly even when the effective bandgap is negative,
@@ -1123,7 +1123,7 @@ class NEGFShortcuts(CommonShortcuts):
         raise RuntimeError(f"No electron states found in: {output_folder}")
 
 
-    def find_highest_hole_state_atK0(self, output_folder, threshold=0.5):
+    def find_highest_valence_state_atK0(self, output_folder, threshold=0.5):
         """
             From spinor composition data, determine the highest hole state in an 8-band k.p simulation.
             This method should be able to detect it properly even when the effective bandgap is negative,
@@ -1172,8 +1172,8 @@ class NEGFShortcuts(CommonShortcuts):
         """
         datafile = self.get_DataFile_in_folder(["energy_spectrum"], output_folder)
 
-        iLowestElectron = self.find_lowest_electron_state_atK0(output_folder, threshold=0.5)
-        iHighestHole    = self.find_highest_hole_state_atK0(output_folder, threshold=0.5)
+        iLowestElectron = self.find_lowest_conduction_state_atK0(output_folder, threshold=0.5)
+        iHighestHole    = self.find_highest_valence_state_atK0(output_folder, threshold=0.5)
 
         # print(datafile.variables[0].value)
         dE = datafile.variables[0].value[iLowestElectron] - datafile.variables[0].value[iHighestHole]  # TODO: the key 'Energy' isn't read by nextnanopy correctly
