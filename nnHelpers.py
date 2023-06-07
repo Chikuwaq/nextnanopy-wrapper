@@ -118,7 +118,9 @@ class SweepHelper:
         Parameters
         ----------
         sweep_ranges : dict of tuple - { 'sweep variable': tuple([min, max], number of points) }
-            the range and number of simulations for each sweep variable key.
+                       OR
+                       dict of list  - { 'sweep variable': list(value1, value2, ...) }
+            specifies the values of each sweep variable key.
 
         master_input_file : nextnanopy.InputFile object
             master input file in which one or more variables are swept
@@ -153,8 +155,11 @@ class SweepHelper:
         # generate self.sweep_space
         self.sweep_space = dict()
         for var in sweep_ranges:
-            bounds, num_points = sweep_ranges[var]
-            self.sweep_space[var] = np.around(np.linspace(bounds[0], bounds[1], num_points), round_decimal)   # avoid lengthy filenames
+            if isinstance(sweep_ranges[var], tuple):  # min, max, and number of points have been given
+                bounds, num_points = sweep_ranges[var]
+                self.sweep_space[var] = np.around(np.linspace(bounds[0], bounds[1], num_points), round_decimal)   # avoid lengthy filenames
+            elif isinstance(sweep_ranges[var], list):  # list of values has been given
+                self.sweep_space[var] = np.array(sweep_ranges[var])
 
         # prepare shortcuts for the nextnano solver used
         self.shortcuts = CommonShortcuts.get_shortcut(master_input_file)
