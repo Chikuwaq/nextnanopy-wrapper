@@ -30,7 +30,6 @@ E.g. get_states_to_be_plotted()
 - add an example to demonstrate usage
 - add an option 'outfolder_name' in execute_sweep()
 - get generate_gif working
-- add plot_probabilities
 
 [README]
 

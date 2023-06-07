@@ -752,7 +752,7 @@ class NEGFShortcuts(CommonShortcuts):
         return fig
 
 
-    ############### plot probabilities ##################################
+    ############### plot wavefunctions ##################################
     def plot_probabilities(self,
             input_file,
             states_range_dict   = None,
@@ -763,7 +763,7 @@ class NEGFShortcuts(CommonShortcuts):
             only_k0             = True,
             show_spinor         = False,
             show_state_index    = False,
-            color_by_fraction_of = '',
+            color_by_fraction_of = 'conduction_band',
             plot_title          = '',
             labelsize           = None,
             ticksize            = None,
@@ -839,13 +839,13 @@ class NEGFShortcuts(CommonShortcuts):
         if not datafile_probability:
             raise NextnanoInputFileError('Probabilities are not output! Modify the input file.')
 
-
         # store data in arrays (independent of quantum models)
         x             = datafile_bandedge.coords['Position'].value
         CBBandedge    = datafile_bandedge.variables['Conduction band edge with strain'].value
-        LHBandedge    = datafile_bandedge.variables['LH band edge with strain'].value
+        # LHBandedge    = datafile_bandedge.variables['LH band edge with strain'].value  # TODO: C++ code needs improvement
         # HHBandedge    = datafile_bandedge.variables['HH band edge with strain'].value  # TODO: C++ code needs improvement
-        SOBandedge    = datafile_bandedge.variables['SO band edge with strain'].value
+        # SOBandedge    = datafile_bandedge.variables['SO band edge with strain'].value  # TODO: C++ code needs improvement
+        VBTop         = datafile_bandedge.variables['Valence band top without strain'].value
 
         states_toBePlotted, num_evs = self.get_states_to_be_plotted(datafiles_probability_dict, states_range_dict=states_range_dict, states_list_dict=states_list_dict)
 
@@ -878,9 +878,10 @@ class NEGFShortcuts(CommonShortcuts):
 
         # chop off edges of the simulation region
         CBBandedge = CommonShortcuts.cutOff_edges1D(CBBandedge, x, start_position, end_position)
-        # HHBandedge = CommonShortcuts.cutOff_edges1D(HHBandedge, x, start_position, end_position)  # TODO: C++ code needs improvement
-        LHBandedge = CommonShortcuts.cutOff_edges1D(LHBandedge, x, start_position, end_position)
-        SOBandedge = CommonShortcuts.cutOff_edges1D(SOBandedge, x, start_position, end_position)
+        # HHBandedge = CommonShortcuts.cutOff_edges1D(HHBandedge, x, start_position, end_position)
+        # LHBandedge = CommonShortcuts.cutOff_edges1D(LHBandedge, x, start_position, end_position)
+        # SOBandedge = CommonShortcuts.cutOff_edges1D(SOBandedge, x, start_position, end_position)
+        VBTop = CommonShortcuts.cutOff_edges1D(VBTop, x, start_position, end_position)
 
 
         for model in states_toBePlotted:
@@ -906,37 +907,29 @@ class NEGFShortcuts(CommonShortcuts):
                 'kp6': list(),
                 'kp8': list()
             }
-            datafiles = self.get_DataFiles(['spinor_composition'], input_file.fullpath)
+            datafiles = self.get_DataFiles(['spinor_composition_Ang'], input_file.fullpath)
             # datafiles = [df for cnt in range(len(datafiles)) for df in datafiles if str(cnt).zfill(5) + '_CbHhLhSo' in os.path.split(df.fullpath)[1]]   # sort spinor composition datafiles in ascending kIndex  # TODO: C++ doesn't have multiple in-plane k output
             for df in datafiles:
-                quantum_model = 'kp8'
-                if quantum_model == 'kp6':
-                    datafiles_spinor['kp6'].append(df)
-                elif quantum_model == 'kp8':
-                    datafiles_spinor['kp8'].append(df)
-                else:
-                    raise RuntimeError("Unknown quantum model in spinor composition!")
+                datafiles_spinor['kp8'].append(df)
             del datafiles
-
+            
             # dictionary containing quantum model keys and 1-dimensional np.ndarrays for each key that stores spinor composition for all (eigenstate, kIndex)
             compositions = dict()
 
-            spinor_label_s1 = ''  # TODO: nextnanopy negf parser or InputFile class has a bug, or, my output from NEGF++ is not optimal
-            spinor_label_s2 = 'z1'
             for model, state_indices in states_toBePlotted.items():
                 if model not in ['kp6', 'kp8']: continue
 
                 compositions[model] = np.zeros((num_evs[model], num_kPoints[model], 4))   # compositions[quantum model][eigenvalue index][k index][spinor index]
-
+                print(datafiles_spinor[model][0])  # TODO: nextnanopy negf parser or InputFile class has a bug, or, my output from NEGF++ is not optimal
                 for stateIndex in state_indices:
                     for kIndex in range(num_kPoints[model]):
                         # store spinor composition data
                         if model == 'kp8':
-                            compositions[model][stateIndex, kIndex, 0] = datafiles_spinor[model][kIndex].variables[spinor_label_s1].value[stateIndex] + datafiles_spinor[model][kIndex].variables[spinor_label_s2].value[stateIndex]
+                            compositions[model][stateIndex, kIndex, 0] = datafiles_spinor[model][kIndex].variables[0].value[stateIndex] + datafiles_spinor[model][kIndex].variables[4].value[stateIndex]
                         # TODO: test if spinor compositions are read correctly
-                        compositions[model][stateIndex, kIndex, 1] = datafiles_spinor[model][kIndex].variables['hh1'].value[stateIndex] + datafiles_spinor[model][kIndex].variables['hh2'].value[stateIndex]
-                        compositions[model][stateIndex, kIndex, 2] = datafiles_spinor[model][kIndex].variables['lh1'].value[stateIndex] + datafiles_spinor[model][kIndex].variables['lh2'].value[stateIndex]
-                        compositions[model][stateIndex, kIndex, 3] = datafiles_spinor[model][kIndex].variables['so1'].value[stateIndex] + datafiles_spinor[model][kIndex].variables['so2'].value[stateIndex]
+                        compositions[model][stateIndex, kIndex, 1] = datafiles_spinor[model][kIndex].variables[1].value[stateIndex] + datafiles_spinor[model][kIndex].variables[5].value[stateIndex]
+                        compositions[model][stateIndex, kIndex, 2] = datafiles_spinor[model][kIndex].variables[2].value[stateIndex] + datafiles_spinor[model][kIndex].variables[6].value[stateIndex]
+                        compositions[model][stateIndex, kIndex, 3] = datafiles_spinor[model][kIndex].variables[3].value[stateIndex] + datafiles_spinor[model][kIndex].variables[7].value[stateIndex]
 
         # define plot title
         title = CommonShortcuts.get_plot_title(plot_title)
@@ -948,10 +941,12 @@ class NEGFShortcuts(CommonShortcuts):
             # TODO: C++ code needs improvement
             # if model == 'HH' or model == 'kp6' or model == 'kp8':
             #     ax.plot(x, HHBandedge, label='heavy hole', linewidth=0.6, color=self.band_colors['HH'])
+            # if model == 'LH' or model == 'kp6' or model == 'kp8':
+            #     ax.plot(x, LHBandedge, label='light hole', linewidth=0.6, color=self.band_colors['LH'])
+            # if model == 'SO' or model == 'kp6' or model == 'kp8':
+            #     ax.plot(x, SOBandedge, label='split-off hole', linewidth=0.6, color=self.band_colors['SO'])
             if model == 'LH' or model == 'kp6' or model == 'kp8':
-                ax.plot(x, LHBandedge, label='light hole', linewidth=0.6, color=self.band_colors['LH'])
-            if model == 'SO' or model == 'kp6' or model == 'kp8':
-                ax.plot(x, SOBandedge, label='split-off hole', linewidth=0.6, color=self.band_colors['SO'])
+                ax.plot(x, VBTop, label='VB top without strain', linewidth=0.6, color=self.band_colors['LH'])
 
         def draw_probabilities(self, ax, state_indices, model, kIndex, show_state_index, color_by_fraction_of):
             if model != 'kp8' and color_by_fraction_of:
@@ -1055,6 +1050,196 @@ class NEGFShortcuts(CommonShortcuts):
         plt.show()
 
 
+    def plot_RRSWavefunctions(self,
+            input_file,
+            start_position      = -10000.,
+            end_position        = 10000.,
+            hide_tails          = False,
+            show_state_index    = False,
+            color_by_fraction_of = 'conduction_band',
+            plot_title          = '',
+            labelsize           = None,
+            ticksize            = None,
+            savePDF             = False,
+            savePNG             = False,
+            ):
+        """
+        Plot the Reduced Real Space modes on top of bandedges.
+        
+        The Reduced Real Space modes are coloured according to
+        electron fraction (for kp8 model).
+
+        Parameters
+        ----------
+        input_file : nextnanopy.InputFile object
+            nextnano++ input file.
+        states_range_dict : dict, optional
+            range of state indices to be plotted for each quantum model. The default is None.
+        states_list_dict : dict, optional
+            list of state indices to be plotted for each quantum model.
+            Alternatively, strings 'lowestElectron', 'highestHole' and 'occupied' are accepted. For 'occupied', another key 'cutoff_occupation' must be set in this dict.
+            The default is None.
+        start_position : real, optional
+            left edge of the plotting region. The default is -10000.
+        end_position : real, optional
+            right edge of the plotting region. The default is 10000.
+        hide_tails : bool, optional
+            hide the probability tails. The default is False.
+        only_k0 : bool, optional
+            suppress the output of nonzero in-plane k states. The default is True.
+        show_spinor : bool, optional
+            plot pie chart of spinor composition for all eigenvalues and k points. The default is False.
+        show_state_index : bool, optional
+            indicate eigenstate indices on top of probability plot. The default is False.
+        color_by_fraction_of : str, optional
+            If 8-band k.p simulation, colour the probabilities by the spinor fraction of the specified band. The default is 'conduction_band'.
+        plot_title : str, optional
+            title of the probability plot. The default is ''.
+        labelsize : int, optional
+            font size of xlabel, ylabel and colorbar label
+        ticksize : int, optional
+            font size of xtics, ytics and colorbar tics
+        savePDF : str, optional
+            save the plot in the PDF format. The default is False.
+        savePNG : str, optional
+            save the plot in the PNG format. The default is False.
+
+        Returns
+        -------
+        None.
+
+        """
+        if labelsize is None: labelsize = self.labelsize_default
+        if ticksize is None: ticksize = self.ticksize_default
+        if color_by_fraction_of not in ['conduction_band', 'heavy_hole']:
+            raise ValueError(f"color_by_fraction_of '{color_by_fraction_of}' is not supported")
+
+        from matplotlib import colors
+        
+        # load output data files
+        datafile_bandedge = self.get_DataFile('BandEdges', input_file.fullpath)
+        datafile_RRSModes = self.get_DataFile(['ReducedRealSpaceModes.dat'], input_file.fullpath)
+
+        x_RRSModes  = datafile_RRSModes.coords['Position'].value
+        
+        # store data in arrays (independent of quantum models)
+        x             = datafile_bandedge.coords['Position'].value
+        CBBandedge    = datafile_bandedge.variables['Conduction band edge with strain'].value
+        # LHBandedge    = datafile_bandedge.variables['LH band edge with strain'].value  # TODO: C++ code needs improvement
+        # HHBandedge    = datafile_bandedge.variables['HH band edge with strain'].value  # TODO: C++ code needs improvement
+        # SOBandedge    = datafile_bandedge.variables['SO band edge with strain'].value  # TODO: C++ code needs improvement
+        VBTop         = datafile_bandedge.variables['Valence band top without strain'].value
+
+        
+
+        # dictionary containing quantum model keys and 2-dimensional list for each key that stores psi^2 for all (eigenstate, kIndex)
+        nStates = len(datafile_RRSModes.variables) - 4
+        psiSquared = [ 0 for stateIndex in range(nStates) ]
+        print("nStates: ", nStates)
+        for stateIndex in range(nStates):
+            psiSquared_oldgrid = datafile_RRSModes.variables[f"Psi_{stateIndex+1} (lev.{stateIndex+1} per.0)"].value  # TODO: generalize. nPeriod is not always 1
+            psiSquared[stateIndex] = CommonShortcuts.convert_grid(psiSquared_oldgrid, x_RRSModes, x)   # grid interpolation needed because of 'output_bandedges{ averaged=no }'
+
+
+        # chop off edges of the simulation region
+        CBBandedge = CommonShortcuts.cutOff_edges1D(CBBandedge, x, start_position, end_position)
+        # HHBandedge = CommonShortcuts.cutOff_edges1D(HHBandedge, x, start_position, end_position)
+        # LHBandedge = CommonShortcuts.cutOff_edges1D(LHBandedge, x, start_position, end_position)
+        # SOBandedge = CommonShortcuts.cutOff_edges1D(SOBandedge, x, start_position, end_position)
+        VBTop = CommonShortcuts.cutOff_edges1D(VBTop, x, start_position, end_position)
+
+        for stateIndex in range(nStates):
+            psiSquared[stateIndex] = CommonShortcuts.cutOff_edges1D(psiSquared[stateIndex], x, start_position, end_position)   # chop off edges of the simulation region
+
+        x = CommonShortcuts.cutOff_edges1D(x, x, start_position, end_position)
+        # simLength = x[-1]-x[0]   # (nm)
+
+
+        # mask psiSquared data where it is flat
+        if hide_tails:
+            for stateIndex in range(nStates):
+                psiSquared[stateIndex] = CommonShortcuts.mask_part_of_array(psiSquared[stateIndex], method='flat', tolerance=1e-2)
+
+        # define plot title
+        title = CommonShortcuts.get_plot_title(plot_title)
+
+        def draw_bandedges(ax, model):
+            self.set_plot_labels(ax, 'Position (nm)', 'Energy (eV)', title)
+            if model == 'Gamma' or model == 'kp8':
+                ax.plot(x, CBBandedge, label='conduction band', linewidth=0.6, color=self.band_colors['CB'])
+            # TODO: C++ code needs improvement
+            # if model == 'HH' or model == 'kp6' or model == 'kp8':
+            #     ax.plot(x, HHBandedge, label='heavy hole', linewidth=0.6, color=self.band_colors['HH'])
+            # if model == 'LH' or model == 'kp6' or model == 'kp8':
+            #     ax.plot(x, LHBandedge, label='light hole', linewidth=0.6, color=self.band_colors['LH'])
+            # if model == 'SO' or model == 'kp6' or model == 'kp8':
+            #     ax.plot(x, SOBandedge, label='split-off hole', linewidth=0.6, color=self.band_colors['SO'])
+            if model == 'LH' or model == 'kp6' or model == 'kp8':
+                ax.plot(x, VBTop, label='VB top without strain', linewidth=0.6, color=self.band_colors['LH'])
+
+        def draw_probabilities(self, ax, state_indices, model, show_state_index, color_by_fraction_of):
+            if model != 'kp8' and color_by_fraction_of:
+                warnings.warn(f"Option 'color_by_fraction_of' is only effective in 8kp simulations, but {model} results are being used")
+            if model == 'kp8' and not color_by_fraction_of:
+                color_by_fraction_of = 'conduction_band'  # default
+            skip_annotation = False
+            for cnt, stateIndex in enumerate(state_indices):
+                ax.plot(x, psiSquared[stateIndex])
+
+                if show_state_index:
+                    xmax, ymax = CommonShortcuts.get_maximum_points(psiSquared[stateIndex], x)
+                    if skip_annotation:   # if annotation was skipped in the previous iteration, annotate
+                        # ax.annotate(f'n={stateIndex},{stateIndex+1}', xy=(xmax, ymax), xytext=(xmax-0.05*simLength, ymax+0.07))
+                        ax.annotate(f'{stateIndex},{stateIndex+1}', xy=(xmax, ymax), xytext=(xmax, ymax+0.07))
+                        skip_annotation = False   # wavefunction degeneracy is atmost 2
+                    elif cnt < len(state_indices)-1:  # if not the last state
+                        xmax_next, ymax_next = CommonShortcuts.get_maximum_points(psiSquared[stateIndex+1], x)
+                        if abs(xmax_next - xmax) < 1.0 and abs(ymax_next - ymax) < 1e-1:
+                            skip_annotation = True
+                        else:
+                            skip_annotation = False
+                            # ax.annotate(f'n={stateIndex+1}', xy=(xmax, ymax), xytext=(xmax-0.05*simLength, ymax+0.07))
+                            ax.annotate(f'{stateIndex+1}', xy=(xmax, ymax), xytext=(xmax, ymax+0.07))
+                    else:
+                        # ax.annotate(f'n={stateIndex+1}', xy=(xmax, ymax), xytext=(xmax-0.05*simLength, ymax+0.07))
+                        ax.annotate(f'{stateIndex+1}', xy=(xmax, ymax), xytext=(xmax, ymax+0.07))
+            ax.legend(loc='lower left')
+
+
+        # instantiate matplotlib subplot objects for bandedge & probability distribution & spinor pie charts
+        fig, ax_probability = plt.subplots()
+        model = 'kp8'
+        draw_bandedges(ax_probability, model)
+        # ax_probability.set_title(f'{title} (quantum model: {model})', color=self.band_colors[model])
+
+
+        # if model == 'kp8':
+        #     # define colorbar representing electron fraction
+        #     divnorm = colors.TwoSlopeNorm(vcenter=0.5, vmin=0.0, vmax=1.0)
+        #     scalarmappable = plt.cm.ScalarMappable(cmap='seismic', norm=divnorm)
+        #     cbar = fig.colorbar(scalarmappable)
+        #     cbar.set_label("Conduction-band fraction", fontsize=labelsize)
+        #     cbar.ax.tick_params(labelsize=ticksize)
+
+        draw_probabilities(self, ax_probability, np.arange(nStates), model, show_state_index, color_by_fraction_of)
+
+        fig.tight_layout()
+
+
+        #-------------------------------------------
+        # Plots --- save all the figures to one PDF
+        #-------------------------------------------
+        if savePDF:
+            export_filename = f'{CommonShortcuts.separate_extension(input_file.fullpath)[0]}_RRSModes'
+            self.export_figs(export_filename, 'pdf')
+        if savePNG:
+            export_filename = f'{CommonShortcuts.separate_extension(input_file.fullpath)[0]}_RRSModes'
+            self.export_figs(export_filename, 'png', fig=fig)   # NOTE: presumably only the last fig instance is exported
+
+        # --- display in the GUI
+        plt.show()
+
+
     def get_DataFile_probabilities_in_folder(self, folder_path):
         """
         Get single nextnanopy.DataFile of probability_shift data in the specified folder.
@@ -1071,7 +1256,7 @@ class NEGFShortcuts(CommonShortcuts):
         """
         datafiles = self.get_DataFiles_in_folder("probabilities_shifted", folder_path)
 
-        if len(datafiles) > 1: raise RuntimeError("Multiple data files found with keyword 'Probabilities_selected'!")
+        if len(datafiles) > 1: raise RuntimeError("Multiple data files found with keyword 'probabilities_shifted'!")
         probability_dict = {'kp8': list(datafiles)} # currently, wavefunctions are output only in 8-band models
         return probability_dict
 
@@ -1103,7 +1288,7 @@ class NEGFShortcuts(CommonShortcuts):
         """
         # get nn.DataFile object
         try:
-            datafile = self.get_DataFile_in_folder(['spinor_composition'], output_folder)   # spinor composition at in-plane k = 0
+            datafile = self.get_DataFile_in_folder(['spinor_composition_SXYZ'], output_folder)   # spinor composition at in-plane k = 0
         except FileNotFoundError:
             warnings.warn("Spinor components output in CbHhLhSo basis is not found. Assuming decoupling of the conduction and valence bands...", category=NextnanoInputFileWarning)
             return int(0)
@@ -1148,7 +1333,7 @@ class NEGFShortcuts(CommonShortcuts):
         """
         # get nn.DataFile object
         try:
-            datafile = self.get_DataFile_in_folder(['spinor_composition'], output_folder)   # spinor composition at in-plane k = 0
+            datafile = self.get_DataFile_in_folder(['spinor_composition_SXYZ'], output_folder)   # spinor composition at in-plane k = 0
         except FileNotFoundError:
             warnings.warn("Spinor components output in CbHhLhSo basis is not found. Assuming decoupling of the conduction and valence bands...", category=NextnanoInputFileWarning)
             return int(0)
