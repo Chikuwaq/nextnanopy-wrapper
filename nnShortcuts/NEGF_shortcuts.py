@@ -1363,5 +1363,5 @@ class NEGFShortcuts(CommonShortcuts):
         # print(datafile.variables[0].value)
         dE = datafile.variables[0].value[iLowestElectron] - datafile.variables[0].value[iHighestHole]  # TODO: the key 'Energy' isn't read by nextnanopy correctly
 
-        return dE / self.scale1ToMilli
+        return dE
     

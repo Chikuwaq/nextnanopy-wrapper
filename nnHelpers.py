@@ -159,7 +159,7 @@ class SweepHelper:
                 bounds, num_points = sweep_ranges[var]
                 self.sweep_space[var] = np.around(np.linspace(bounds[0], bounds[1], num_points), round_decimal)   # avoid lengthy filenames
             elif isinstance(sweep_ranges[var], list):  # list of values has been given
-                self.sweep_space[var] = np.array(sweep_ranges[var])
+                self.sweep_space[var] = np.around(np.array(sweep_ranges[var]), round_decimal)   # avoid lengthy filenames
 
         # prepare shortcuts for the nextnano solver used
         self.shortcuts = CommonShortcuts.get_shortcut(master_input_file)
