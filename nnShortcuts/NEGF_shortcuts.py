@@ -763,6 +763,7 @@ class NEGFShortcuts(CommonShortcuts):
             only_k0             = True,
             show_spinor         = False,
             show_state_index    = False,
+            want_valence_band   = True,
             color_by_fraction_of = 'conduction_band',
             plot_title          = '',
             labelsize           = None,
@@ -801,6 +802,8 @@ class NEGFShortcuts(CommonShortcuts):
             plot pie chart of spinor composition for all eigenvalues and k points. The default is False.
         show_state_index : bool, optional
             indicate eigenstate indices on top of probability plot. The default is False.
+        want_valence_band : bool, optional
+            If True, plot the valence band edges. The default is True.
         color_by_fraction_of : str, optional
             If 8-band k.p simulation, colour the probabilities by the spinor fraction of the specified band. The default is 'conduction_band'.
         plot_title : str, optional
@@ -842,10 +845,11 @@ class NEGFShortcuts(CommonShortcuts):
         # store data in arrays (independent of quantum models)
         x             = datafile_bandedge.coords['Position'].value
         CBBandedge    = datafile_bandedge.variables['Conduction band edge with strain'].value
-        # LHBandedge    = datafile_bandedge.variables['LH band edge with strain'].value  # TODO: C++ code needs improvement
-        # HHBandedge    = datafile_bandedge.variables['HH band edge with strain'].value  # TODO: C++ code needs improvement
-        # SOBandedge    = datafile_bandedge.variables['SO band edge with strain'].value  # TODO: C++ code needs improvement
-        VBTop         = datafile_bandedge.variables['Valence band top without strain'].value
+        if want_valence_band:
+            # LHBandedge    = datafile_bandedge.variables['LH band edge with strain'].value  # TODO: C++ code needs improvement
+            # HHBandedge    = datafile_bandedge.variables['HH band edge with strain'].value  # TODO: C++ code needs improvement
+            # SOBandedge    = datafile_bandedge.variables['SO band edge with strain'].value  # TODO: C++ code needs improvement
+            VBTop         = datafile_bandedge.variables['Valence band top without strain'].value
 
         states_toBePlotted, num_evs = self.get_states_to_be_plotted(datafiles_probability_dict, states_range_dict=states_range_dict, states_list_dict=states_list_dict)
 
@@ -869,19 +873,23 @@ class NEGFShortcuts(CommonShortcuts):
 
         for model, dfs in datafiles_probability_dict.items():
             if len(dfs) == 0: continue
-
+            
             for cnt, stateIndex in enumerate(states_toBePlotted[model]):
                 for kIndex in range(num_kPoints[model]):
-                    psiSquared_oldgrid = dfs[kIndex].variables[f"Psi^2_{stateIndex+1} (lev.{stateIndex+1} per.0)"].value  # TODO: generalize. nPeriod is not always 1
+                    # psiSquared_oldgrid = dfs[kIndex].variables[f"Psi^2_{stateIndex+1} (lev.{stateIndex+1} per.0)"].value  # TODO: generalize. nPeriod is not always 1
+                    lis = list(dfs[kIndex].variables.keys())  # workaround: get the keys
+                    
+                    psiSquared_oldgrid = dfs[kIndex].variables[lis[4 + stateIndex]].value # first four data are bandedges
                     psiSquared[model][cnt][kIndex] = CommonShortcuts.convert_grid(psiSquared_oldgrid, x_probability, x)   # grid interpolation needed because of 'output_bandedges{ averaged=no }'
 
 
         # chop off edges of the simulation region
         CBBandedge = CommonShortcuts.cutOff_edges1D(CBBandedge, x, start_position, end_position)
-        # HHBandedge = CommonShortcuts.cutOff_edges1D(HHBandedge, x, start_position, end_position)
-        # LHBandedge = CommonShortcuts.cutOff_edges1D(LHBandedge, x, start_position, end_position)
-        # SOBandedge = CommonShortcuts.cutOff_edges1D(SOBandedge, x, start_position, end_position)
-        VBTop = CommonShortcuts.cutOff_edges1D(VBTop, x, start_position, end_position)
+        if want_valence_band:
+            # HHBandedge = CommonShortcuts.cutOff_edges1D(HHBandedge, x, start_position, end_position)
+            # LHBandedge = CommonShortcuts.cutOff_edges1D(LHBandedge, x, start_position, end_position)
+            # SOBandedge = CommonShortcuts.cutOff_edges1D(SOBandedge, x, start_position, end_position)
+            VBTop = CommonShortcuts.cutOff_edges1D(VBTop, x, start_position, end_position)
 
 
         for model in states_toBePlotted:
@@ -934,19 +942,20 @@ class NEGFShortcuts(CommonShortcuts):
         # define plot title
         title = CommonShortcuts.get_plot_title(plot_title)
 
-        def draw_bandedges(ax, model):
+        def draw_bandedges(ax, model, want_valence_band):
             self.set_plot_labels(ax, 'Position (nm)', 'Energy (eV)', title)
             if model == 'Gamma' or model == 'kp8':
                 ax.plot(x, CBBandedge, label='conduction band', linewidth=0.6, color=self.band_colors['CB'])
-            # TODO: C++ code needs improvement
-            # if model == 'HH' or model == 'kp6' or model == 'kp8':
-            #     ax.plot(x, HHBandedge, label='heavy hole', linewidth=0.6, color=self.band_colors['HH'])
-            # if model == 'LH' or model == 'kp6' or model == 'kp8':
-            #     ax.plot(x, LHBandedge, label='light hole', linewidth=0.6, color=self.band_colors['LH'])
-            # if model == 'SO' or model == 'kp6' or model == 'kp8':
-            #     ax.plot(x, SOBandedge, label='split-off hole', linewidth=0.6, color=self.band_colors['SO'])
-            if model == 'LH' or model == 'kp6' or model == 'kp8':
-                ax.plot(x, VBTop, label='VB top without strain', linewidth=0.6, color=self.band_colors['LH'])
+            if want_valence_band:
+                # TODO: C++ code needs improvement
+                # if model == 'HH' or model == 'kp6' or model == 'kp8':
+                #     ax.plot(x, HHBandedge, label='heavy hole', linewidth=0.6, color=self.band_colors['HH'])
+                # if model == 'LH' or model == 'kp6' or model == 'kp8':
+                #     ax.plot(x, LHBandedge, label='light hole', linewidth=0.6, color=self.band_colors['LH'])
+                # if model == 'SO' or model == 'kp6' or model == 'kp8':
+                #     ax.plot(x, SOBandedge, label='split-off hole', linewidth=0.6, color=self.band_colors['SO'])
+                if model == 'LH' or model == 'kp6' or model == 'kp8':
+                    ax.plot(x, VBTop, label='VB top without strain', linewidth=0.6, color=self.band_colors['LH'])
 
         def draw_probabilities(self, ax, state_indices, model, kIndex, show_state_index, color_by_fraction_of):
             if model != 'kp8' and color_by_fraction_of:
@@ -983,7 +992,8 @@ class NEGFShortcuts(CommonShortcuts):
                     else:
                         # ax.annotate(f'n={stateIndex+1}', xy=(xmax, ymax), xytext=(xmax-0.05*simLength, ymax+0.07))
                         ax.annotate(f'{stateIndex+1}', xy=(xmax, ymax), xytext=(xmax, ymax+0.07))
-            ax.legend(loc='lower left')
+            # ax.legend(loc='lower left')
+            ax.legend(loc='upper left')
 
         def draw_spinor_pie_charts(gs_spinor, state_indices, model, stateIndex, kIndex, show_state_index):
             num_rows, num_columns = self.get_rowColumn_for_display(len(state_indices))  # determine arrangement of spinor composition plots
@@ -1017,7 +1027,7 @@ class NEGFShortcuts(CommonShortcuts):
                     ax_probability.set_title(f'{title} (quantum model: {model})', color=self.band_colors[model])
                 else:
                     ax_probability.set_title(f'{title} (quantum model: {model}), k index: {kIndex}', color=self.band_colors[model])
-                draw_bandedges(ax_probability, model)
+                draw_bandedges(ax_probability, model, want_valence_band)
 
 
                 if model == 'kp8':
@@ -1056,6 +1066,7 @@ class NEGFShortcuts(CommonShortcuts):
             end_position        = 10000.,
             hide_tails          = False,
             show_state_index    = False,
+            want_valence_band   = True,
             color_by_fraction_of = 'conduction_band',
             plot_title          = '',
             labelsize           = None,
@@ -1091,6 +1102,8 @@ class NEGFShortcuts(CommonShortcuts):
             plot pie chart of spinor composition for all eigenvalues and k points. The default is False.
         show_state_index : bool, optional
             indicate eigenstate indices on top of probability plot. The default is False.
+        want_valence_band : bool, optional
+            If True, plot the valence band edges. The default is True.
         color_by_fraction_of : str, optional
             If 8-band k.p simulation, colour the probabilities by the spinor fraction of the specified band. The default is 'conduction_band'.
         plot_title : str, optional
@@ -1124,11 +1137,19 @@ class NEGFShortcuts(CommonShortcuts):
         
         # store data in arrays (independent of quantum models)
         x             = datafile_bandedge.coords['Position'].value
-        CBBandedge    = datafile_bandedge.variables['Conduction band edge with strain'].value
-        # LHBandedge    = datafile_bandedge.variables['LH band edge with strain'].value  # TODO: C++ code needs improvement
-        # HHBandedge    = datafile_bandedge.variables['HH band edge with strain'].value  # TODO: C++ code needs improvement
-        # SOBandedge    = datafile_bandedge.variables['SO band edge with strain'].value  # TODO: C++ code needs improvement
-        VBTop         = datafile_bandedge.variables['Valence band top without strain'].value
+        try:
+            CBBandedge    = datafile_bandedge.variables['Conduction band edge with strain'].value
+        except KeyError:
+            CBBandedge    = datafile_bandedge.variables['CB edge with strain'].value
+        
+        if want_valence_band:
+            # LHBandedge    = datafile_bandedge.variables['LH band edge with strain'].value  # TODO: C++ code needs improvement
+            # HHBandedge    = datafile_bandedge.variables['HH band edge with strain'].value  # TODO: C++ code needs improvement
+            # SOBandedge    = datafile_bandedge.variables['SO band edge with strain'].value  # TODO: C++ code needs improvement
+            try:
+                VBTop         = datafile_bandedge.variables['Valence band top without strain'].value
+            except KeyError:
+                VBTop         = datafile_bandedge.variables['LH with strain'].value
 
         
 
@@ -1137,16 +1158,19 @@ class NEGFShortcuts(CommonShortcuts):
         psiSquared = [ 0 for stateIndex in range(nStates) ]
         print("nStates: ", nStates)
         for stateIndex in range(nStates):
-            psiSquared_oldgrid = datafile_RRSModes.variables[f"Psi_{stateIndex+1} (lev.{stateIndex+1} per.0)"].value  # TODO: generalize. nPeriod is not always 1
+            # psiSquared_oldgrid = datafile_RRSModes.variables[f"Psi_{stateIndex+1} (lev.{stateIndex+1} per.0)"].value  # TODO: generalize. nPeriod is not always 1
+            lis = list(datafile_RRSModes.variables.keys())  # workaround: get the keys
+            psiSquared_oldgrid = datafile_RRSModes.variables[lis[4 + stateIndex]].value # first four data are bandedges
             psiSquared[stateIndex] = CommonShortcuts.convert_grid(psiSquared_oldgrid, x_RRSModes, x)   # grid interpolation needed because of 'output_bandedges{ averaged=no }'
 
 
         # chop off edges of the simulation region
         CBBandedge = CommonShortcuts.cutOff_edges1D(CBBandedge, x, start_position, end_position)
-        # HHBandedge = CommonShortcuts.cutOff_edges1D(HHBandedge, x, start_position, end_position)
-        # LHBandedge = CommonShortcuts.cutOff_edges1D(LHBandedge, x, start_position, end_position)
-        # SOBandedge = CommonShortcuts.cutOff_edges1D(SOBandedge, x, start_position, end_position)
-        VBTop = CommonShortcuts.cutOff_edges1D(VBTop, x, start_position, end_position)
+        if want_valence_band:
+            # HHBandedge = CommonShortcuts.cutOff_edges1D(HHBandedge, x, start_position, end_position)
+            # LHBandedge = CommonShortcuts.cutOff_edges1D(LHBandedge, x, start_position, end_position)
+            # SOBandedge = CommonShortcuts.cutOff_edges1D(SOBandedge, x, start_position, end_position)
+            VBTop = CommonShortcuts.cutOff_edges1D(VBTop, x, start_position, end_position)
 
         for stateIndex in range(nStates):
             psiSquared[stateIndex] = CommonShortcuts.cutOff_edges1D(psiSquared[stateIndex], x, start_position, end_position)   # chop off edges of the simulation region
@@ -1163,19 +1187,20 @@ class NEGFShortcuts(CommonShortcuts):
         # define plot title
         title = CommonShortcuts.get_plot_title(plot_title)
 
-        def draw_bandedges(ax, model):
+        def draw_bandedges(ax, model, want_valence_band):
             self.set_plot_labels(ax, 'Position (nm)', 'Energy (eV)', title)
             if model == 'Gamma' or model == 'kp8':
                 ax.plot(x, CBBandedge, label='conduction band', linewidth=0.6, color=self.band_colors['CB'])
-            # TODO: C++ code needs improvement
-            # if model == 'HH' or model == 'kp6' or model == 'kp8':
-            #     ax.plot(x, HHBandedge, label='heavy hole', linewidth=0.6, color=self.band_colors['HH'])
-            # if model == 'LH' or model == 'kp6' or model == 'kp8':
-            #     ax.plot(x, LHBandedge, label='light hole', linewidth=0.6, color=self.band_colors['LH'])
-            # if model == 'SO' or model == 'kp6' or model == 'kp8':
-            #     ax.plot(x, SOBandedge, label='split-off hole', linewidth=0.6, color=self.band_colors['SO'])
-            if model == 'LH' or model == 'kp6' or model == 'kp8':
-                ax.plot(x, VBTop, label='VB top without strain', linewidth=0.6, color=self.band_colors['LH'])
+            if want_valence_band:
+                # TODO: C++ code needs improvement
+                # if model == 'HH' or model == 'kp6' or model == 'kp8':
+                #     ax.plot(x, HHBandedge, label='heavy hole', linewidth=0.6, color=self.band_colors['HH'])
+                # if model == 'LH' or model == 'kp6' or model == 'kp8':
+                #     ax.plot(x, LHBandedge, label='light hole', linewidth=0.6, color=self.band_colors['LH'])
+                # if model == 'SO' or model == 'kp6' or model == 'kp8':
+                #     ax.plot(x, SOBandedge, label='split-off hole', linewidth=0.6, color=self.band_colors['SO'])
+                if model == 'LH' or model == 'kp6' or model == 'kp8':
+                    ax.plot(x, VBTop, label='VB top without strain', linewidth=0.6, color=self.band_colors['LH'])
 
         def draw_probabilities(self, ax, state_indices, model, show_state_index, color_by_fraction_of):
             if model != 'kp8' and color_by_fraction_of:
@@ -1203,13 +1228,14 @@ class NEGFShortcuts(CommonShortcuts):
                     else:
                         # ax.annotate(f'n={stateIndex+1}', xy=(xmax, ymax), xytext=(xmax-0.05*simLength, ymax+0.07))
                         ax.annotate(f'{stateIndex+1}', xy=(xmax, ymax), xytext=(xmax, ymax+0.07))
-            ax.legend(loc='lower left')
+            # ax.legend(loc='lower left')
+            ax.legend(loc='upper left')
 
 
         # instantiate matplotlib subplot objects for bandedge & probability distribution & spinor pie charts
         fig, ax_probability = plt.subplots()
         model = 'kp8'
-        draw_bandedges(ax_probability, model)
+        draw_bandedges(ax_probability, model, want_valence_band)
         # ax_probability.set_title(f'{title} (quantum model: {model})', color=self.band_colors[model])
 
 
@@ -1290,8 +1316,7 @@ class NEGFShortcuts(CommonShortcuts):
         try:
             datafile = self.get_DataFile_in_folder(['spinor_composition_SXYZ'], output_folder)   # spinor composition at in-plane k = 0
         except FileNotFoundError:
-            warnings.warn("Spinor components output in CbHhLhSo basis is not found. Assuming decoupling of the conduction and valence bands...", category=NextnanoInputFileWarning)
-            return int(0)
+            raise
 
         # find the lowest electron state
         # TODO: nextnanopy.DataFile parses the labels in NEGF++ output file wrong.
@@ -1335,8 +1360,7 @@ class NEGFShortcuts(CommonShortcuts):
         try:
             datafile = self.get_DataFile_in_folder(['spinor_composition_SXYZ'], output_folder)   # spinor composition at in-plane k = 0
         except FileNotFoundError:
-            warnings.warn("Spinor components output in CbHhLhSo basis is not found. Assuming decoupling of the conduction and valence bands...", category=NextnanoInputFileWarning)
-            return int(0)
+            raise
 
         # find the highest hole state
         # TODO: nextnanopy.DataFile parses the labels in NEGF++ output file wrong.

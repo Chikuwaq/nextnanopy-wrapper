@@ -182,7 +182,7 @@ class SweepHelper:
         initSweepCoords = {key: arr[0] for key, arr in self.sweep_space.items()}
         subfolder = self.shortcuts.get_sweep_output_subfolder_name(self.master_input_file['original'].fullpath, initSweepCoords)
         outpath = os.path.join(outfolder, subfolder)
-        if len(outpath) + 80 > 260:
+        if len(outpath) + 100 > 260:
             import uuid
             logging.info(f"Because the output path is too long ({len(outpath)}), creating a temporary input file with shorter name...")
             dir = os.path.dirname(master_input_file.fullpath)
