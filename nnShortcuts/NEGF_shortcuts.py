@@ -27,6 +27,9 @@ class NEGFShortcuts(CommonShortcuts):
     product_name = 'null'
     model_names = ['Gamma', 'kp8']
 
+    SchrodingerRawSolutionFolder = "EnergyEigenstatesFull0V"
+    wannierStarkFolder = "EnergyEigenstates"
+
     def __init__(self, is_xml, loglevel=logging.INFO):
         if is_xml:
             self.product_name = 'nextnano.NEGF'
@@ -65,7 +68,14 @@ class NEGFShortcuts(CommonShortcuts):
 
 
 
-    def get_DataFile_NEGF_init(self, keywords, name):
+    def get_DataFiles_NEGF_init(self, keywords, name, search_raw_solution_folder = False, search_WannierStark_folder = False):
+        """
+        Get one or more nextnanopy.DataFile objects in the 'Init' folder.
+        'Init' folder may contain both the raw Schrodinger solution and Wannier-Stark states.
+        """
+        if search_raw_solution_folder and search_WannierStark_folder:
+            raise ValueError("Invalid input")
+        
         output_folder = nn.config.get(self.product_name, 'outputdirectory')
         filename_no_extension = CommonShortcuts.separate_extension(name)[0]
         subfolder = os.path.join(output_folder, filename_no_extension)
@@ -75,10 +85,21 @@ class NEGFShortcuts(CommonShortcuts):
         for folder_name in d.folders.keys():
             if 'Init' in folder_name:
                 # listOfFiles = d.go_to(folder_name).find(keyword, deep=True)
-                init_folder_path = d.go_to(folder_name).fullpath
+                init_folder = d.go_to(folder_name)
+        
+        if not init_folder: 
+            raise RuntimeError(f"'Init' folder not found under\n{subfolder}")
+        
+        if search_raw_solution_folder:
+            search_folder = os.path.join(init_folder.fullpath, NEGFShortcuts.SchrodingerRawSolutionFolder)
+        elif search_WannierStark_folder:
+            search_folder = os.path.join(init_folder.fullpath, NEGFShortcuts.wannierStarkFolder)
+        else:
+            search_folder = init_folder.fullpath
 
-        return self.get_DataFile_in_folder(keywords, init_folder_path)  # TODO: add options available
+        return self.get_DataFiles_in_folder(keywords, search_folder)  # TODO: add options available
 
+        
 
 
     def get_DataFile_NEGF_atBias(self, keywords, name, bias):
@@ -167,7 +188,10 @@ class NEGFShortcuts(CommonShortcuts):
             datafile.variables['Conduction BandEdge']
             datafile.variables['Psi_*']
         """
-        datafile = self.get_DataFile_NEGF_init('WannierStark_states.dat', name)
+        datafiles = self.get_DataFiles_NEGF_init('EigenStates.dat', name, search_WannierStark_folder=True)
+        for df in datafiles:
+            if NEGFShortcuts.wannierStarkFolder in df.fullpath: 
+                datafile = df
 
         position = datafile.coords['Position']
         conduction_bandedge = datafile.variables['ConductionBandEdge']
@@ -189,7 +213,7 @@ class NEGFShortcuts(CommonShortcuts):
             datafile.variables['Conduction BandEdge']
             datafile.variables['Psi_*']
         """
-        datafile = self.get_DataFile_NEGF_atBias('WannierStark_states.dat', input_file, bias)
+        datafile = self.get_DataFile_NEGF_atBias('EigenStates.dat', input_file, bias)
 
         position = datafile.coords['Position']
         conduction_bandedge = datafile.variables['ConductionBandEdge']
@@ -1280,10 +1304,11 @@ class NEGFShortcuts(CommonShortcuts):
         dictionary { quantum model key: corresponding list of nn.DataFile() objects for probability_shift }
 
         """
-        datafiles = self.get_DataFiles_in_folder("probabilities_shifted", folder_path)
-
-        if len(datafiles) > 1: raise RuntimeError("Multiple data files found with keyword 'probabilities_shifted'!")
-        probability_dict = {'kp8': list(datafiles)} # currently, wavefunctions are output only in 8-band models
+        datafiles = self.get_DataFiles_NEGF_init("EigenStates.dat", folder_path, search_raw_solution_folder=True)
+        datafiles = [df for df in datafiles if NEGFShortcuts.SchrodingerRawSolutionFolder in df.fullpath]
+        
+        if len(datafiles) > 1: raise RuntimeError("Multiple data files found with keyword 'EigenStates.dat' in 'Init' folder!")
+        probability_dict = {'kp8': list(datafiles)} # currently, wavefunctions are output only in the 8-band case
         return probability_dict
 
 
