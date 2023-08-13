@@ -219,6 +219,13 @@ class SweepHelper:
             'transition_energy_nm' : None,
             'hole_energy_difference' : None
             })
+        
+        # for convenience in postprocessing/visualizing CSV/Excel output
+        def extract_coord(tupl, index=0):
+            return tupl[index]
+        for i, coord in enumerate(self.sweep_space.keys()):
+            self.data[coord] = self.data['sweep_coords'].apply(extract_coord, index=i)
+
         logging.info(f"Initialized data table:\n{self.data}")
         assert len(self.data) == len(self.sweep_obj['original'].input_files)
 
