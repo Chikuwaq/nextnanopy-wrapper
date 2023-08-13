@@ -40,7 +40,7 @@ class SweepHelper:
 
         Notes
         -----
-            - You can sweep as many variables as you like in one go, unless the file paths exceed the limit of the system.
+            - You can sweep as many variables as you like in one go.
             - The sweep data can be exported to a CSV or an Excel file by:
               SweepHelper.data.to_csv()
               SweepHelper.data.to_excel()
@@ -213,7 +213,10 @@ class SweepHelper:
             'output_subfolder' : [CommonShortcuts.get_output_subfolder_path(self.output_folder_path['original'], input_path) for input_path in input_paths_original],
             'output_subfolder_short' : [CommonShortcuts.get_output_subfolder_path(self.output_folder_path['short'], input_path) for input_path in input_paths_short],
             'overlap' : None,
-            'transition_energy' : None,
+            'transition_energy_eV' : None,
+            'transition_energy_meV' : None,
+            'transition_energy_micron' : None,
+            'transition_energy_nm' : None,
             'hole_energy_difference' : None
             })
         logging.info(f"Initialized data table:\n{self.data}")
@@ -900,35 +903,42 @@ class SweepHelper:
 
         # Get transition energies and store them in self.data
         if self.shortcuts.product_name == 'nextnano++':
-            self.data['transition_energy'] = self.data['output_subfolder'].apply(self.shortcuts.get_transition_energy, force_lightHole=force_lightHole)
+            self.data['transition_energy_eV'] = self.data['output_subfolder'].apply(self.shortcuts.get_transition_energy, force_lightHole=force_lightHole)
         elif self.shortcuts.product_name == 'nextnano.NEGF++':
-            self.data['transition_energy'] = self.data['output_subfolder'].apply(self.shortcuts.get_transition_energy)
+            self.data['transition_energy_eV'] = self.data['output_subfolder'].apply(self.shortcuts.get_transition_energy)
 
+        # Convert units
+        self.data['transition_energy_meV']    = self.data['transition_energy_eV'] * CommonShortcuts.scale1ToMilli
+        self.data['transition_energy_micron'] = self.data['transition_energy_eV'].apply(CommonShortcuts.electronvolt_to_micron)
+        self.data['transition_energy_nm']     = self.data['transition_energy_micron'] * 1e3
+        
         # x- and y-axis coordinates and 2D array-like of overlap data
         if plot_2D:
-            x_values, y_values, transition_energies = self.__slice_data_for_colormap_2D('transition_energy', x_axis, y_axis, datatype=np.double)
+            if unit == 'meV':
+                x_values, y_values, transition_energies = self.__slice_data_for_colormap_2D('transition_energy_meV', x_axis, y_axis, datatype=np.double)
+            elif unit == 'micron' or unit == 'um':
+                x_values, y_values, transition_energies = self.__slice_data_for_colormap_2D('transition_energy_micron', x_axis, y_axis, datatype=np.double)
+            elif unit == 'nm':
+                x_values, y_values, transition_energies = self.__slice_data_for_colormap_2D('transition_energy_nm', x_axis, y_axis, datatype=np.double)
         else:
-            x_values, transition_energies = self.__slice_data_for_colormap_1D('transition_energy', x_axis, datatype=np.double)
-
-        # Align unit
-        if unit == 'meV':
-            transition_energies_scaled = transition_energies * CommonShortcuts.scale1ToMilli
-        elif unit == 'micron' or unit == 'um':
-            transition_energies_scaled = CommonShortcuts.electronvolt_to_micron(transition_energies)
-        elif unit == 'nm':
-            transition_energies_scaled = CommonShortcuts.electronvolt_to_micron(transition_energies) * 1e3
+            if unit == 'meV':
+                x_values, transition_energies = self.__slice_data_for_colormap_1D('transition_energy_meV', x_axis, datatype=np.double)
+            elif unit == 'micron' or unit == 'um':
+                x_values, transition_energies = self.__slice_data_for_colormap_1D('transition_energy_micron', x_axis, datatype=np.double)
+            elif unit == 'nm':
+                x_values, transition_energies = self.__slice_data_for_colormap_1D('transition_energy_nm', x_axis, datatype=np.double)
 
         
         if export_data:
             if plot_2D:
-                return x_values, y_values, transition_energies_scaled
+                return x_values, y_values, transition_energies
             else:
-                return x_values, transition_energies_scaled
+                return x_values, transition_energies
         else:
             if plot_2D:
-                fig = self.__plot_transition_energies_2D(x_axis, y_axis, x_label, y_label, x_values, y_values, plot_title, colormap, set_center_to_zero, unit, transition_energies_scaled)
+                fig = self.__plot_transition_energies_2D(x_axis, y_axis, x_label, y_label, x_values, y_values, plot_title, colormap, set_center_to_zero, unit, transition_energies)
             else:
-                fig = self.__plot_transition_energies_1D(x_axis, x_label, x_values, plot_title, unit, transition_energies_scaled)
+                fig = self.__plot_transition_energies_1D(x_axis, x_label, x_values, plot_title, unit, transition_energies)
 
             if figFilename is None or figFilename == "":
                 name = os.path.split(self.output_folder_path['original'])[1]
