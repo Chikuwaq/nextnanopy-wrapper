@@ -817,8 +817,8 @@ class CommonShortcuts:
         else:
             logging.warning(f"More than one output files found!")
             for count, file in enumerate(list_of_files):
-                filename = os.path.split(file)[1]
-                print(f"Choice {count}: {filename}")
+                # filename = os.path.split(file)[1]
+                print(f"Choice {count}: {file}")
             determined = False
             while not determined:
                 choice = input('Enter the index of data you need: ')
