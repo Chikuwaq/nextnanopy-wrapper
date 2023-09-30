@@ -164,22 +164,84 @@ class NEGFShortcuts(CommonShortcuts):
 
         RETURN: nn.DataFile() attributes
             datafile.coords['Position']
-            datafile.variables['Conduction_BandEdge']
+            datafile.variables['Conduction Band Edge']
         """
-        # datafile = get_DataFile_NEGF_atBias('WannierStark_states.dat', input_file_name, bias)
         try:
             datafile = self.get_DataFile_NEGF_atBias('Conduction_BandEdge.dat', input_file_name, bias)
         except FileNotFoundError:
             try:
                 datafile = self.get_DataFile_NEGF_atBias('ConductionBandEdge.dat', input_file_name, bias)
             except FileNotFoundError:
-                raise
+                try:
+                    datafile = self.get_DataFile_NEGF_atBias('BandEdges.dat', input_file_name, bias)
+                except FileNotFoundError:
+                    raise
 
         position = datafile.coords['Position']
-        # conduction_bandedge = datafile.variables['Conduction_BandEdge']
-        conduction_bandedge = datafile.variables['Conduction Band Edge']
-        return position, conduction_bandedge
+        # bandedge = datafile.variables['Conduction_BandEdge']
+        bandedge = datafile.variables['Conduction Band Edge']
+        return position, bandedge
+    
 
+    def get_lightHole_bandedge(self, input_file_name, bias):
+        """
+        INPUT:
+            nn.InputFile() object
+            bias value
+
+        RETURN: nn.DataFile() attributes
+            datafile.coords['Position']
+            datafile.variables['Light-Hole Band Edge']
+        """
+        try:
+            datafile = self.get_DataFile_NEGF_atBias('BandEdges.dat', input_file_name, bias)
+        except FileNotFoundError:
+            raise
+
+        position = datafile.coords['Position']
+        bandedge = datafile.variables['Light-Hole Band Edge']
+        return position, bandedge
+
+
+    def get_heavyHole_bandedge(self, input_file_name, bias):
+        """
+        INPUT:
+            nn.InputFile() object
+            bias value
+
+        RETURN: nn.DataFile() attributes
+            datafile.coords['Position']
+            datafile.variables['Light-Hole Band Edge']
+        """
+        try:
+            datafile = self.get_DataFile_NEGF_atBias('BandEdges.dat', input_file_name, bias)
+        except FileNotFoundError:
+            raise
+
+        position = datafile.coords['Position']
+        bandedge = datafile.variables['Heavy-Hole Band Edge']
+        return position, bandedge
+
+
+    def get_splitOffHole_bandedge(self, input_file_name, bias):
+        """
+        INPUT:
+            nn.InputFile() object
+            bias value
+
+        RETURN: nn.DataFile() attributes
+            datafile.coords['Position']
+            datafile.variables['Split-Off-Hole Band Edge']
+        """
+        try:
+            datafile = self.get_DataFile_NEGF_atBias('BandEdges.dat', input_file_name, bias)
+        except FileNotFoundError:
+            raise
+
+        position = datafile.coords['Position']
+        bandedge = datafile.variables['Split-Off-Hole Band Edge']
+        return position, bandedge
+    
 
     def get_WannierStarkStates_init(self, name):
         """
@@ -313,11 +375,35 @@ class NEGFShortcuts(CommonShortcuts):
         return x, y, quantity
 
 
+    def draw_bandedges_on_2DPlot(self, input_file_name, bias, labelsize, ax):
+        CB = None
+        LH = None
+        HH = None
+
+        position, CB = self.get_conduction_bandedge(input_file_name, bias)
+        try:
+            position, LH = self.get_lightHole_bandedge(input_file_name, bias)
+        except:
+            pass
+        try:
+            position, HH = self.get_heavyHole_bandedge(input_file_name, bias)
+        except:
+            pass
+
+        ax.set_xlabel(position.label, fontsize=labelsize)
+        ax.plot(position.value, CB.value, color='white', linewidth=0.7, label=CB.label)
+        if LH is not None: ax.plot(position.value, LH.value, color='white', linewidth=0.7, label=LH.label)
+        if HH is not None: ax.plot(position.value, HH.value, color='white', linewidth=0.7, label=HH.label)
+        
+
+
     def plot_DOS(self,
             input_file_name, 
             bias, 
             labelsize=None,
-            ticksize=None
+            ticksize=None,
+            zmin=None,
+            zmax=None
             ):
         """
         Overlay bandedge with local density of states. Loads the following output data:
@@ -328,7 +414,6 @@ class NEGFShortcuts(CommonShortcuts):
         if labelsize is None: labelsize = self.labelsize_default
         if ticksize is None: ticksize = self.ticksize_default
 
-        position, CB = self.get_conduction_bandedge(input_file_name, bias)
         x, y, quantity = self.get_2Ddata_atBias(input_file_name, bias, 'LDOS')
 
         print("Plotting DOS...")
@@ -336,19 +421,18 @@ class NEGFShortcuts(CommonShortcuts):
         label = 'Density of states (' + unit + ')'
 
         fig, ax = plt.subplots()
-        pcolor = ax.pcolormesh(x.value, y.value, quantity.value.T)
+        pcolor = ax.pcolormesh(x.value, y.value, quantity.value.T, vmin=zmin, vmax=zmax)
         cbar = fig.colorbar(pcolor)
         cbar.set_label(label, fontsize=labelsize)
         cbar.ax.tick_params(labelsize=ticksize * 0.9)
 
-        ax.set_xlabel(position.label, fontsize=labelsize)
         ax.set_ylabel("Energy (eV)", fontsize=labelsize)
         ax.set_ylim(np.amin(y.value), np.amax(y.value))
         ax.set_title(f'bias={bias}mV', fontsize=labelsize)
         ax.tick_params(axis='x', labelsize=ticksize)
         ax.tick_params(axis='y', labelsize=ticksize)
 
-        ax.plot(position.value, CB.value, color='white', linewidth=0.7, label=CB.label)
+        self.draw_bandedges_on_2DPlot(input_file_name, bias, labelsize, ax)
         fig.tight_layout()
 
         # export to an image file
@@ -364,7 +448,9 @@ class NEGFShortcuts(CommonShortcuts):
             input_file_name, 
             bias, 
             labelsize=None, 
-            ticksize=None
+            ticksize=None,
+            zmin=None,
+            zmax=None
             ):
         """
         Overlay bandedge with energy-resolved carrier density. Loads the following output data:
@@ -375,7 +461,6 @@ class NEGFShortcuts(CommonShortcuts):
         if labelsize is None: labelsize = self.labelsize_default
         if ticksize is None: ticksize = self.ticksize_default
 
-        position, CB = self.get_conduction_bandedge(input_file_name, bias)
         x, y, quantity = self.get_2Ddata_atBias(input_file_name, bias, 'carrier')
 
         print("Plotting carrier density...")
@@ -383,19 +468,18 @@ class NEGFShortcuts(CommonShortcuts):
         label = 'Carrier density (' + unit + ')'
 
         fig, ax = plt.subplots()
-        pcolor = ax.pcolormesh(x.value, y.value, quantity.value.T)
+        pcolor = ax.pcolormesh(x.value, y.value, quantity.value.T, vmin=zmin, vmax=zmax)
         cbar = fig.colorbar(pcolor)
         cbar.set_label(label, fontsize=labelsize)
         cbar.ax.tick_params(labelsize=ticksize * 0.9)
 
-        ax.set_xlabel(position.label, fontsize=labelsize)
         ax.set_ylabel("Energy (eV)", fontsize=labelsize)
         ax.set_ylim(np.amin(y.value), np.amax(y.value))
         ax.set_title(f'bias={bias}mV', fontsize=labelsize)
         ax.tick_params(axis='x', labelsize=ticksize)
         ax.tick_params(axis='y', labelsize=ticksize)
 
-        ax.plot(position.value, CB.value, color='white', linewidth=0.7, label=CB.label)
+        self.draw_bandedges_on_2DPlot(input_file_name, bias, labelsize, ax)
         fig.tight_layout()
 
         # export to an image file
@@ -411,7 +495,9 @@ class NEGFShortcuts(CommonShortcuts):
             input_file_name, 
             bias, 
             labelsize=None, 
-            ticksize=None
+            ticksize=None,
+            zmin=None,
+            zmax=None
             ):
         """
         Overlay bandedge with energy-resolved current density. Loads the following output data:
@@ -422,7 +508,6 @@ class NEGFShortcuts(CommonShortcuts):
         if labelsize is None: labelsize = self.labelsize_default
         if ticksize is None: ticksize = self.ticksize_default
 
-        position, CB = self.get_conduction_bandedge(input_file_name, bias)
         x, y, quantity = self.get_2Ddata_atBias(input_file_name, bias, 'current')
 
         print("Plotting current density...")
@@ -430,19 +515,18 @@ class NEGFShortcuts(CommonShortcuts):
         label = 'Current density (' + unit + ')'
 
         fig, ax = plt.subplots()
-        pcolor = ax.pcolormesh(x.value, y.value, quantity.value.T)
+        pcolor = ax.pcolormesh(x.value, y.value, quantity.value.T, vmin=zmin, vmax=zmax)
         cbar = fig.colorbar(pcolor)
         cbar.set_label(label, fontsize=labelsize)
         cbar.ax.tick_params(labelsize=ticksize * 0.9)
 
-        ax.set_xlabel(position.label, fontsize=labelsize)
         ax.set_ylabel("Energy (eV)", fontsize=labelsize)
         ax.set_ylim(np.amin(y.value), np.amax(y.value))
         ax.set_title(f'bias={bias}mV', fontsize=labelsize)
         ax.tick_params(axis='x', labelsize=ticksize)
         ax.tick_params(axis='y', labelsize=ticksize)
 
-        ax.plot(position.value, CB.value, color='white', linewidth=0.7, label=CB.label)
+        self.draw_bandedges_on_2DPlot(input_file_name, bias, labelsize, ax)
         fig.tight_layout()
 
         # export to an image file
@@ -855,7 +939,6 @@ class NEGFShortcuts(CommonShortcuts):
         from matplotlib.gridspec import GridSpec
 
         # load output data files
-        datafile_bandedge = self.get_DataFile('BandEdges', input_file.fullpath)
         datafiles_probability_dict = self.get_DataFile_probabilities_with_name(input_file.fullpath)
 
         for model, datafiles in datafiles_probability_dict.items():
@@ -867,13 +950,14 @@ class NEGFShortcuts(CommonShortcuts):
             raise NextnanoInputFileError('Probabilities are not output! Modify the input file.')
 
         # store data in arrays (independent of quantum models)
-        x             = datafile_bandedge.coords['Position'].value
-        CBBandedge    = datafile_bandedge.variables['Conduction band edge with strain'].value
+        kIndex = 0  # TODO: currently we only support only_k0 output
+        x             = datafiles_probability_dict['kp8'][kIndex].coords['Position'].value
+        CBBandedge    = datafiles_probability_dict['kp8'][kIndex].variables['ConductionBandEdge'].value
+
         if want_valence_band:
-            # LHBandedge    = datafile_bandedge.variables['LH band edge with strain'].value  # TODO: C++ code needs improvement
-            # HHBandedge    = datafile_bandedge.variables['HH band edge with strain'].value  # TODO: C++ code needs improvement
-            # SOBandedge    = datafile_bandedge.variables['SO band edge with strain'].value  # TODO: C++ code needs improvement
-            VBTop         = datafile_bandedge.variables['Valence band top without strain'].value
+            LHBandedge    = datafiles_probability_dict['kp8'][kIndex].variables['LightHoleBandEdge'].value
+            HHBandedge    = datafiles_probability_dict['kp8'][kIndex].variables['HeavyHoleBandEdge'].value
+            SOBandedge    = datafiles_probability_dict['kp8'][kIndex].variables['SplitOffHoleBandEdge'].value
 
         states_toBePlotted, num_evs = self.get_states_to_be_plotted(datafiles_probability_dict, states_range_dict=states_range_dict, states_list_dict=states_list_dict)
 
@@ -903,17 +987,17 @@ class NEGFShortcuts(CommonShortcuts):
                     # psiSquared_oldgrid = dfs[kIndex].variables[f"Psi^2_{stateIndex+1} (lev.{stateIndex+1} per.0)"].value  # TODO: generalize. nPeriod is not always 1
                     lis = list(dfs[kIndex].variables.keys())  # workaround: get the keys
                     
-                    psiSquared_oldgrid = dfs[kIndex].variables[lis[4 + stateIndex]].value # first four data are bandedges
+                    psiSquared_oldgrid = dfs[kIndex].variables[lis[5 + stateIndex]].value # first five data are bandedges
                     psiSquared[model][cnt][kIndex] = CommonShortcuts.convert_grid(psiSquared_oldgrid, x_probability, x)   # grid interpolation needed because of 'output_bandedges{ averaged=no }'
 
 
         # chop off edges of the simulation region
         CBBandedge = CommonShortcuts.cutOff_edges1D(CBBandedge, x, start_position, end_position)
         if want_valence_band:
-            # HHBandedge = CommonShortcuts.cutOff_edges1D(HHBandedge, x, start_position, end_position)
-            # LHBandedge = CommonShortcuts.cutOff_edges1D(LHBandedge, x, start_position, end_position)
-            # SOBandedge = CommonShortcuts.cutOff_edges1D(SOBandedge, x, start_position, end_position)
-            VBTop = CommonShortcuts.cutOff_edges1D(VBTop, x, start_position, end_position)
+            HHBandedge = CommonShortcuts.cutOff_edges1D(HHBandedge, x, start_position, end_position)
+            LHBandedge = CommonShortcuts.cutOff_edges1D(LHBandedge, x, start_position, end_position)
+            SOBandedge = CommonShortcuts.cutOff_edges1D(SOBandedge, x, start_position, end_position)
+            # VBTop = CommonShortcuts.cutOff_edges1D(VBTop, x, start_position, end_position)
 
 
         for model in states_toBePlotted:
@@ -971,15 +1055,14 @@ class NEGFShortcuts(CommonShortcuts):
             if model == 'Gamma' or model == 'kp8':
                 ax.plot(x, CBBandedge, label='conduction band', linewidth=0.6, color=self.band_colors['CB'])
             if want_valence_band:
-                # TODO: C++ code needs improvement
-                # if model == 'HH' or model == 'kp6' or model == 'kp8':
-                #     ax.plot(x, HHBandedge, label='heavy hole', linewidth=0.6, color=self.band_colors['HH'])
-                # if model == 'LH' or model == 'kp6' or model == 'kp8':
-                #     ax.plot(x, LHBandedge, label='light hole', linewidth=0.6, color=self.band_colors['LH'])
+                if model == 'HH' or model == 'kp6' or model == 'kp8':
+                    ax.plot(x, HHBandedge, label='heavy hole', linewidth=0.6, color=self.band_colors['HH'])
+                if model == 'LH' or model == 'kp6' or model == 'kp8':
+                    ax.plot(x, LHBandedge, label='light hole', linewidth=0.6, color=self.band_colors['LH'])
                 # if model == 'SO' or model == 'kp6' or model == 'kp8':
                 #     ax.plot(x, SOBandedge, label='split-off hole', linewidth=0.6, color=self.band_colors['SO'])
-                if model == 'LH' or model == 'kp6' or model == 'kp8':
-                    ax.plot(x, VBTop, label='VB top without strain', linewidth=0.6, color=self.band_colors['LH'])
+                # if model == 'LH' or model == 'kp6' or model == 'kp8':
+                #     ax.plot(x, VBTop, label='VB top without strain', linewidth=0.6, color=self.band_colors['LH'])
 
         def draw_probabilities(self, ax, state_indices, model, kIndex, show_state_index, color_by_fraction_of):
             if model != 'kp8' and color_by_fraction_of:
@@ -1154,47 +1237,40 @@ class NEGFShortcuts(CommonShortcuts):
         from matplotlib import colors
         
         # load output data files
-        datafile_bandedge = self.get_DataFile('BandEdges', input_file.fullpath)
         datafile_RRSModes = self.get_DataFile(['ReducedRealSpaceModes.dat'], input_file.fullpath)
 
         x_RRSModes  = datafile_RRSModes.coords['Position'].value
         
         # store data in arrays (independent of quantum models)
-        x             = datafile_bandedge.coords['Position'].value
-        try:
-            CBBandedge    = datafile_bandedge.variables['Conduction band edge with strain'].value
-        except KeyError:
-            CBBandedge    = datafile_bandedge.variables['CB edge with strain'].value
+        x             = datafile_RRSModes.coords['Position'].value
+        CBBandedge    = datafile_RRSModes.variables['ConductionBandEdge'].value
         
         if want_valence_band:
-            # LHBandedge    = datafile_bandedge.variables['LH band edge with strain'].value  # TODO: C++ code needs improvement
-            # HHBandedge    = datafile_bandedge.variables['HH band edge with strain'].value  # TODO: C++ code needs improvement
-            # SOBandedge    = datafile_bandedge.variables['SO band edge with strain'].value  # TODO: C++ code needs improvement
-            try:
-                VBTop         = datafile_bandedge.variables['Valence band top without strain'].value
-            except KeyError:
-                VBTop         = datafile_bandedge.variables['LH with strain'].value
-
+            LHBandedge    = datafile_RRSModes.variables['LightHoleBandEdge'].value
+            HHBandedge    = datafile_RRSModes.variables['HeavyHoleBandEdge'].value
+            SOBandedge    = datafile_RRSModes.variables['SplitOffHoleBandEdge'].value
+            # VBTop         = datafile_RRSModes.variables['ValenceBandTopWithoutStrain'].value
+            
         
 
         # dictionary containing quantum model keys and 2-dimensional list for each key that stores psi^2 for all (eigenstate, kIndex)
-        nStates = len(datafile_RRSModes.variables) - 4
+        nStates = len(datafile_RRSModes.variables) - 5
         psiSquared = [ 0 for stateIndex in range(nStates) ]
         print("nStates: ", nStates)
         for stateIndex in range(nStates):
             # psiSquared_oldgrid = datafile_RRSModes.variables[f"Psi_{stateIndex+1} (lev.{stateIndex+1} per.0)"].value  # TODO: generalize. nPeriod is not always 1
             lis = list(datafile_RRSModes.variables.keys())  # workaround: get the keys
-            psiSquared_oldgrid = datafile_RRSModes.variables[lis[4 + stateIndex]].value # first four data are bandedges
+            psiSquared_oldgrid = datafile_RRSModes.variables[lis[5 + stateIndex]].value # first five data are bandedges
             psiSquared[stateIndex] = CommonShortcuts.convert_grid(psiSquared_oldgrid, x_RRSModes, x)   # grid interpolation needed because of 'output_bandedges{ averaged=no }'
 
 
         # chop off edges of the simulation region
         CBBandedge = CommonShortcuts.cutOff_edges1D(CBBandedge, x, start_position, end_position)
         if want_valence_band:
-            # HHBandedge = CommonShortcuts.cutOff_edges1D(HHBandedge, x, start_position, end_position)
-            # LHBandedge = CommonShortcuts.cutOff_edges1D(LHBandedge, x, start_position, end_position)
-            # SOBandedge = CommonShortcuts.cutOff_edges1D(SOBandedge, x, start_position, end_position)
-            VBTop = CommonShortcuts.cutOff_edges1D(VBTop, x, start_position, end_position)
+            HHBandedge = CommonShortcuts.cutOff_edges1D(HHBandedge, x, start_position, end_position)
+            LHBandedge = CommonShortcuts.cutOff_edges1D(LHBandedge, x, start_position, end_position)
+            SOBandedge = CommonShortcuts.cutOff_edges1D(SOBandedge, x, start_position, end_position)
+            # VBTop = CommonShortcuts.cutOff_edges1D(VBTop, x, start_position, end_position)
 
         for stateIndex in range(nStates):
             psiSquared[stateIndex] = CommonShortcuts.cutOff_edges1D(psiSquared[stateIndex], x, start_position, end_position)   # chop off edges of the simulation region
@@ -1216,15 +1292,14 @@ class NEGFShortcuts(CommonShortcuts):
             if model == 'Gamma' or model == 'kp8':
                 ax.plot(x, CBBandedge, label='conduction band', linewidth=0.6, color=self.band_colors['CB'])
             if want_valence_band:
-                # TODO: C++ code needs improvement
-                # if model == 'HH' or model == 'kp6' or model == 'kp8':
-                #     ax.plot(x, HHBandedge, label='heavy hole', linewidth=0.6, color=self.band_colors['HH'])
-                # if model == 'LH' or model == 'kp6' or model == 'kp8':
-                #     ax.plot(x, LHBandedge, label='light hole', linewidth=0.6, color=self.band_colors['LH'])
+                if model == 'HH' or model == 'kp6' or model == 'kp8':
+                    ax.plot(x, HHBandedge, label='heavy hole', linewidth=0.6, color=self.band_colors['HH'])
+                if model == 'LH' or model == 'kp6' or model == 'kp8':
+                    ax.plot(x, LHBandedge, label='light hole', linewidth=0.6, color=self.band_colors['LH'])
                 # if model == 'SO' or model == 'kp6' or model == 'kp8':
                 #     ax.plot(x, SOBandedge, label='split-off hole', linewidth=0.6, color=self.band_colors['SO'])
-                if model == 'LH' or model == 'kp6' or model == 'kp8':
-                    ax.plot(x, VBTop, label='VB top without strain', linewidth=0.6, color=self.band_colors['LH'])
+                # if model == 'LH' or model == 'kp6' or model == 'kp8':
+                #     ax.plot(x, VBTop, label='VB top without strain', linewidth=0.6, color=self.band_colors['LH'])
 
         def draw_probabilities(self, ax, state_indices, model, show_state_index, color_by_fraction_of):
             if model != 'kp8' and color_by_fraction_of:
