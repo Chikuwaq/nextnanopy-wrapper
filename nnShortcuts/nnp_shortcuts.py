@@ -160,7 +160,7 @@ class nnpShortcuts(CommonShortcuts):
         return num_kPoints
 
 
-    def get_DataFile_probabilities_in_folder(self, folder_path):
+    def get_DataFile_probabilities_in_folder(self, folder_path, bias=None):
         """
         Get single nextnanopy.DataFile of probability_shift data in the specified folder.
 

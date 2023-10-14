@@ -938,13 +938,17 @@ class CommonShortcuts:
         raise NotImplementedError("There is no common implementation")
 
 
-    def get_DataFile_probabilities_with_name(self, name):
+    def get_DataFile_probabilities_with_name(self, name, bias=None):
         """
         Get single nextnanopy.DataFile of probability_shift data in the folder of specified name.
 
         INPUT:
-            name      input file name (= output subfolder name). May contain extensions and fullpath
-
+            name : string
+                input file name (= output subfolder name). May contain extensions and fullpath
+            bias : real, optional
+                If not None, that bias is used to search for the energy eigenstates output folder. 
+                If None, output is sought in the Init folder.
+        
         RETURN:
             dictionary { quantum model key: corresponding list of nn.DataFile() objects for probability_shift }
         """
@@ -952,10 +956,10 @@ class CommonShortcuts:
         outputFolder = nn.config.get(self.product_name, 'outputdirectory')
         outputSubFolder = os.path.join(outputFolder, filename_no_extension)
 
-        return self.get_DataFile_probabilities_in_folder(outputSubFolder)
+        return self.get_DataFile_probabilities_in_folder(outputSubFolder, bias=bias)
         
 
-    def get_DataFile_probabilities_in_folder(self):
+    def get_DataFile_probabilities_in_folder(self, bias=None):
         raise NotImplementedError("There is no common implementation")
 
 
@@ -963,12 +967,15 @@ class CommonShortcuts:
         """ number of eigenvalues for each quantum model """
         num_evs = dict()
         for model, datafiles in probability_dict.items():
-            if len(datafiles) == 0:   # if no k-points are calculated
-                num_evs[model] = 0
-            else:
-                df = datafiles[0]
-                num_evs[model] = sum(1 for var in df.variables if ('Psi^2' in var.name))   # this conditional counting is necessary because probability output may contain also eigenvalues and/or bandedges.
-                logging.debug(f"Number of eigenvalues for {model}: {num_evs[model]}")
+            if isinstance(datafiles, list):
+                if len(datafiles) == 0:   # if no k-points are calculated
+                    num_evs[model] = 0
+                else:
+                    df = datafiles[0]
+                    num_evs[model] = sum(1 for var in df.variables if ('Psi' in var.name))   # this conditional counting is necessary because probability output may contain also eigenvalues and/or bandedges.
+                    logging.debug(f"Number of eigenvalues for {model}: {num_evs[model]}")
+            elif isinstance(datafiles, nn.DataFile):
+                num_evs[model] = sum(1 for var in datafiles.variables if ('Psi' in var.name))   # this conditional counting is necessary because probability output may contain also eigenvalues and/or bandedges.
         return num_evs
 
 

@@ -863,6 +863,7 @@ class NEGFShortcuts(CommonShortcuts):
     ############### plot wavefunctions ##################################
     def plot_probabilities(self,
             input_file,
+            bias                = None,
             states_range_dict   = None,
             states_list_dict    = None,
             start_position      = -10000.,
@@ -892,6 +893,9 @@ class NEGFShortcuts(CommonShortcuts):
         ----------
         input_file : nextnanopy.InputFile object
             nextnano++ input file.
+        bias : real, optional
+            If not None, that bias is used to search for the energy eigenstates output folder. 
+            If None, output is sought in the Init folder.
         states_range_dict : dict, optional
             range of state indices to be plotted for each quantum model. The default is None.
         states_list_dict : dict, optional
@@ -939,25 +943,32 @@ class NEGFShortcuts(CommonShortcuts):
         from matplotlib.gridspec import GridSpec
 
         # load output data files
-        datafiles_probability_dict = self.get_DataFile_probabilities_with_name(input_file.fullpath)
+        datafiles_probability_dict = self.get_DataFile_probabilities_with_name(input_file.fullpath, bias=bias)
+
 
         for model, datafiles in datafiles_probability_dict.items():
-            if len(datafiles) == 0: continue
-
-            datafile_probability = datafiles[0]
+            if isinstance(datafiles, list):
+                if len(datafiles) == 0: continue
+                datafile_probability = datafiles[0]
+                print(type(datafile_probability))
+            elif isinstance(datafiles, nn.DataFile):
+                datafile_probability = datafiles
+            else:
+                raise RuntimeError("Data type of 'datafile_probability' " + type(datafile_probability) + " is unknown!")
+            
             x_probability  = datafile_probability.coords['Position'].value
         if not datafile_probability:
             raise NextnanoInputFileError('Probabilities are not output! Modify the input file.')
 
         # store data in arrays (independent of quantum models)
         kIndex = 0  # TODO: currently we only support only_k0 output
-        x             = datafiles_probability_dict['kp8'][kIndex].coords['Position'].value
-        CBBandedge    = datafiles_probability_dict['kp8'][kIndex].variables['ConductionBandEdge'].value
+        x             = datafile_probability.coords['Position'].value
+        CBBandedge    = datafile_probability.variables['ConductionBandEdge'].value
 
         if want_valence_band:
-            LHBandedge    = datafiles_probability_dict['kp8'][kIndex].variables['LightHoleBandEdge'].value
-            HHBandedge    = datafiles_probability_dict['kp8'][kIndex].variables['HeavyHoleBandEdge'].value
-            SOBandedge    = datafiles_probability_dict['kp8'][kIndex].variables['SplitOffHoleBandEdge'].value
+            LHBandedge    = datafile_probability.variables['LightHoleBandEdge'].value
+            HHBandedge    = datafile_probability.variables['HeavyHoleBandEdge'].value
+            SOBandedge    = datafile_probability.variables['SplitOffHoleBandEdge'].value
 
         states_toBePlotted, num_evs = self.get_states_to_be_plotted(datafiles_probability_dict, states_range_dict=states_range_dict, states_list_dict=states_list_dict)
 
@@ -980,6 +991,11 @@ class NEGFShortcuts(CommonShortcuts):
             psiSquared[model] = [ [ 0 for kIndex in range(num_kPoints[model]) ] for stateIndex in range(num_evs[model]) ]  # stateIndex in states_toBePlotted[model] would give a list of the same size
 
         for model, dfs in datafiles_probability_dict.items():
+            if not isinstance(dfs, list):
+                datafile = dfs
+                dfs = list()
+                dfs.append(datafile)
+                
             if len(dfs) == 0: continue
             
             for cnt, stateIndex in enumerate(states_toBePlotted[model]):
@@ -1165,6 +1181,8 @@ class NEGFShortcuts(CommonShortcuts):
 
         # --- display in the GUI
         plt.show()
+
+        return fig
 
 
     def plot_RRSWavefunctions(self,
@@ -1365,7 +1383,7 @@ class NEGFShortcuts(CommonShortcuts):
         plt.show()
 
 
-    def get_DataFile_probabilities_in_folder(self, folder_path):
+    def get_DataFile_probabilities_in_folder(self, folder_path, bias=None):
         """
         Get single nextnanopy.DataFile of probability_shift data in the specified folder.
 
@@ -1373,17 +1391,28 @@ class NEGFShortcuts(CommonShortcuts):
         ----------
         folder_path : str
             output folder path in which the datafile should be sought
-
+        bias : real, optional
+            If not None, that bias is used to search for the energy eigenstates output folder. 
+            If None, output is sought in the Init folder.
+        
         Returns
         -------
         dictionary { quantum model key: corresponding list of nn.DataFile() objects for probability_shift }
 
         """
-        datafiles = self.get_DataFiles_NEGF_init("EigenStates.dat", folder_path, search_raw_solution_folder=True)
-        datafiles = [df for df in datafiles if NEGFShortcuts.SchrodingerRawSolutionFolder in df.fullpath]
-        
-        if len(datafiles) > 1: raise RuntimeError("Multiple data files found with keyword 'EigenStates.dat' in 'Init' folder!")
-        probability_dict = {'kp8': list(datafiles)} # currently, wavefunctions are output only in the 8-band case
+        if bias is None:
+            # search for the raw solution in Init folder
+            datafiles = self.get_DataFiles_NEGF_init("EigenStates.dat", folder_path, search_raw_solution_folder=True)
+            datafiles = [df for df in datafiles if NEGFShortcuts.SchrodingerRawSolutionFolder in df.fullpath]
+            if len(datafiles) > 1: raise RuntimeError("Multiple data files found with keyword 'EigenStates.dat' in 'Init' folder!")
+            probability_dict = {'kp8': list(datafiles)}  # TODO: generalize to cover 1,2,3-band cases
+        else:
+            # search for biased output
+            datafile = self.get_DataFile_NEGF_atBias("EigenStates.dat", folder_path, bias=bias)
+            assert(isinstance(datafile, nn.DataFile))
+            probability_dict = {'kp8': datafile}  # TODO: generalize to cover 1,2,3-band cases
+
+        assert(isinstance(probability_dict, dict))
         return probability_dict
 
 
