@@ -167,19 +167,29 @@ class NEGFShortcuts(CommonShortcuts):
             datafile.variables['Conduction Band Edge']
         """
         try:
-            datafile = self.get_DataFile_NEGF_atBias('Conduction_BandEdge.dat', input_file_name, bias)
+            datafile = self.get_DataFile_NEGF_atBias("EigenStates.dat", input_file_name, bias=bias)
         except FileNotFoundError:
             try:
-                datafile = self.get_DataFile_NEGF_atBias('ConductionBandEdge.dat', input_file_name, bias)
+                datafile = self.get_DataFile_NEGF_atBias('Conduction_BandEdge.dat', input_file_name, bias)
             except FileNotFoundError:
                 try:
-                    datafile = self.get_DataFile_NEGF_atBias('BandEdges.dat', input_file_name, bias)
+                    datafile = self.get_DataFile_NEGF_atBias('ConductionBandEdge.dat', input_file_name, bias)
+                    # print('Found ConductionBandEdge.dat')
                 except FileNotFoundError:
-                    raise
+                    try:
+                        datafile = self.get_DataFile_NEGF_atBias('BandEdges.dat', input_file_name, bias)
+                    except FileNotFoundError:
+                        raise
 
         position = datafile.coords['Position']
-        # bandedge = datafile.variables['Conduction_BandEdge']
-        bandedge = datafile.variables['Conduction Band Edge']
+        try:
+            bandedge = datafile.variables['Conduction Band Edge']
+        except KeyError:
+            try:
+                bandedge = datafile.variables['ConductionBandEdge']
+            except KeyError:
+                raise
+
         return position, bandedge
     
 
@@ -194,12 +204,22 @@ class NEGFShortcuts(CommonShortcuts):
             datafile.variables['Light-Hole Band Edge']
         """
         try:
-            datafile = self.get_DataFile_NEGF_atBias('BandEdges.dat', input_file_name, bias)
+            datafile = self.get_DataFile_NEGF_atBias("EigenStates.dat", input_file_name, bias=bias)
         except FileNotFoundError:
-            raise
+            try:
+                datafile = self.get_DataFile_NEGF_atBias('BandEdges.dat', input_file_name, bias)
+            except FileNotFoundError:
+                raise
 
         position = datafile.coords['Position']
-        bandedge = datafile.variables['Light-Hole Band Edge']
+        try:
+            bandedge = datafile.variables['Light-Hole Band Edge']
+        except KeyError:
+            try:
+                bandedge = datafile.variables['LightHoleBandEdge']
+            except KeyError:
+                raise
+
         return position, bandedge
 
 
@@ -214,12 +234,22 @@ class NEGFShortcuts(CommonShortcuts):
             datafile.variables['Light-Hole Band Edge']
         """
         try:
-            datafile = self.get_DataFile_NEGF_atBias('BandEdges.dat', input_file_name, bias)
+            datafile = self.get_DataFile_NEGF_atBias("EigenStates.dat", input_file_name, bias=bias)
         except FileNotFoundError:
-            raise
+            try:
+                datafile = self.get_DataFile_NEGF_atBias('BandEdges.dat', input_file_name, bias)
+            except FileNotFoundError:
+                raise
 
         position = datafile.coords['Position']
-        bandedge = datafile.variables['Heavy-Hole Band Edge']
+        try:
+            bandedge = datafile.variables['Heavy-Hole Band Edge']
+        except KeyError:
+            try:
+                bandedge = datafile.variables['HeavyHoleBandEdge']
+            except KeyError:
+                raise
+
         return position, bandedge
 
 
@@ -234,12 +264,22 @@ class NEGFShortcuts(CommonShortcuts):
             datafile.variables['Split-Off-Hole Band Edge']
         """
         try:
-            datafile = self.get_DataFile_NEGF_atBias('BandEdges.dat', input_file_name, bias)
+            datafile = self.get_DataFile_NEGF_atBias("EigenStates.dat", input_file_name, bias=bias)
         except FileNotFoundError:
-            raise
+            try:
+                datafile = self.get_DataFile_NEGF_atBias('BandEdges.dat', input_file_name, bias)
+            except FileNotFoundError:
+                raise
 
         position = datafile.coords['Position']
-        bandedge = datafile.variables['Split-Off-Hole Band Edge']
+        try:
+            bandedge = datafile.variables['Split-Off-Hole Band Edge']
+        except KeyError:
+            try:
+                bandedge = datafile.variables['SplitOffHoleBandEdge']
+            except KeyError:
+                raise
+
         return position, bandedge
     
 
@@ -427,6 +467,7 @@ class NEGFShortcuts(CommonShortcuts):
         cbar.ax.tick_params(labelsize=ticksize * 0.9)
 
         ax.set_ylabel("Energy (eV)", fontsize=labelsize)
+        ax.set_xlim(np.amin(x.value), np.amax(x.value))
         ax.set_ylim(np.amin(y.value), np.amax(y.value))
         ax.set_title(f'bias={bias}mV', fontsize=labelsize)
         ax.tick_params(axis='x', labelsize=ticksize)
@@ -474,6 +515,7 @@ class NEGFShortcuts(CommonShortcuts):
         cbar.ax.tick_params(labelsize=ticksize * 0.9)
 
         ax.set_ylabel("Energy (eV)", fontsize=labelsize)
+        ax.set_xlim(np.amin(x.value), np.amax(x.value))
         ax.set_ylim(np.amin(y.value), np.amax(y.value))
         ax.set_title(f'bias={bias}mV', fontsize=labelsize)
         ax.tick_params(axis='x', labelsize=ticksize)
@@ -521,6 +563,7 @@ class NEGFShortcuts(CommonShortcuts):
         cbar.ax.tick_params(labelsize=ticksize * 0.9)
 
         ax.set_ylabel("Energy (eV)", fontsize=labelsize)
+        ax.set_xlim(np.amin(x.value), np.amax(x.value))
         ax.set_ylim(np.amin(y.value), np.amax(y.value))
         ax.set_title(f'bias={bias}mV', fontsize=labelsize)
         ax.tick_params(axis='x', labelsize=ticksize)
@@ -950,7 +993,7 @@ class NEGFShortcuts(CommonShortcuts):
             if isinstance(datafiles, list):
                 if len(datafiles) == 0: continue
                 datafile_probability = datafiles[0]
-                print(type(datafile_probability))
+                # print(type(datafile_probability))
             elif isinstance(datafiles, nn.DataFile):
                 datafile_probability = datafiles
             else:
@@ -1116,7 +1159,8 @@ class NEGFShortcuts(CommonShortcuts):
                         # ax.annotate(f'n={stateIndex+1}', xy=(xmax, ymax), xytext=(xmax-0.05*simLength, ymax+0.07))
                         ax.annotate(f'{stateIndex+1}', xy=(xmax, ymax), xytext=(xmax, ymax+0.07))
             # ax.legend(loc='lower left')
-            ax.legend(loc='upper left')
+            # ax.legend(loc='upper left')
+            ax.legend()
 
         def draw_spinor_pie_charts(gs_spinor, state_indices, model, stateIndex, kIndex, show_state_index):
             num_rows, num_columns = self.get_rowColumn_for_display(len(state_indices))  # determine arrangement of spinor composition plots
@@ -1409,6 +1453,7 @@ class NEGFShortcuts(CommonShortcuts):
         else:
             # search for biased output
             datafile = self.get_DataFile_NEGF_atBias("EigenStates.dat", folder_path, bias=bias)
+            logging.info("Taking EigenStates from biased folder")
             assert(isinstance(datafile, nn.DataFile))
             probability_dict = {'kp8': datafile}  # TODO: generalize to cover 1,2,3-band cases
 
