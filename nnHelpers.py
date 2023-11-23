@@ -611,7 +611,8 @@ class SweepHelper:
         """
         outfolder = self.output_folder_path['original']
         if not os.path.exists(outfolder):
-            raise RuntimeError("Output folder does not exist!")
+            warnings.warn("Output folder does not exist!")
+            return
         try:
             shutil.rmtree(outfolder)
         except OSError as e:
