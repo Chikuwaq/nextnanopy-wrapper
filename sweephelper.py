@@ -29,6 +29,7 @@ import nextnanopy as nn
 # my includes
 from nnShortcuts.common import CommonShortcuts
 from slurmData import SlurmData
+from sweep_space import SweepSpace
 
 
 
@@ -47,7 +48,7 @@ class SweepHelper:
 
         Attributes
         ----------
-        sweep_space : dict of numpy.ndarray - { 'sweep variable': array of values }
+        sweep_space : SweepSpace object
             axes and coordinates of the sweep parameter space
 
         shortcuts : shortcut object
@@ -165,15 +166,7 @@ class SweepHelper:
         warnings.formatwarning = warning_on_one_line
 
         # generate self.sweep_space
-        self.sweep_space = dict()
-        for var in sweep_ranges:
-            if isinstance(sweep_ranges[var], tuple):  # min, max, and number of points have been given
-                bounds, num_points = sweep_ranges[var]
-                if bounds[0] == bounds[1] and num_points > 1:
-                    raise RuntimeError(f"Sweep variable {var} has min = max, but more than one simulation is requested!")
-                self.sweep_space[var] = np.around(np.linspace(bounds[0], bounds[1], num_points), round_decimal)   # avoid lengthy filenames
-            elif isinstance(sweep_ranges[var], list):  # list of values has been given
-                self.sweep_space[var] = np.around(np.array(sweep_ranges[var]), round_decimal)   # avoid lengthy filenames
+        self.sweep_space = SweepSpace.create_from_sweep_ranges(sweep_ranges, round_decimal)
 
         # prepare shortcuts for the nextnano solver used
         self.shortcuts = CommonShortcuts.get_shortcut(master_input_file)
@@ -190,8 +183,8 @@ class SweepHelper:
         
         # store master input file object
         self.master_input_file['original'] = copy.copy(master_input_file)
-        outfolder = self.shortcuts.get_sweep_output_folder_path(self.master_input_file['original'].fullpath, *self.sweep_space.keys())
-        initSweepCoords = {key: arr[0] for key, arr in self.sweep_space.items()}
+        outfolder = self.shortcuts.get_sweep_output_folder_path(self.master_input_file['original'].fullpath, *self.sweep_space.get_variable_names())
+        initSweepCoords = {key: arr[0] for key, arr in self.sweep_space.get_items()}
         subfolder = self.shortcuts.get_sweep_output_subfolder_name(self.master_input_file['original'].fullpath, initSweepCoords)
         outpath = os.path.join(outfolder, subfolder)
         if len(outpath) + 100 > 260:
@@ -214,9 +207,9 @@ class SweepHelper:
 
         # instantiate nn.Sweep object
         if self.isFilenameAbbreviated:
-            self.sweep_obj = nn.Sweep(self.sweep_space, self.master_input_file['short'].fullpath)
+            self.sweep_obj = nn.Sweep(self.sweep_space.get_dict(), self.master_input_file['short'].fullpath)
         else:
-            self.sweep_obj = nn.Sweep(self.sweep_space, self.master_input_file['original'].fullpath)
+            self.sweep_obj = nn.Sweep(self.sweep_space.get_dict(), self.master_input_file['original'].fullpath)
 
         self.round_decimal = round_decimal  # used by execute_sweep()
         
@@ -225,11 +218,11 @@ class SweepHelper:
         self.input_file_fullpaths['original'] = self.__create_input_file_fullpaths(self.master_input_file['original'])
 
         logging.debug("\nSweep space axes:")
-        logging.debug(f"{ [ key for key in self.sweep_space.keys() ] }")
+        logging.debug(f"{ [ key for key in self.sweep_space.get_variable_names() ] }")
 
         # instantiate pandas.DataFrame to store sweep data
         self.data = pd.DataFrame({
-            'sweep_coords' : list(itertools.product(*self.sweep_space.values())),  # create cartesian coordinates in the sweep space. Consistent to nextnanopy implementation.
+            'sweep_coords' : list(itertools.product(*self.sweep_space.get_values())),  # create cartesian coordinates in the sweep space. Consistent to nextnanopy implementation.
             'output_subfolder' : [CommonShortcuts.get_output_subfolder_path(self.output_folder_path['original'], input_path) for input_path in self.input_file_fullpaths['original']],
             'output_subfolder_short' : [CommonShortcuts.get_output_subfolder_path(self.output_folder_path['short'], input_path) for input_path in self.input_file_fullpaths['short']],
             'overlap' : None,
@@ -248,7 +241,7 @@ class SweepHelper:
         # for convenience in postprocessing/visualizing CSV/Excel output
         def extract_coord(tupl, index=0):
             return tupl[index]
-        for i, coord_key in enumerate(self.sweep_space.keys()):
+        for i, coord_key in enumerate(self.sweep_space.get_variable_names()):
             self.data[coord_key] = self.data['sweep_coords'].apply(extract_coord, index=i)
 
         logging.info(f"Initialized data table:\n{self.data}")
@@ -281,7 +274,7 @@ class SweepHelper:
         print("\tMaster input file: ", self.master_input_file['original'].fullpath)
         print("\tSolver: ", self.shortcuts.product_name)
         print("\tSweep space grids: ")
-        for var, values in self.sweep_space.items():
+        for var, values in self.sweep_space.get_items():
             print(f"\t\t{var} = ", values)
         print("\tOutput folder: ", self.__get_output_folder_path())
         print("\tOutput data exists: ", self.__output_subfolders_exist())
@@ -365,7 +358,7 @@ class SweepHelper:
 
 
     def __validate_sweep_variables(self, sweep_var):
-        if sweep_var not in self.sweep_space:
+        if not self.sweep_space.has_sweep_variable(sweep_var):
             if sweep_var not in self.master_input_file['original'].variables:
                 raise KeyError(f"Variable {sweep_var} is not in the input file!")
             else:
@@ -405,27 +398,23 @@ class SweepHelper:
         self.__validate_sweep_variables(x_axis)
         self.__validate_sweep_variables(y_axis)
 
-        x_values = self.sweep_space[x_axis]
-        y_values = self.sweep_space[y_axis]
+        x_values = self.sweep_space.get_values_by_variable_name(x_axis)
+        y_values = self.sweep_space.get_values_by_variable_name(y_axis)
 
         # identify index of plot axes
-        for i, var in enumerate(self.sweep_space.keys()):
+        for i, var in enumerate(self.sweep_space.get_variable_names()):
             if var == x_axis:
                 x_axis_variable_index = i
             if var == y_axis:
                 y_axis_variable_index = i
 
-        sweep_space_reduced = self.__extract_2D_plane_from_sweep_space(x_axis, y_axis)
-
-        # returns bool whether the point in the sweep space belongs to the plot region
-        def isIn(coords):
-            return all(coords[i] in sweep_space_reduced[var] for i, var in enumerate(self.sweep_space.keys()))
+        sweep_space_reduced = self.sweep_space.extract_2D_plane(x_axis, y_axis)
 
         # pick up sub-array of overlap data accordingly
         # res = [[0 for i in range(len(y_values))] for i in range(len(x_values))]
         res = np.zeros((len(y_values), len(x_values)), dtype=datatype)  # matplotlib pcolormesh assumes (num of y values)=(num of rows) and (num of x values)=(num of columns) for C axis data
         for coords, quantity in zip(self.data['sweep_coords'], self.data[key]):
-            if not isIn(coords): continue
+            if not sweep_space_reduced.has_sweep_point(coords): continue
 
             xIndex = np.where(x_values == coords[x_axis_variable_index])   # find index for which arr == value
             yIndex = np.where(y_values == coords[y_axis_variable_index])
@@ -460,99 +449,24 @@ class SweepHelper:
             raise ValueError(f"{key} is not calculated in this sweep!")
         self.__validate_sweep_variables(x_axis)
         
-        x_values = self.sweep_space[x_axis]
+        x_values = self.sweep_space.get_values_by_variable_name(x_axis)
         
         # identify index of plot axes
-        for i, var in enumerate(self.sweep_space.keys()):
+        for i, var in enumerate(self.sweep_space.get_variable_names()):
             if var == x_axis:
                 x_axis_variable_index = i
         
-        sweep_space_reduced = self.__extract_1D_line_from_sweep_space(x_axis)
-
-        # returns bool whether the point in the sweep space belongs to the plot region
-        def isIn(coords):
-            return all(coords[i] in sweep_space_reduced[var] for i, var in enumerate(self.sweep_space.keys()))
+        sweep_space_reduced = self.sweep_space.extract_1D_line(x_axis)
 
         # pick up sub-array of overlap data accordingly
         res = np.zeros(len(x_values), dtype=datatype)
         for coords, quantity in zip(self.data['sweep_coords'], self.data[key]):
-            if not isIn(coords): continue
+            if not sweep_space_reduced.has_sweep_point(coords): continue
 
             xIndex = np.where(x_values == coords[x_axis_variable_index])   # find index for which arr == value
             res[xIndex] = quantity
 
         return x_values, res
-
-
-    def __extract_1D_line_from_sweep_space(self, sweep_var):
-        """
-        Extract 1D line from multidimensional (d >= 1) sweep space.
-        """
-        sweep_space_reduced = copy.deepcopy(self.sweep_space)
-
-        # ask the values for other axes
-        logging.info(f"Taking '{sweep_var}' for plot axis.")
-        for var, array in self.sweep_space.items():
-            if var == sweep_var: continue
-
-            print("\nRemaining sweep dimension: ", var)
-            print("Simulation has been performed at: ")
-            for i, val in enumerate(array):
-                print(f"index {i}: {val}")
-            if len(array) == 1:
-                iChoice = 0
-            else:
-                while True:
-                    choice = input("Specify value for the plot by index: ")
-                    if choice == 'q':
-                        raise RuntimeError('Nextnanopy terminated.') from None
-                    try:
-                        iChoice = int(choice)
-                    except ValueError:
-                        print("Invalid input. (Type 'q' to quit)")
-                        continue
-                    if iChoice not in range(len(array)):
-                        print("Invalid input. (Type 'q' to quit)")
-                    else:
-                        break
-            sweep_space_reduced[var] = [array[iChoice]]   # only one element, but has to be an Iterable for the later use
-        return sweep_space_reduced
-
-
-    def __extract_2D_plane_from_sweep_space(self, sweep_var1, sweep_var2):
-        """
-        Extract 2D plane from multidimensional (d >= 2) sweep space.
-        """
-        sweep_space_reduced = copy.deepcopy(self.sweep_space)
-
-        # ask the values for other axes
-        logging.info(f"Taking '{sweep_var1}' and '{sweep_var2}' for plot axes.")
-        for var, array in self.sweep_space.items():
-            if var == sweep_var1 or var == sweep_var2: continue
-
-            print("\nRemaining sweep dimension: ", var)
-            print("Simulation has been performed at: ")
-            for i, val in enumerate(array):
-                print(f"index {i}: {val}")
-            if len(array) == 1:
-                iChoice = 0
-            else:
-                while True:
-                    choice = input("Specify value for the plot by index: ")
-                    if choice == 'q':
-                        raise RuntimeError('Nextnanopy terminated.') from None
-                    try:
-                        iChoice = int(choice)
-                    except ValueError:
-                        print("Invalid input. (Type 'q' to quit)")
-                        continue
-                    if iChoice not in range(len(array)):
-                        print("Invalid input. (Type 'q' to quit)")
-                    else:
-                        break
-            sweep_space_reduced[var] = [array[iChoice]]   # only one element, but has to be an Iterable for the later use
-        logging.debug("Extracted sweep_space", sweep_space_reduced)
-        return sweep_space_reduced
 
 
     def __setup_2D_color_plot(self, ax, x_axis, y_axis, x_label, y_label, plot_title, x_values, y_values):
@@ -569,8 +483,8 @@ class SweepHelper:
         plt.yticks(y_values)
 
         # trim x- and y-axis tick labels, while keeping all the ticks present
-        nSimulations_x = len(self.sweep_space[x_axis])
-        nSimulations_y = len(self.sweep_space[y_axis])
+        nSimulations_x = self.sweep_space.get_nPoints_by_variable_name(x_axis)
+        nSimulations_y = self.sweep_space.get_nPoints_by_variable_name(y_axis)
         max_num_xticks = 6   # TBD
         max_num_yticks = 20  # TBD
         if nSimulations_x > max_num_xticks:
@@ -594,7 +508,7 @@ class SweepHelper:
         plt.xticks(x_values)
         
         # trim x- and y-axis tick labels, while keeping all the ticks present
-        nSimulations_x = len(self.sweep_space[x_axis])
+        nSimulations_x = self.sweep_space.get_nPoints_by_variable_name(x_axis)
         max_num_xticks = 6   # TBD
         if nSimulations_x > max_num_xticks:
             xticklabel_interval = int(nSimulations_x / max_num_xticks)
@@ -868,16 +782,12 @@ class SweepHelper:
         # validate argument
         self.__validate_sweep_variables(sweep_variable)
 
-        sweep_space_reduced = self.__extract_1D_line_from_sweep_space(sweep_variable)
-
-        # returns bool whether the point in the sweep space belongs to the plot region
-        def isIn(coords):
-            return all(coords[i] in sweep_space_reduced[var] for i, var in enumerate(sweep_space_reduced.keys()))
+        sweep_space_reduced = self.sweep_space.extract_1D_line(sweep_variable)
 
         # plot dispersions
         for model in self.states_to_be_plotted.keys():
             for coords, outfolder in zip(self.data['sweep_coords'], self.__get_output_subfolder_paths()):
-                if isIn(coords):
+                if sweep_space_reduced.has_sweep_point(coords):
                     self.shortcuts.plot_dispersion(outfolder, np.amin(self.states_to_be_plotted[model]), np.amax(self.states_to_be_plotted[model]), savePDF=savePDF)
         return
 
@@ -907,7 +817,7 @@ class SweepHelper:
         self.__validate_sweep_variables(sweep_variable)
 
         # generate GIF
-        self.shortcuts.generate_gif(self.master_input_file['original'], sweep_variable, self.sweep_space[sweep_variable], self.states_to_be_plotted)
+        self.shortcuts.generate_gif(self.master_input_file['original'], sweep_variable, self.sweep_space.get_values_by_variable_name(sweep_variable), self.states_to_be_plotted)
 
 
     ### Optics analysis #######################################################
