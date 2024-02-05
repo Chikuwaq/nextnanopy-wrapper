@@ -157,6 +157,8 @@ class SweepHelper:
         for var in sweep_ranges:
             if isinstance(sweep_ranges[var], tuple):  # min, max, and number of points have been given
                 bounds, num_points = sweep_ranges[var]
+                if bounds[0] == bounds[1] and num_points > 1:
+                    raise RuntimeError(f"Sweep variable {var} has min = max, but more than one simulation is requested!")
                 self.sweep_space[var] = np.around(np.linspace(bounds[0], bounds[1], num_points), round_decimal)   # avoid lengthy filenames
             elif isinstance(sweep_ranges[var], list):  # list of values has been given
                 self.sweep_space[var] = np.around(np.array(sweep_ranges[var]), round_decimal)   # avoid lengthy filenames
@@ -408,20 +410,23 @@ class SweepHelper:
             print("Simulation has been performed at: ")
             for i, val in enumerate(array):
                 print(f"index {i}: {val}")
-            while True:
-                choice = input("Specify value for the plot with index: ")
-                if choice == 'q':
-                    raise RuntimeError('Nextnanopy terminated.') from None
-                try:
-                    iChoice = int(choice)
-                except ValueError:
-                    print("Invalid input. (Type 'q' to quit)")
-                    continue
-                if iChoice not in range(len(array)):
-                    print("Invalid input. (Type 'q' to quit)")
-                else:
-                    break
-            sweep_space_reduced[var] = [array[iChoice]]   # only one element, but has to be an Iterable for the use below
+            if len(array) == 1:
+                iChoice = 0
+            else:
+                while True:
+                    choice = input("Specify value for the plot by index: ")
+                    if choice == 'q':
+                        raise RuntimeError('Nextnanopy terminated.') from None
+                    try:
+                        iChoice = int(choice)
+                    except ValueError:
+                        print("Invalid input. (Type 'q' to quit)")
+                        continue
+                    if iChoice not in range(len(array)):
+                        print("Invalid input. (Type 'q' to quit)")
+                    else:
+                        break
+            sweep_space_reduced[var] = [array[iChoice]]   # only one element, but has to be an Iterable for the later use
         return sweep_space_reduced
 
 
@@ -440,20 +445,23 @@ class SweepHelper:
             print("Simulation has been performed at: ")
             for i, val in enumerate(array):
                 print(f"index {i}: {val}")
-            while True:
-                choice = input("Specify value for the plot with index: ")
-                if choice == 'q':
-                    raise RuntimeError('Nextnanopy terminated.') from None
-                try:
-                    iChoice = int(choice)
-                except ValueError:
-                    print("Invalid input. (Type 'q' to quit)")
-                    continue
-                if iChoice not in range(len(array)):
-                    print("Invalid input. (Type 'q' to quit)")
-                else:
-                    break
-            sweep_space_reduced[var] = [array[int(choice)]]   # only one element, but has to be an Iterable for the use below
+            if len(array) == 1:
+                iChoice = 0
+            else:
+                while True:
+                    choice = input("Specify value for the plot by index: ")
+                    if choice == 'q':
+                        raise RuntimeError('Nextnanopy terminated.') from None
+                    try:
+                        iChoice = int(choice)
+                    except ValueError:
+                        print("Invalid input. (Type 'q' to quit)")
+                        continue
+                    if iChoice not in range(len(array)):
+                        print("Invalid input. (Type 'q' to quit)")
+                    else:
+                        break
+            sweep_space_reduced[var] = [array[iChoice]]   # only one element, but has to be an Iterable for the later use
         logging.debug("Extracted sweep_space", sweep_space_reduced)
         return sweep_space_reduced
 
