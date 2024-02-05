@@ -59,6 +59,9 @@ class SweepHelper:
             'original'  = original file name
             'short' = abbreviated file name
 
+        isFilenameAbbreviated : bool
+            indicates if the input file and output folder names are abbreviated
+
         output_folder_path : dict of str
             parent output folder path of sweep simulations
             'original'  = original file name
@@ -175,8 +178,7 @@ class SweepHelper:
                 if len(plot_range) != 2: raise ValueError("__init__(): argument 'eigenstate_range' must be of the form 'quantum model': [min, max]")
 
         self.master_input_file = dict()
-        self.output_folder_path = dict()
-        self.sweep_obj = dict()
+        self.isFilenameAbbreviated = False
 
         # store master input file object
         self.master_input_file['original'] = copy.copy(master_input_file)
@@ -193,13 +195,18 @@ class SweepHelper:
             filename = id[:5] + ext  # using a part of the Universally Unique Identifier
             temp_path = os.path.join(dir, filename)
             master_input_file.save(temp_path, overwrite=True, automkdir=True)
+            self.isFilenameAbbreviated = True
         self.master_input_file['short'] = master_input_file
 
         # store parent output folder path of sweep simulations
+        self.output_folder_path = dict()
         self.output_folder_path['original']  = self.shortcuts.get_sweep_output_folder_path(self.master_input_file['original'].fullpath, *self.sweep_space.keys())
         self.output_folder_path['short']     = self.shortcuts.get_sweep_output_folder_path(self.master_input_file['short'].fullpath, *self.sweep_space.keys())
 
+        assert (self.output_folder_path['short'] != self.output_folder_path['original']) == self.isFilenameAbbreviated
+
         # instantiate nn.Sweep object
+        self.sweep_obj = dict()
         for name_type in ['original', 'short']:
             self.sweep_obj[name_type] = nn.Sweep(self.sweep_space, self.master_input_file[name_type].fullpath)
             self.sweep_obj[name_type].save_sweep(round_decimal=round_decimal)  # ensure the same decimals for self.sweep_space and input file names
@@ -258,23 +265,47 @@ class SweepHelper:
         print("\tSweep space grids: ")
         for var, values in self.sweep_space.items():
             print(f"\t\t{var} = ", values)
-        print("\tOutput folder: ", self.output_folder_path['original'])
+        print("\tOutput folder: ", self.__get_output_folder_path())
         print("\tOutput data exists: ", self.__output_subfolders_exist())
         return ""
 
 
     ### auxillary postprocessing methods ####################################
+    def __get_output_folder_path(self):
+        """
+        Returns
+        -------
+        path to simulation output folder
+        """
+        if self.isFilenameAbbreviated:
+            return self.output_folder_path['short']
+        else:
+            return self.output_folder_path['original']
+        
+
+    def __get_output_subfolder_paths(self):
+        """
+        Returns
+        -------
+        list of paths to simulation output subfolders
+        """
+        if self.isFilenameAbbreviated: 
+            return self.data['output_subfolder_short']
+        else:
+            return self.data['output_subfolder']
+
+
     def __output_subfolders_exist(self):
         """
         Check if all output subfolders with the same input file name and sweep values exist
-        (does not garantee that the results are up-to-date!)
+        (does not guarantee that the results are up-to-date!)
 
         Returns
         -------
         bool
 
         """
-        return all(os.path.isdir(s) for s in self.data['output_subfolder'])
+        return all(os.path.isdir(s) for s in self.__get_output_subfolder_paths())
 
 
     def __validate_sweep_variables(self, sweep_var):
@@ -518,7 +549,9 @@ class SweepHelper:
     def execute_sweep(self, convergenceCheck=True, show_log=False, parallel_limit=1, **kwargs):
         """
         Run simulations.
-        If the input file name has been abbreviated due to limited output path length, recover the original input file name in the output folders after nextnano execution.
+        
+        Use the method 'recover_original_filenames()' to recover the original input file name in the output folders after nextnano execution 
+        if the input file name has been abbreviated due to limited output path length.
 
         Parameters
         ----------
@@ -554,37 +587,6 @@ class SweepHelper:
                 **kwargs
                 )   
 
-        if self.output_folder_path['short'] != self.output_folder_path['original']:
-            logging.info(f"Setting output folder names to input file name...")
-            
-            # move the subfolders from 'short' to 'original' root folder
-            # if os.path.isdir(self.output_folder_path['original']):
-            #     TODO: Fix: folders move to wrong places
-            #     for subfolder in os.listdir(self.output_folder_path['short']):  # os.listdir() cannot return full paths!
-            #         try:
-            #             logging.info(f"Moving {subfolder} to \n{self.output_folder_path['original']}")
-            #             shutil.move(os.path.join(self.output_folder_path['short'], subfolder), self.output_folder_path['original'])  # if the destination is an existing directory, move the source inside that directory
-            #         except:
-            #             warnings.warn(f"shutil.move() for file {subfolder} skipped.")
-            # else:
-            #     shutil.move(self.output_folder_path['short'], self.output_folder_path['original'])
-            
-            # if the output of the original folder name exists, delete because shutil.move() cannot overwrite if the destination exists
-            if os.path.isdir(self.output_folder_path['original']):
-                try: 
-                    shutil.rmtree(self.output_folder_path['original'])
-                except OSError as e:
-                    raise
-            
-            # rename folder
-            shutil.move(self.output_folder_path['short'], self.output_folder_path['original'])
-            
-            # within 'original' folder, rename subfolders
-            for short, original in zip(self.sweep_obj['short'].input_files, self.sweep_obj['original'].input_files):
-                current_output_subfolder = CommonShortcuts.get_output_subfolder_path(self.output_folder_path['original'], short.fullpath)
-                original_output_subfolder = CommonShortcuts.get_output_subfolder_path(self.output_folder_path['original'] , original.fullpath)
-                shutil.move(current_output_subfolder, original_output_subfolder)
-
         # If not given at the class instantiation, determine how many eigenstates to plot (states_to_be_plotted attribute)
         if self.states_to_be_plotted is None:   # by default, plot all states in the output data
             try: 
@@ -592,6 +594,43 @@ class SweepHelper:
                 self.states_to_be_plotted, num_evs = self.shortcuts.get_states_to_be_plotted(datafiles_probability)   # states_range_dict=None -> all states are plotted
             except FileNotFoundError:  # 1,2,3-band NEGF doesn't have probability output
                 warnings.warn("SweepHelper.execute_sweep(): Probability distribution not found")
+
+
+    def recover_original_filenames(self):
+        if not self.isFilenameAbbreviated:
+            return
+        
+        logging.info(f"Setting output folder names to input file name...")
+        
+        # move the subfolders from 'short' to 'original' root folder
+        # if os.path.isdir(self.output_folder_path['original']):
+        #     TODO: Fix: folders move to wrong places
+        #     for subfolder in os.listdir(self.output_folder_path['short']):  # os.listdir() cannot return full paths!
+        #         try:
+        #             logging.info(f"Moving {subfolder} to \n{self.output_folder_path['original']}")
+        #             shutil.move(os.path.join(self.output_folder_path['short'], subfolder), self.output_folder_path['original'])  # if the destination is an existing directory, move the source inside that directory
+        #         except:
+        #             warnings.warn(f"shutil.move() for file {subfolder} skipped.")
+        # else:
+        #     shutil.move(self.output_folder_path['short'], self.output_folder_path['original'])
+        
+        # if the output of the original folder name exists, delete because shutil.move() cannot overwrite if the destination exists
+        if os.path.isdir(self.output_folder_path['original']):
+            try: 
+                shutil.rmtree(self.output_folder_path['original'])
+            except OSError as e:
+                raise
+        
+        # rename folder
+        shutil.move(self.output_folder_path['short'], self.output_folder_path['original'])
+        
+        # within 'original' folder, rename subfolders
+        for short, original in zip(self.sweep_obj['short'].input_files, self.sweep_obj['original'].input_files):
+            current_output_subfolder = CommonShortcuts.get_output_subfolder_path(self.output_folder_path['original'], short.fullpath)
+            original_output_subfolder = CommonShortcuts.get_output_subfolder_path(self.output_folder_path['original'] , original.fullpath)
+            shutil.move(current_output_subfolder, original_output_subfolder)
+
+        self.isFilenameAbbreviated = False
 
 
     def delete_input_files(self):
@@ -617,7 +656,7 @@ class SweepHelper:
         """
         Delete the output data of the sweep object.
         """
-        outfolder = self.output_folder_path['original']
+        outfolder = self.__get_output_folder_path()
         if not os.path.exists(outfolder):
             warnings.warn("Output folder does not exist!")
             return
@@ -751,7 +790,7 @@ class SweepHelper:
 
         # plot dispersions
         for model in self.states_to_be_plotted.keys():
-            for coords, outfolder in zip(self.data['sweep_coords'], self.data['output_subfolder']):
+            for coords, outfolder in zip(self.data['sweep_coords'], self.__get_output_subfolder_paths()):
                 if isIn(coords):
                     self.shortcuts.plot_dispersion(outfolder, np.amin(self.states_to_be_plotted[model]), np.amax(self.states_to_be_plotted[model]), savePDF=savePDF)
         return
@@ -821,7 +860,7 @@ class SweepHelper:
 
         # Compute overlaps and store them in self.data
         logging.info("Calculating overlap...")
-        self.data['overlap'] = self.data['output_subfolder'].apply(self.shortcuts.calculate_overlap, force_lightHole=force_lightHole)
+        self.data['overlap'] = self.__get_output_subfolder_paths().apply(self.shortcuts.calculate_overlap, force_lightHole=force_lightHole)
         # self.data['overlap_squared'] = self.data['overlap'].apply(common.absolute_squared)   # BUG: somehow the results become complex128, not float --> cannot be plotted
         
         # x- and y-axis coordinates and 2D array-like of overlap data
@@ -850,13 +889,13 @@ class SweepHelper:
         if figFilename is None or figFilename == "":
             name = os.path.split(self.output_folder_path['original'])[1]
             figFilename = name + "_overlap"
-        self.shortcuts.export_figs(figFilename, "png", output_folder_path=self.output_folder_path['original'], fig=fig)
+        self.shortcuts.export_figs(figFilename, "png", output_folder_path=self.__get_output_folder_path(), fig=fig)
 
 
         # write info to a file
         max_val, indices = CommonShortcuts.find_maximum(overlap_squared)  
         y_index, x_index = indices
-        filepath = os.path.join(self.output_folder_path['original'], os.path.join("nextnanopy", "info.txt"))
+        filepath = os.path.join(self.__get_output_folder_path(), os.path.join("nextnanopy", "info.txt"))
         logging.info(f"Writing info to:\n{filepath}")
         f = open(filepath, "w")  # w = write = overwrite existing content
         f.write(f"Overlap squared maximum {max_val} at:\n")
@@ -919,9 +958,9 @@ class SweepHelper:
 
         # Get transition energies and store them in self.data
         if self.shortcuts.product_name == 'nextnano++':
-            self.data['transition_energy_eV'] = self.data['output_subfolder'].apply(self.shortcuts.get_transition_energy, force_lightHole=force_lightHole)
+            self.data['transition_energy_eV'] = self.__get_output_subfolder_paths().apply(self.shortcuts.get_transition_energy, force_lightHole=force_lightHole)
         elif self.shortcuts.product_name == 'nextnano.NEGF++':
-            self.data['transition_energy_eV'] = self.data['output_subfolder'].apply(self.shortcuts.get_transition_energy)
+            self.data['transition_energy_eV'] = self.__get_output_subfolder_paths().apply(self.shortcuts.get_transition_energy)
 
         # Convert units
         self.data['transition_energy_meV']    = self.data['transition_energy_eV'] * CommonShortcuts.scale1ToMilli
@@ -959,7 +998,7 @@ class SweepHelper:
             if figFilename is None or figFilename == "":
                 name = os.path.split(self.output_folder_path['original'])[1]
                 figFilename = name + "_transitionEnergies"
-            self.shortcuts.export_figs(figFilename, "png", output_folder_path=self.output_folder_path['original'], fig=fig)
+            self.shortcuts.export_figs(figFilename, "png", output_folder_path=self.__get_output_folder_path(), fig=fig)
             return fig
 
         
@@ -1060,7 +1099,7 @@ class SweepHelper:
         self.__validate_sweep_variables(y_axis)
 
         # Get transition energies and store them in self.data
-        self.data['hole_energy_difference'] = self.data['output_subfolder'].apply(self.shortcuts.get_hole_energy_difference)
+        self.data['hole_energy_difference'] = self.__get_output_subfolder_paths().apply(self.shortcuts.get_hole_energy_difference)
 
         # x- and y-axis coordinates and 2D array-like of overlap data
         x_values, y_values, transition_energies = self.__slice_data_for_colormap_2D('hole_energy_difference', x_axis, y_axis, datatype=np.double)
@@ -1093,7 +1132,7 @@ class SweepHelper:
         if figFilename is None or figFilename == "":
             name = os.path.split(self.output_folder_path['original'])[1]
             figFilename = name + "_holeEnergyDifference"
-        self.shortcuts.export_figs(figFilename, "png", output_folder_path=self.output_folder_path['original'], fig=fig)
+        self.shortcuts.export_figs(figFilename, "png", output_folder_path=self.__get_output_folder_path(), fig=fig)
 
         return fig
 
