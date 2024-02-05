@@ -178,8 +178,7 @@ class SweepHelper:
                 if len(plot_range) != 2: raise ValueError("__init__(): argument 'eigenstate_range' must be of the form 'quantum model': [min, max]")
 
         self.master_input_file = dict()
-        self.isFilenameAbbreviated = False
-
+        
         # store master input file object
         self.master_input_file['original'] = copy.copy(master_input_file)
         outfolder = self.shortcuts.get_sweep_output_folder_path(self.master_input_file['original'].fullpath, *self.sweep_space.keys())
@@ -195,7 +194,6 @@ class SweepHelper:
             filename = id[:5] + ext  # using a part of the Universally Unique Identifier
             temp_path = os.path.join(dir, filename)
             master_input_file.save(temp_path, overwrite=True, automkdir=True)
-            self.isFilenameAbbreviated = True
         self.master_input_file['short'] = master_input_file
 
         # store parent output folder path of sweep simulations
@@ -203,7 +201,7 @@ class SweepHelper:
         self.output_folder_path['original']  = self.shortcuts.get_sweep_output_folder_path(self.master_input_file['original'].fullpath, *self.sweep_space.keys())
         self.output_folder_path['short']     = self.shortcuts.get_sweep_output_folder_path(self.master_input_file['short'].fullpath, *self.sweep_space.keys())
 
-        assert (self.output_folder_path['short'] != self.output_folder_path['original']) == self.isFilenameAbbreviated
+        self.isFilenameAbbreviated = (self.output_folder_path['short'] != self.output_folder_path['original'])
 
         # instantiate nn.Sweep object
         self.sweep_obj = dict()
@@ -229,6 +227,10 @@ class SweepHelper:
             'hole_energy_difference' : None
             })
         
+        # simulation outputs of this sweep might exist already. The user might want to access those outputs without executing sweep simulation.
+        if self.__output_subfolders_exist_with_originalname():
+            self.isFilenameAbbreviated = False
+
         # for convenience in postprocessing/visualizing CSV/Excel output
         def extract_coord(tupl, index=0):
             return tupl[index]
@@ -270,7 +272,7 @@ class SweepHelper:
         return ""
 
 
-    ### auxillary postprocessing methods ####################################
+    ### getter and checker methods of class attributes ####################################
     def __get_output_folder_path(self):
         """
         Returns
@@ -308,6 +310,10 @@ class SweepHelper:
         return all(os.path.isdir(s) for s in self.__get_output_subfolder_paths())
 
 
+    def __output_subfolders_exist_with_originalname(self):
+        return all(os.path.isdir(s) for s in self.data['output_subfolder'])
+
+
     def __validate_sweep_variables(self, sweep_var):
         if sweep_var not in self.sweep_space:
             if sweep_var not in self.master_input_file['original'].variables:
@@ -315,7 +321,9 @@ class SweepHelper:
             else:
                 raise KeyError(f"Variable {sweep_var} has not been swept.")
         return
+    
 
+    ### auxillary postprocessing methods ####################################
     def __slice_data_for_colormap_2D(self, key, x_axis, y_axis, datatype=np.double):
         """
         Extract the data along two specified sweep parameters
@@ -587,6 +595,9 @@ class SweepHelper:
                 **kwargs
                 )   
 
+        # point to the new output in case old simulation outputs exist with original file name
+        self.isFilenameAbbreviated = (self.output_folder_path['short'] != self.output_folder_path['original'])
+
         # If not given at the class instantiation, determine how many eigenstates to plot (states_to_be_plotted attribute)
         if self.states_to_be_plotted is None:   # by default, plot all states in the output data
             try: 
@@ -600,7 +611,7 @@ class SweepHelper:
         if not self.isFilenameAbbreviated:
             return
         
-        logging.info(f"Setting output folder names to input file name...")
+        logging.info(f"Reverting output folder name from \n{self.output_folder_path['short']} to\n{self.output_folder_path['original']}")
         
         # move the subfolders from 'short' to 'original' root folder
         # if os.path.isdir(self.output_folder_path['original']):

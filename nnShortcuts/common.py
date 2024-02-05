@@ -811,7 +811,7 @@ class CommonShortcuts:
 
         # validate the search result
         if len(list_of_files) == 0:
-            raise FileNotFoundError(f"No output file found at {folder_path}")
+            raise FileNotFoundError(f"No output file found in the folder {folder_path}")
         elif len(list_of_files) == 1:
             file = list_of_files[0]
         else:
@@ -920,7 +920,7 @@ class CommonShortcuts:
 
         # validate the search result
         if len(list_of_files) == 0:
-            raise FileNotFoundError(f"No output file found at {folder_path}")
+            raise FileNotFoundError(f"No output file found in the folder {folder_path}")
         elif len(list_of_files) == 1:
             warnings.warn("get_DataFiles_in_folder(): Only one output file found!", category=RuntimeWarning)
 
