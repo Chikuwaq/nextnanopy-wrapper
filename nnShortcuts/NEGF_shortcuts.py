@@ -1082,7 +1082,7 @@ class NEGFShortcuts(CommonShortcuts):
                 'kp6': list(),
                 'kp8': list()
             }
-            datafiles = self.get_DataFiles(['wavefunctions_spinor_composition_Ang'], input_file.fullpath)
+            datafiles = self.get_DataFiles(['spinor_composition_AngMom'], input_file.fullpath)
             # datafiles = [df for cnt in range(len(datafiles)) for df in datafiles if str(cnt).zfill(5) + '_CbHhLhSo' in os.path.split(df.fullpath)[1]]   # sort spinor composition datafiles in ascending kIndex  # TODO: C++ doesn't have multiple in-plane k output
             for df in datafiles:
                 datafiles_spinor['kp8'].append(df)
@@ -1488,7 +1488,7 @@ class NEGFShortcuts(CommonShortcuts):
         """
         # get nn.DataFile object
         try:
-            datafile = self.get_DataFile_in_folder(['wavefunctions_spinor_composition_SXYZ'], output_folder)   # spinor composition at in-plane k = 0
+            datafile = self.get_DataFile_in_folder(['spinor_composition_SXYZ'], output_folder)   # spinor composition at in-plane k = 0
         except FileNotFoundError:
             raise
 
@@ -1532,7 +1532,7 @@ class NEGFShortcuts(CommonShortcuts):
         """
         # get nn.DataFile object
         try:
-            datafile = self.get_DataFile_in_folder(['wavefunctions_spinor_composition_SXYZ'], output_folder)   # spinor composition at in-plane k = 0
+            datafile = self.get_DataFile_in_folder(['spinor_composition_SXYZ'], output_folder)   # spinor composition at in-plane k = 0
         except FileNotFoundError:
             raise
 
