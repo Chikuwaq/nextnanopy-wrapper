@@ -195,9 +195,9 @@ class nn3Shortcuts(CommonShortcuts):
         1. this method should return 0
         2. methods that use this method should distinguish two output files kp8_psi_squared_el and kp8_psi_squared_hl. 
 
-        From spinor composition data, determine the lowest electron state in an 8-band k.p simulation.
+        From spinor composition data, determine the lowest conduction band state in an 8-band k.p simulation.
         This method should be able to detect it properly even when the effective bandgap is negative,
-        i.e. when the lowest electron state is below the highest hole state.
+        i.e. when the lowest conduction band state is below the highest valence band state.
 
         Note
         ----
@@ -213,7 +213,7 @@ class nn3Shortcuts(CommonShortcuts):
 
         Returns
         -------
-        state index (base 0) of the lowest electron state at in-plane k = 0
+        state index (base 0) of the lowest conduction band state at in-plane k = 0
 
         """
         # get nn.DataFile object   # TODO: where is the output of spinor composition in nn3?
@@ -228,7 +228,7 @@ class nn3Shortcuts(CommonShortcuts):
         if self.detect_quantum_model(filename) != 'kp8':
             raise NextnanopyScriptError("This method only applies to 8-band k.p model!")
 
-        # find the lowest electron state
+        # find the lowest conduction band state
         num_evs = len(datafile.variables['cb1'].value)
         for stateIndex in range(num_evs):
             electronFraction = datafile.variables['cb1'].value[stateIndex] + datafile.variables['cb2'].value[stateIndex]
@@ -244,9 +244,9 @@ class nn3Shortcuts(CommonShortcuts):
         1. this method should return 0
         2. methods that use this method should distinguish two output files kp8_psi_squared_el and kp8_psi_squared_hl. 
 
-        From spinor composition data, determine the highest hole state in an 8-band k.p simulation.
+        From spinor composition data, determine the highest valence band state in an 8-band k.p simulation.
         This method should be able to detect it properly even when the effective bandgap is negative,
-        i.e. when the highest hole state is above the lowest electron state.
+        i.e. when the highest valence band state is above the lowest conduction band state.
 
         Note
         ----
@@ -262,7 +262,7 @@ class nn3Shortcuts(CommonShortcuts):
 
         Returns
         -------
-        state index (base 0) of the highest hole state at in-plane k = 0
+        state index (base 0) of the highest valence band state at in-plane k = 0
 
         """
         # get nn.DataFile object  # TODO: where is the output of spinor composition in nn3?
@@ -277,7 +277,7 @@ class nn3Shortcuts(CommonShortcuts):
         if self.detect_quantum_model(filename) != 'kp8':
             raise NextnanopyScriptError("This method only applies to 8-band k.p model!")
 
-        # find the highest hole state
+        # find the highest valence band state
         num_evs = len(datafile.variables['cb1'].value)
         for stateIndex in reversed(range(num_evs)):
             electronFraction = datafile.variables['cb1'].value[stateIndex] + datafile.variables['cb2'].value[stateIndex]
@@ -293,7 +293,7 @@ class nn3Shortcuts(CommonShortcuts):
 
     def calculate_overlap(self, output_folder, force_lightHole=False):
         """
-        Calculate envelope overlap between the lowest electron and highest hole states from wavefunction output data
+        Calculate envelope overlap between the lowest electron and highest valence band states from wavefunction output data
 
         Parameters
         ----------
@@ -399,7 +399,7 @@ class nn3Shortcuts(CommonShortcuts):
 
     def get_transition_energy(self, output_folder, force_lightHole=False):
         """ 
-        Get the transition energy = energy separation between the lowest electron and highest hole states.
+        Get the transition energy = energy separation between the lowest electron and highest valence band states.
         Unit: eV
         """
         # TODO: make it compatible with single-band & kp6 models. See nnp implementation

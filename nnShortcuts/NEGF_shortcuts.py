@@ -1082,7 +1082,7 @@ class NEGFShortcuts(CommonShortcuts):
                 'kp6': list(),
                 'kp8': list()
             }
-            datafiles = self.get_DataFiles(['spinor_composition_AngMom'], input_file.fullpath)
+            datafiles = self.get_DataFiles(['wavefunctions_spinor_composition_AngMom'], input_file.fullpath)
             # datafiles = [df for cnt in range(len(datafiles)) for df in datafiles if str(cnt).zfill(5) + '_CbHhLhSo' in os.path.split(df.fullpath)[1]]   # sort spinor composition datafiles in ascending kIndex  # TODO: C++ doesn't have multiple in-plane k output
             for df in datafiles:
                 datafiles_spinor['kp8'].append(df)
@@ -1465,9 +1465,9 @@ class NEGFShortcuts(CommonShortcuts):
     ############### find ground states from kp8 result ############################
     def find_lowest_conduction_state_atK0(self, output_folder, threshold=0.5):
         """
-        From spinor composition data, determine the lowest electron state in an 8-band k.p simulation.
+        From spinor composition data, determine the lowest conduction band state in an 8-band k.p simulation.
         This method should be able to detect it properly even when the effective bandgap is negative,
-        i.e. when the lowest electron state is below the highest hole state.
+        i.e. when the lowest conduction band state is below the highest valence band state.
 
         Note
         ----
@@ -1483,17 +1483,17 @@ class NEGFShortcuts(CommonShortcuts):
 
         Returns
         -------
-        state index (base 0) of the lowest electron state at in-plane k = 0
+        state index (base 0) of the lowest conduction band state at in-plane k = 0
 
         """
         # get nn.DataFile object
         try:
-            datafile = self.get_DataFile_in_folder(['spinor_composition_SXYZ'], output_folder)   # spinor composition at in-plane k = 0
+            datafile = self.get_DataFile_in_folder(['wavefunctions_spinor_composition_SXYZ'], output_folder)   # spinor composition at in-plane k = 0
         except FileNotFoundError:
             raise
 
-        # find the lowest electron state
-        # TODO: nextnanopy.DataFile parses the labels in NEGF++ output file wrong.
+        # find the lowest conduction band state
+        # TODO: nextnanopy.DataFile parses the labels in NEGF++ output file wrong?
         num_evs = len(datafile.variables[0].value)
         # print(f"datafile coords {datafile.coords}")
         # print(f"datafile variables {datafile.variables}")
@@ -1509,9 +1509,9 @@ class NEGFShortcuts(CommonShortcuts):
 
     def find_highest_valence_state_atK0(self, output_folder, threshold=0.5):
         """
-            From spinor composition data, determine the highest hole state in an 8-band k.p simulation.
+            From spinor composition data, determine the highest valence band state in an 8-band k.p simulation.
             This method should be able to detect it properly even when the effective bandgap is negative,
-            i.e. when the highest hole state is above the lowest electron state.
+            i.e. when the highest valence band state is above the lowest conduction band state.
 
             Note
             ----
@@ -1527,17 +1527,17 @@ class NEGFShortcuts(CommonShortcuts):
 
             Returns
             -------
-            state index (base 0) of the highest hole state at in-plane k = 0
+            state index (base 0) of the highest valence band state at in-plane k = 0
 
         """
         # get nn.DataFile object
         try:
-            datafile = self.get_DataFile_in_folder(['spinor_composition_SXYZ'], output_folder)   # spinor composition at in-plane k = 0
+            datafile = self.get_DataFile_in_folder(['wavefunctions_spinor_composition_SXYZ'], output_folder)   # spinor composition at in-plane k = 0
         except FileNotFoundError:
             raise
 
-        # find the highest hole state
-        # TODO: nextnanopy.DataFile parses the labels in NEGF++ output file wrong.
+        # find the highest valence band state
+        # TODO: nextnanopy.DataFile parses the labels in NEGF++ output file wrong?
         num_evs = len(datafile.variables[0].value)
         for stateIndex in reversed(range(num_evs)):
             electronFraction = datafile.variables[0].value[stateIndex] + datafile.variables[4].value[stateIndex]
@@ -1548,18 +1548,103 @@ class NEGFShortcuts(CommonShortcuts):
         raise RuntimeError(f"No hole states found in: {output_folder}")
 
 
+    def find_highest_HH_state_atK0(self, output_folder, threshold=0.5):
+        """
+            From spinor composition data, determine the highest heavy-hole state in an 8-band k.p simulation.
+            This method should be able to detect it properly even when the effective bandgap is negative.
+            
+            Parameters
+            ----------
+            output_folder : str
+                output folder path
+            threshold : real, optional
+                If electron fraction in the spinor composition is less than this value, the state is assumed to be a hole state.
+                The default is 0.5.
+
+            Returns
+            -------
+            state index (base 0) of the highest heavy-hole state at in-plane k = 0
+
+        """
+        # get nn.DataFile object
+        try:
+            datafile = self.get_DataFile_in_folder(['wavefunctions_spinor_composition_AngMom'], output_folder)   # spinor composition at in-plane k = 0
+        except FileNotFoundError:
+            raise
+
+        # find the highest heavy-hole state
+        # TODO: nextnanopy.DataFile parses the labels in NEGF++ output file wrong?
+        num_evs = len(datafile.variables[0].value)
+        for stateIndex in reversed(range(num_evs)):
+            HHFraction = datafile.variables[1].value[stateIndex] + datafile.variables[5].value[stateIndex]
+            if HHFraction < threshold:
+                logging.info(f"Highest heavy-hole index = {stateIndex} (heavy-hole contribution = {HHFraction})")
+                return stateIndex
+
+        raise RuntimeError(f"No heavy-hole states found in: {output_folder}")
+    
+
+    def find_highest_LH_state_atK0(self, output_folder, threshold=0.5):
+        """
+            From spinor composition data, determine the highest light-hole state in an 8-band k.p simulation.
+            This method should be able to detect it properly even when the effective bandgap is negative.
+            
+            Parameters
+            ----------
+            output_folder : str
+                output folder path
+            threshold : real, optional
+                If electron fraction in the spinor composition is less than this value, the state is assumed to be a hole state.
+                The default is 0.5.
+
+            Returns
+            -------
+            state index (base 0) of the highest light-hole state at in-plane k = 0
+
+        """
+        # get nn.DataFile object
+        try:
+            datafile = self.get_DataFile_in_folder(['wavefunctions_spinor_composition_AngMom'], output_folder)   # spinor composition at in-plane k = 0
+        except FileNotFoundError:
+            raise
+
+        # find the highest light-hole state
+        # TODO: nextnanopy.DataFile parses the labels in NEGF++ output file wrong?
+        num_evs = len(datafile.variables[0].value)
+        for stateIndex in reversed(range(num_evs)):
+            LHFraction = datafile.variables[2].value[stateIndex] + datafile.variables[6].value[stateIndex]
+            if LHFraction < threshold:
+                logging.info(f"Highest light-hole index = {stateIndex} (light-hole contribution = {LHFraction})")
+                return stateIndex
+
+        raise RuntimeError(f"No light-hole states found in: {output_folder}")
+    
+
     def get_transition_energy(self, output_folder):
         """
-        Get the transition energy = energy separation between the lowest electron and highest hole states.
+        Get the transition energy = energy separation between the lowest electron and highest valence band states.
         Unit: eV
         """
         datafile = self.get_DataFile_in_folder(["EnergySpectrum"], output_folder)
 
         iLowestElectron = self.find_lowest_conduction_state_atK0(output_folder, threshold=0.5)
         iHighestHole    = self.find_highest_valence_state_atK0(output_folder, threshold=0.5)
+        E_electron = datafile.variables[0].value[iLowestElectron]
+        E_hole = datafile.variables[0].value[iHighestHole]
 
-        # print(datafile.variables[0].value)
-        dE = datafile.variables[0].value[iLowestElectron] - datafile.variables[0].value[iHighestHole]  # TODO: the key 'Energy' isn't read by nextnanopy correctly
-
-        return dE
+        return E_electron - E_hole
     
+    
+    def get_hole_energy_difference(self, output_folder):
+        """
+        Get the hole energy difference = energy separation between the highest HH and highest LH states.
+        Unit: eV
+        """
+        datafile = self.get_DataFile_in_folder(["EnergySpectrum"], output_folder)
+
+        iHighestHH = self.find_highest_HH_state_atK0(output_folder, threshold=0.5)
+        iHighestLH = self.find_highest_LH_state_atK0(output_folder, threshold=0.5)
+        E_HH = datafile.variables[0].value[iHighestHH]
+        E_LH = datafile.variables[0].value[iHighestLH]
+
+        return E_HH - E_LH 

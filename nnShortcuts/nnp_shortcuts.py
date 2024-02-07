@@ -1441,9 +1441,9 @@ class nnpShortcuts(CommonShortcuts):
     ############### find ground states from kp8 result ############################
     def find_lowest_conduction_state_atK0(self, output_folder, threshold=0.5):
         """
-        From spinor composition data, determine the lowest electron state in an 8-band k.p simulation.
+        From spinor composition data, determine the lowest conduction band state in an 8-band k.p simulation.
         This method should be able to detect it properly even when the effective bandgap is negative,
-        i.e. when the lowest electron state is below the highest hole state.
+        i.e. when the lowest conduction band state is below the highest valence band state.
 
         Note
         ----
@@ -1459,7 +1459,7 @@ class nnpShortcuts(CommonShortcuts):
 
         Returns
         -------
-        state index (base 0) of the lowest electron state at in-plane k = 0
+        state index (base 0) of the lowest conduction band state at in-plane k = 0
 
         """
         # get nn.DataFile object
@@ -1475,7 +1475,7 @@ class nnpShortcuts(CommonShortcuts):
             warnings.warn("This is not an 8-band k.p simulation. Assuming decoupling of the conduction and valence bands...", category=NextnanoInputFileWarning)
             return int(0)
 
-        # find the lowest electron state
+        # find the lowest conduction band state
         num_evs = len(datafile.variables['cb1'].value)
         for stateIndex in range(num_evs):
             electronFraction = datafile.variables['cb1'].value[stateIndex] + datafile.variables['cb2'].value[stateIndex]
@@ -1487,9 +1487,9 @@ class nnpShortcuts(CommonShortcuts):
 
     def find_highest_valence_state_atK0(self, output_folder, threshold=0.5):
         """
-        From spinor composition data, determine the highest hole state in an 8-band k.p simulation.
+        From spinor composition data, determine the highest valence band state in an 8-band k.p simulation.
         This method should be able to detect it properly even when the effective bandgap is negative,
-        i.e. when the highest hole state is above the lowest electron state.
+        i.e. when the highest valence band state is above the lowest conduction band state.
 
         Note
         ----
@@ -1505,7 +1505,7 @@ class nnpShortcuts(CommonShortcuts):
 
         Returns
         -------
-        state index (base 0) of the highest hole state at in-plane k = 0
+        state index (base 0) of the highest valence band state at in-plane k = 0
 
         """
         # get nn.DataFile object
@@ -1521,7 +1521,7 @@ class nnpShortcuts(CommonShortcuts):
             warnings.warn("This is not an 8-band k.p simulation. Assuming decoupling of the conduction and valence bands...", category=NextnanoInputFileWarning)
             return int(0)
 
-        # find the highest hole state
+        # find the highest valence band state
         num_evs = len(datafile.variables['cb1'].value)
         for stateIndex in reversed(range(num_evs)):
             electronFraction = datafile.variables['cb1'].value[stateIndex] + datafile.variables['cb2'].value[stateIndex]
@@ -1552,7 +1552,7 @@ class nnpShortcuts(CommonShortcuts):
 
     def calculate_overlap(self, output_folder, force_lightHole=False):
         """
-        Calculate envelope overlap between the lowest electron and highest hole states from wavefunction output data
+        Calculate envelope overlap between the lowest electron and highest valence band states from wavefunction output data
 
         Parameters
         ----------
@@ -1657,7 +1657,7 @@ class nnpShortcuts(CommonShortcuts):
 
     def get_transition_energy(self, output_folder, force_lightHole=False):
         """
-        Get the transition energy = energy separation between the lowest electron and highest hole states.
+        Get the transition energy = energy separation between the lowest electron and highest valence band states.
         Unit: eV
         """
         datafiles = self.get_DataFiles_in_folder(["transition_energies", ".fld"], output_folder)
@@ -1700,6 +1700,11 @@ class nnpShortcuts(CommonShortcuts):
         """
         Get the hole energy difference = energy separation between the highest HH and highest LH states.
         Unit: eV
+
+        WARNING
+        -------
+        This method is not available for k.p simulations!
+        TODO: Generalize following NEGFShortcuts.find_highest_HH_state_atK0() etc.
         """
         try:
             E_HH = self.get_DataFile_in_folder(['energy_spectrum', '_HH'], output_folder).variables['Energy'].value[0]   # energy of the first eigenstate
