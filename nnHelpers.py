@@ -63,8 +63,15 @@ class SweepHelper:
             'original'  = original file name
             'short' = abbreviated file name
 
-        sweep_obj : dict of nextnanopy.Sweep object
+        sweep_obj : nextnanopy.Sweep object
             instantiated based on self.sweep_space and self.master_input_file
+
+        input_file_fullpaths : dict of list of str
+            list of fullpath of temporary input files for the sweep.
+            Paths are ordered in the same manner as self.sweep_obj.input_files.
+            'original'  = original file name
+            'short' = abbreviated file name
+            NOTE: We split the temporary input file paths from self.sweep_obj to avoid unnecessary save_sweep(), which costs time.
 
         data : pandas.DataFrame object
             table of sweep data with the following columns:
@@ -200,21 +207,25 @@ class SweepHelper:
         self.isFilenameAbbreviated = (self.output_folder_path['short'] != self.output_folder_path['original'])
 
         # instantiate nn.Sweep object
-        self.sweep_obj = dict()
-        for name_type in ['original', 'short']:
-            self.sweep_obj[name_type] = nn.Sweep(self.sweep_space, self.master_input_file[name_type].fullpath)
-            self.sweep_obj[name_type].save_sweep(round_decimal=round_decimal)  # ensure the same decimals for self.sweep_space and input file names
+        if self.isFilenameAbbreviated:
+            self.sweep_obj = nn.Sweep(self.sweep_space, self.master_input_file['short'].fullpath)
+        else:
+            self.sweep_obj = nn.Sweep(self.sweep_space, self.master_input_file['original'].fullpath)
+
+        self.round_decimal = round_decimal  # used by execute_sweep()
+        
+        self.input_file_fullpaths = dict()
+        self.input_file_fullpaths['short'] = self.__create_input_file_fullpaths(self.master_input_file['short'])
+        self.input_file_fullpaths['original'] = self.__create_input_file_fullpaths(self.master_input_file['original'])
 
         logging.debug("\nSweep space axes:")
         logging.debug(f"{ [ key for key in self.sweep_space.keys() ] }")
 
         # instantiate pandas.DataFrame to store sweep data
-        input_paths_original = [input_file.fullpath for input_file in self.sweep_obj['original'].input_files]
-        input_paths_short    = [input_file.fullpath for input_file in self.sweep_obj['short'].input_files]
         self.data = pd.DataFrame({
             'sweep_coords' : list(itertools.product(*self.sweep_space.values())),  # create cartesian coordinates in the sweep space. Consistent to nextnanopy implementation.
-            'output_subfolder' : [CommonShortcuts.get_output_subfolder_path(self.output_folder_path['original'], input_path) for input_path in input_paths_original],
-            'output_subfolder_short' : [CommonShortcuts.get_output_subfolder_path(self.output_folder_path['short'], input_path) for input_path in input_paths_short],
+            'output_subfolder' : [CommonShortcuts.get_output_subfolder_path(self.output_folder_path['original'], input_path) for input_path in self.input_file_fullpaths['original']],
+            'output_subfolder_short' : [CommonShortcuts.get_output_subfolder_path(self.output_folder_path['short'], input_path) for input_path in self.input_file_fullpaths['short']],
             'overlap' : None,
             'transition_energy_eV' : None,
             'transition_energy_meV' : None,
@@ -234,7 +245,7 @@ class SweepHelper:
             self.data[coord] = self.data['sweep_coords'].apply(extract_coord, index=i)
 
         logging.info(f"Initialized data table:\n{self.data}")
-        assert len(self.data) == len(self.sweep_obj['original'].input_files)
+        assert len(self.data) == len(self.input_file_fullpaths['original'])
 
 
         # initialize eigenstate indices to be plotted
@@ -268,7 +279,37 @@ class SweepHelper:
         return ""
 
 
+    def __create_input_file_fullpaths(self, master_input_file):
+        """
+        Sweep.save_sweep() creates temporary input files with these names.
+        However, we do not use Sweep.save_sweep() in __init__ for code speed when execution of sweep is not desired (when simulation outputs already exist).
+        """
+        input_file_fullpaths = []
+
+        # code extracted from nextnanopy > inputs.py > Sweep.create_input_files()
+        iteration_combinations = list(itertools.product(*self.sweep_space.values()))
+        filename_path, filename_extension = os.path.splitext(master_input_file.fullpath)
+        for combination in iteration_combinations:
+            filename_end = '__'
+            for var_name, var_value in zip(self.sweep_space.keys(), combination):
+                if isinstance(var_value,str):
+                    var_value_string = var_value
+                else:
+                    var_value_string = round(var_value, self.round_decimal)
+                filename_end += '{}_{}_'.format(var_name, var_value_string)
+            input_file_fullpaths.append(filename_path + filename_end + filename_extension)
+
+        return input_file_fullpaths
+    
+
     ### getter and checker methods of class attributes ####################################
+    def __get_master_input_file(self):
+        if self.isFilenameAbbreviated:
+            return self.master_input_file['short']
+        else:
+            return self.master_input_file['original']
+        
+
     def __get_output_folder_path(self):
         """
         Returns
@@ -578,11 +619,16 @@ class SweepHelper:
                     if choice == 'y': break
                     elif choice == 'n': raise RuntimeError('Nextnanopy terminated.')
 
+        # TODO: cover the case when file name isn't abbreviated
+        logging.info("save_sweep")
+        self.sweep_obj.save_sweep(delete_old_files=True, round_decimal=self.round_decimal)  # ensure the same decimals for self.sweep_space and input file names
+        logging.info("sweep saved")
+
         logging.info(f"Running {num_of_simulations} simulations with max. {parallel_limit} parallelization for \n{self.master_input_file['short'].fullpath}")
 
         # execute sweep simulations
         # this writes output to self.data['output_subfolder_short']
-        self.sweep_obj['short'].execute_sweep(
+        self.sweep_obj.execute_sweep(
                 delete_input_files = False,   # Do not delete input files so that SweepHelper.execute_sweep() can be invoked independently of __init__.
                 overwrite          = True,    # avoid enumeration of output folders for secure output data access. 
                 convergenceCheck   = convergenceCheck, 
@@ -632,9 +678,9 @@ class SweepHelper:
         shutil.move(self.output_folder_path['short'], self.output_folder_path['original'])
         
         # within 'original' folder, rename subfolders
-        for short, original in zip(self.sweep_obj['short'].input_files, self.sweep_obj['original'].input_files):
-            current_output_subfolder = CommonShortcuts.get_output_subfolder_path(self.output_folder_path['original'], short.fullpath)
-            original_output_subfolder = CommonShortcuts.get_output_subfolder_path(self.output_folder_path['original'] , original.fullpath)
+        for short, original in zip(self.input_file_fullpaths['short'], self.input_file_fullpaths['original']):
+            current_output_subfolder = CommonShortcuts.get_output_subfolder_path(self.output_folder_path['original'], short)
+            original_output_subfolder = CommonShortcuts.get_output_subfolder_path(self.output_folder_path['original'] , original)
             shutil.move(current_output_subfolder, original_output_subfolder)
 
         self.isFilenameAbbreviated = False
@@ -648,13 +694,13 @@ class SweepHelper:
         -----
         Convenient to have a separate method so that self.execute_sweep() can be invoked independently of __init__().
         """
-        input_files = self.sweep_obj['original'].input_files + self.sweep_obj['short'].input_files
-        paths = { input_file.fullpath for input_file in input_files }  # avoid duplicates
+        input_file_fullpaths = self.input_file_fullpaths['original'] + self.input_file_fullpaths['short']
+        paths = set(input_file_fullpaths)  # avoid duplicates
         for path in paths:
             os.remove(path)
 
-        # if the filename has been abbreviated, delete the short-name input file
-        if len(paths) == len(input_files):
+        # delete the input file whose name has been abbreviated
+        if self.isFilenameAbbreviated:
             os.remove(self.master_input_file['short'].fullpath)
         logging.info("Sweep (temporary) input files deleted.")
 
@@ -708,13 +754,13 @@ class SweepHelper:
         with open('run.sh', 'w') as f_meta:  # meta script
             f_meta.write("#!/bin/bash\n\n")
             
-            for input_file in self.sweep_obj['original'].input_files:
-                filename, extension = CommonShortcuts.separate_extension(input_file.fullpath)
+            for input_file_fullpath in self.input_file_fullpaths['original']:
+                filename, extension = CommonShortcuts.separate_extension(input_file_fullpath)
                 scriptpath = "run_" + filename + ".sh"
                 f_meta.write(f"sbatch {scriptpath}\n")
 
                 # individual script
-                self.write_sbatch_script(scriptpath, input_file.fullpath, node, exe, output_folder, database, license, suffix, num_CPU)
+                self.write_sbatch_script(scriptpath, input_file_fullpath, node, exe, output_folder, database, license, suffix, num_CPU)
 
 
     def write_sbatch_script(self, scriptpath, inputpath, node, exe, output_folder, database, license, suffix, num_CPU, memory_limit='8G', time_limit_hrs=5):
