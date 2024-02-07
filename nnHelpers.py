@@ -41,10 +41,6 @@ class SweepHelper:
         Notes
         -----
             - You can sweep as many variables as you like in one go.
-            - The sweep data can be exported to a CSV or an Excel file by:
-              SweepHelper.data.to_csv()
-              SweepHelper.data.to_excel()
-              For the available options, see pandas.DataFrame.
 
         Attributes
         ----------
@@ -770,6 +766,53 @@ class SweepHelper:
             elif self.shortcuts.product_name == 'nextnano++':
                 f.write(f"{exe} -o \"{output_subfolder}\" -d \"{database}\" -l \"{license}\" -t {num_CPU} \"{inputpath}\"")
 
+    ### Import methods #######################################################
+    def import_from_excel(self, excel_file_path):
+        """
+        Enables postprocessing without raw simulation data.
+        Useful when the sweep output occupies a lot of memory and the user wishes to delete them.
+        """
+        try:
+            self.data = pd.read_excel(excel_file_path)
+        except:
+            raise
+        logging.info("Imported data from Excel file.")
+        self.__str__()
+
+                
+    ### Export methods #######################################################
+    def export_to_excel(self, excel_file_path, force_lightHole=False):
+        """
+        The sweep data can be exported to an Excel file by:
+            SweepHelper.data.to_excel()
+        For the available options, see pandas.DataFrame.
+        """
+        self.__calc_overlap(force_lightHole)
+        self.__calc_transition_energies(force_lightHole)
+        self.__calc_hole_energy_differences()
+
+        logging.info(f"Exporting data to Excel file:\n{excel_file_path}")
+        from pathlib import Path
+        filepath = Path(excel_file_path)
+        filepath.parent.mkdir(parents=True, exist_ok=True)
+        self.data.to_excel(filepath)
+
+
+    def export_to_csv(self, csv_file_path, force_lightHole=False):
+        """
+        The sweep data can be exported to a CSV file by:
+            SweepHelper.data.to_csv()
+        For the available options, see pandas.DataFrame.
+        """
+        self.__calc_overlap(force_lightHole)
+        self.__calc_transition_energies(force_lightHole)
+        self.__calc_hole_energy_differences()
+
+        logging.info(f"Exporting data to CSV file:\n{csv_file_path}")
+        from pathlib import Path
+        filepath = Path(csv_file_path)
+        filepath.parent.mkdir(parents=True, exist_ok=True)
+        self.data.to_csv(filepath)
 
 
     ### Dispersion ###########################################################
@@ -836,6 +879,44 @@ class SweepHelper:
 
 
     ### Optics analysis #######################################################
+    def __calc_overlap(self, force_lightHole):
+        """
+        Compute overlaps and store them in self.data
+        """
+        if not self.data['overlap'].isna().any():
+            return
+        logging.info("Calculating overlap...")
+        self.data['overlap'] = self.__get_output_subfolder_paths().apply(self.shortcuts.calculate_overlap, force_lightHole=force_lightHole)
+        # self.data['overlap_squared'] = self.data['overlap'].apply(common.absolute_squared)   # BUG: somehow the results become complex128, not float --> cannot be plotted
+        
+
+    def __calc_transition_energies(self, force_lightHole):
+        """
+        Get transition energies and store them in self.data
+        """
+        if not self.data['transition_energy_eV'].isna().any():
+            return
+        
+        if self.shortcuts.product_name == 'nextnano++':
+            self.data['transition_energy_eV'] = self.__get_output_subfolder_paths().apply(self.shortcuts.get_transition_energy, force_lightHole=force_lightHole)
+        elif self.shortcuts.product_name == 'nextnano.NEGF++':
+            self.data['transition_energy_eV'] = self.__get_output_subfolder_paths().apply(self.shortcuts.get_transition_energy)
+
+        # Convert units
+        self.data['transition_energy_meV']    = self.data['transition_energy_eV'] * CommonShortcuts.scale1ToMilli
+        self.data['transition_energy_micron'] = self.data['transition_energy_eV'].apply(CommonShortcuts.electronvolt_to_micron)
+        self.data['transition_energy_nm']     = self.data['transition_energy_micron'] * 1e3
+        
+
+    def __calc_hole_energy_differences(self):
+        """
+        Get hole energy difference and store them in self.data
+        """
+        if not self.data['hole_energy_difference'].isna().any():
+            return
+        self.data['hole_energy_difference'] = self.__get_output_subfolder_paths().apply(self.shortcuts.get_hole_energy_difference)
+
+
     def plot_overlap_squared(self, x_axis, y_axis, x_label=None, y_label=None, force_lightHole=False, plot_title='', figFilename=None, colormap='Greys'):
         """
         Plot the overlap colormap as a function of two selected sweep axes.
@@ -869,11 +950,8 @@ class SweepHelper:
         self.__validate_sweep_variables(x_axis)
         self.__validate_sweep_variables(y_axis)      
 
-        # Compute overlaps and store them in self.data
-        logging.info("Calculating overlap...")
-        self.data['overlap'] = self.__get_output_subfolder_paths().apply(self.shortcuts.calculate_overlap, force_lightHole=force_lightHole)
-        # self.data['overlap_squared'] = self.data['overlap'].apply(common.absolute_squared)   # BUG: somehow the results become complex128, not float --> cannot be plotted
-        
+        self.__calc_overlap(force_lightHole)
+
         # x- and y-axis coordinates and 2D array-like of overlap data
         x_values, y_values, overlap = self.__slice_data_for_colormap_2D('overlap', x_axis, y_axis, datatype=np.cdouble)   # complex double = two double-precision floats
         overlap_squared = np.abs(overlap)**2
@@ -967,17 +1045,8 @@ class SweepHelper:
         if unit not in ['meV', 'micron', 'um', 'nm']:
             raise ValueError(f"Energy unit {unit} is not supported.")
 
-        # Get transition energies and store them in self.data
-        if self.shortcuts.product_name == 'nextnano++':
-            self.data['transition_energy_eV'] = self.__get_output_subfolder_paths().apply(self.shortcuts.get_transition_energy, force_lightHole=force_lightHole)
-        elif self.shortcuts.product_name == 'nextnano.NEGF++':
-            self.data['transition_energy_eV'] = self.__get_output_subfolder_paths().apply(self.shortcuts.get_transition_energy)
+        self.__calc_transition_energies(force_lightHole)
 
-        # Convert units
-        self.data['transition_energy_meV']    = self.data['transition_energy_eV'] * CommonShortcuts.scale1ToMilli
-        self.data['transition_energy_micron'] = self.data['transition_energy_eV'].apply(CommonShortcuts.electronvolt_to_micron)
-        self.data['transition_energy_nm']     = self.data['transition_energy_micron'] * 1e3
-        
         # x- and y-axis coordinates and 2D array-like of overlap data
         if plot_2D:
             if unit == 'meV':
@@ -1109,8 +1178,7 @@ class SweepHelper:
         self.__validate_sweep_variables(x_axis)
         self.__validate_sweep_variables(y_axis)
 
-        # Get transition energies and store them in self.data
-        self.data['hole_energy_difference'] = self.__get_output_subfolder_paths().apply(self.shortcuts.get_hole_energy_difference)
+        self.__calc_hole_energy_differences()
 
         # x- and y-axis coordinates and 2D array-like of overlap data
         x_values, y_values, transition_energies = self.__slice_data_for_colormap_2D('hole_energy_difference', x_axis, y_axis, datatype=np.double)
