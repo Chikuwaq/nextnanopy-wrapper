@@ -719,11 +719,11 @@ class SweepHelper:
             raise
 
 
-    def submit_sweep_to_slurm(self, suffix, node='microcloud'):
+    def submit_sweep_to_slurm(self, suffix, node='microcloud', email=None):
         """
         Submit sweep simulations to Slurm workload manager.
         """
-        self.create_sbatch_scripts(suffix, node=node)
+        self.create_sbatch_scripts(suffix, node=node, email=email)
         import subprocess
         import time
         subprocess.run(['bash', 'run.sh'])
@@ -732,7 +732,7 @@ class SweepHelper:
         subprocess.run(['sacct'])  # show the job status
         
 
-    def create_sbatch_scripts(self, suffix, node, num_CPU=4, exe=None, output_folder=None, database=None):
+    def create_sbatch_scripts(self, suffix, node, num_CPU=4, exe=None, output_folder=None, database=None, email=None):
         """
         Generate sbatch files to submit the sweep simulations to cloud computers by Slurm.
 
@@ -760,10 +760,10 @@ class SweepHelper:
                 f_meta.write(f"sbatch {scriptpath}\n")
 
                 # individual script
-                self.write_sbatch_script(scriptpath, input_file_fullpath, node, exe, output_folder, database, license, suffix, num_CPU)
+                self.write_sbatch_script(scriptpath, input_file_fullpath, node, exe, output_folder, database, license, suffix, num_CPU, email=email)
 
 
-    def write_sbatch_script(self, scriptpath, inputpath, node, exe, output_folder, database, license, suffix, num_CPU, memory_limit='8G', time_limit_hrs=5):
+    def write_sbatch_script(self, scriptpath, inputpath, node, exe, output_folder, database, license, suffix, num_CPU, memory_limit='8G', time_limit_hrs=5, email=None):
         """
         Write a sbatch script for a single nextnano simulation.
             Note
@@ -805,7 +805,8 @@ class SweepHelper:
             f.write("#SBATCH --job-name=nextnano\n")
             f.write(f"#SBATCH --comment='Python Sweep simulation'\n")
             f.write("#SBATCH --mail-type=end\n")
-            f.write("#SBATCH --mail-user=takuma.sato@nextnano.com\n")
+            if email is not None:
+                f.write(f"#SBATCH --mail-user={email}\n")
             f.write("\n")
             if self.shortcuts.product_name == 'nextnano.NEGF++':
                 f.write(f"{exe} -i \"{inputpath}\" -o \"{output_subfolder}\" -m \"{database}\" -c -l \"{license}\" -t {num_CPU} -v splitfile")
