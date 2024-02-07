@@ -255,12 +255,12 @@ class SweepHelper:
                 self.states_to_be_plotted[model] = np.arange(plot_range[0]-1, plot_range[1], 1)
         else:   # default
             self.states_to_be_plotted = None   # if this remains None, it will be set up after sweep execution. See execute_sweep().
-            if self.__output_subfolders_exist():   # if output data exists, set to all states in the output data
-                try:
-                    datafiles_probability = self.shortcuts.get_DataFile_probabilities_in_folder(self.data.loc[0, 'output_subfolder'])
-                    self.states_to_be_plotted, num_evs = self.shortcuts.get_states_to_be_plotted(datafiles_probability)   # states_range_dict=None -> all states are plotted
-                except FileNotFoundError as e:
-                    pass
+            # if self.__output_subfolders_exist():   # if output data exists, set to all states in the output data   # TODO: output subfolder not found when input file is NEGF...?
+            #     try:
+            #         datafiles_probability = self.shortcuts.get_DataFile_probabilities_in_folder(self.data.loc[0, 'output_subfolder'])
+            #         self.states_to_be_plotted, num_evs = self.shortcuts.get_states_to_be_plotted(datafiles_probability)   # states_range_dict=None -> all states are plotted
+            #     except FileNotFoundError as e:
+            #         pass
 
 
     # def __repr__(self):
@@ -344,11 +344,11 @@ class SweepHelper:
         bool
 
         """
-        return all(os.path.isdir(s) for s in self.__get_output_subfolder_paths())
+        return all(os.path.isdir(path) for path in self.__get_output_subfolder_paths())
 
 
     def __output_subfolders_exist_with_originalname(self):
-        return all(os.path.isdir(s) for s in self.data['output_subfolder'])
+        return all(os.path.isdir(path) for path in self.data['output_subfolder'])
 
 
     def __validate_sweep_variables(self, sweep_var):
@@ -619,10 +619,9 @@ class SweepHelper:
                     if choice == 'y': break
                     elif choice == 'n': raise RuntimeError('Nextnanopy terminated.')
 
-        # TODO: cover the case when file name isn't abbreviated
-        logging.info("save_sweep")
+        logging.info("Saving sweep input files...")
         self.sweep_obj.save_sweep(delete_old_files=True, round_decimal=self.round_decimal)  # ensure the same decimals for self.sweep_space and input file names
-        logging.info("sweep saved")
+        logging.info("Saved.")
 
         logging.info(f"Running {num_of_simulations} simulations with max. {parallel_limit} parallelization for \n{self.master_input_file['short'].fullpath}")
 
@@ -642,11 +641,12 @@ class SweepHelper:
 
         # If not given at the class instantiation, determine how many eigenstates to plot (states_to_be_plotted attribute)
         if self.states_to_be_plotted is None:   # by default, plot all states in the output data
-            try: 
-                datafiles_probability = self.shortcuts.get_DataFile_probabilities_in_folder(self.data.loc[0, 'output_subfolder'])
-                self.states_to_be_plotted, num_evs = self.shortcuts.get_states_to_be_plotted(datafiles_probability)   # states_range_dict=None -> all states are plotted
-            except FileNotFoundError:  # 1,2,3-band NEGF doesn't have probability output
-                warnings.warn("SweepHelper.execute_sweep(): Probability distribution not found")
+            if os.path.exists(self.data.loc[0, 'output_subfolder']):
+                try: 
+                    datafiles_probability = self.shortcuts.get_DataFile_probabilities_in_folder(self.data.loc[0, 'output_subfolder'])
+                    self.states_to_be_plotted, num_evs = self.shortcuts.get_states_to_be_plotted(datafiles_probability)   # states_range_dict=None -> all states are plotted
+                except FileNotFoundError:  # 1,2,3-band NEGF doesn't have probability output
+                    warnings.warn("SweepHelper.execute_sweep(): Probability distribution not found")
 
 
     def recover_original_filenames(self):
@@ -697,7 +697,8 @@ class SweepHelper:
         input_file_fullpaths = self.input_file_fullpaths['original'] + self.input_file_fullpaths['short']
         paths = set(input_file_fullpaths)  # avoid duplicates
         for path in paths:
-            os.remove(path)
+            if os.path.exists(path):
+                os.remove(path)
 
         # delete the input file whose name has been abbreviated
         if self.isFilenameAbbreviated:
@@ -724,12 +725,18 @@ class SweepHelper:
         Submit sweep simulations to Slurm workload manager.
         """
         self.create_sbatch_scripts(suffix, node=node, email=email)
+
+        logging.info("Saving sweep input files...")
+        self.sweep_obj.save_sweep(delete_old_files=True, round_decimal=self.round_decimal)  # creates temp input files. Ensure the same decimals for self.sweep_space and input file names
+        logging.info("Saved.")
+
         import subprocess
         import time
-        subprocess.run(['bash', 'run.sh'])
         logging.info("Submitting jobs to Slurm...")
+        subprocess.run(['bash', 'run.sh'])
         time.sleep(5)
-        subprocess.run(['sacct'])  # show the job status
+        logging.info("Slurm status:")
+        subprocess.run(['sacct'])
         
 
     def create_sbatch_scripts(self, suffix, node, num_CPU=4, exe=None, output_folder=None, database=None, email=None):
@@ -789,8 +796,11 @@ class SweepHelper:
         filename, extension = CommonShortcuts.separate_extension(inputpath)
         unique_name = filename + "_on_" + node + suffix
         output_subfolder = os.path.join(output_folder, unique_name)
-        if not os.path.exists(output_subfolder): os.makedirs(output_subfolder)
+        if not os.path.exists(output_subfolder): 
+            os.makedirs(output_subfolder)
         logfile = os.path.join(output_subfolder, unique_name + ".log")
+        if os.path.isfile(logfile):
+            os.remove(logfile)
 
         with open(scriptpath, 'w') as f:
             f.write("#!/bin/bash\n\n")
