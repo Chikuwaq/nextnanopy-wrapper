@@ -1077,13 +1077,19 @@ class CommonShortcuts:
         logging.debug(f"states_toBePlotted (index base 0): {states_toBePlotted}")
         return states_toBePlotted, num_evs
 
-    def get_transition_energy(self):
-        raise NotImplementedError("There is no common implementation")
-    
     def find_highest_valence_state_atK0(self):
         raise NotImplementedError("There is no common implementation")
 
     def find_lowest_conduction_state_atK0(self):
+        raise NotImplementedError("There is no common implementation")
+    
+    def calculate_overlap(self):
+        raise NotImplementedError("There is no common implementation")
+    
+    def get_transition_energy(self):
+        raise NotImplementedError("There is no common implementation")
+    
+    def get_hole_energy_difference(self):
         raise NotImplementedError("There is no common implementation")
 
 
