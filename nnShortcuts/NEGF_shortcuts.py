@@ -388,7 +388,7 @@ class NEGFShortcuts(CommonShortcuts):
 
     def get_2Ddata_atBias(self, input_file_name, bias, data='carrier'):
         """
-        INPUT: one of the following strings: ['LDOS', 'carrier', 'current']
+        INPUT: one of the following strings: ['LDOS', 'carrier', 'current', 'current_with_dispersion']
 
         RETURN: nn.DataFile() attributes
             x = datafile.coords['x']
@@ -399,11 +399,14 @@ class NEGFShortcuts(CommonShortcuts):
             file = 'DOS_energy_resolved.vtr'
             variableKey = 'Density of states'
         elif data == 'carrier':
-            file = 'CarrierDensity_energy_resolved.vtr'
-            variableKey = 'Carrier density'
+            file = 'ElectronDensity_energy_resolved.vtr'
+            variableKey = 'Electron density'
         elif data == 'current':
             file = 'CurrentDensity_energy_resolved.vtr'
-            variableKey = 'Current Density'
+            variableKey = 'Current Density (reduced real space)'
+        elif data == 'current_with_dispersion':
+            file = 'CurrentDensity_energy_resolved_WithDispersion.vtr'
+            variableKey = 'Current Density (reduced real space)'
         else:
             raise KeyError(f'Illegal data {data} requested!')
 
