@@ -422,9 +422,9 @@ class nn3Shortcuts(CommonShortcuts):
         return dE
 
 
-    def get_hole_energy_difference(self, output_folder):
+    def get_HH1_LH1_energy_difference(self, output_folder):
         """ 
-        Get the hole energy difference = energy separation between the highest HH and highest LH states.
+        Get the energy separation between the highest HH and highest LH states.
         Unit: eV
         """
         E_HH = self.get_DataFile_in_folder(['energy_spectrum', '_HH'], output_folder).variables['Energy'].value[0]   # energy of the first eigenstate

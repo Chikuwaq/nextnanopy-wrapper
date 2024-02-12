@@ -231,7 +231,8 @@ class SweepHelper:
             'transition_energy_meV' : None,
             'transition_energy_micron' : None,
             'transition_energy_nm' : None,
-            'hole_energy_difference' : None
+            'HH1-LH1' : None,
+            'HH1-HH2' : None
             })
         
         # simulation outputs of this sweep might exist already. The user might want to access those outputs without executing sweep simulation.
@@ -846,7 +847,8 @@ class SweepHelper:
         """
         self.__calc_overlap(force_lightHole)
         self.__calc_transition_energies(force_lightHole)
-        self.__calc_hole_energy_differences()
+        self.__calc_HH1_LH1_energy_differences()
+        self.__calc_HH1_HH2_energy_differences()
 
         logging.info(f"Exporting data to Excel file:\n{excel_file_path}")
         from pathlib import Path
@@ -863,7 +865,8 @@ class SweepHelper:
         """
         self.__calc_overlap(force_lightHole)
         self.__calc_transition_energies(force_lightHole)
-        self.__calc_hole_energy_differences()
+        self.__calc_HH1_LH1_energy_differences()
+        self.__calc_HH1_HH2_energy_differences()
 
         logging.info(f"Exporting data to CSV file:\n{csv_file_path}")
         from pathlib import Path
@@ -965,13 +968,22 @@ class SweepHelper:
         self.data['transition_energy_nm']     = self.data['transition_energy_micron'] * 1e3
         
 
-    def __calc_hole_energy_differences(self):
+    def __calc_HH1_LH1_energy_differences(self):
         """
-        Get hole energy difference and store them in self.data
+        Get the energy difference HH1 - LH1 and store them in self.data
         """
-        if not self.data['hole_energy_difference'].isna().any():
+        if not self.data['HH1-LH1'].isna().any():
             return
-        self.data['hole_energy_difference'] = self.__get_output_subfolder_paths().apply(self.shortcuts.get_hole_energy_difference)
+        self.data['HH1-LH1'] = self.__get_output_subfolder_paths().apply(self.shortcuts.get_HH1_LH1_energy_difference)
+
+
+    def __calc_HH1_HH2_energy_differences(self):
+        """
+        Get the energy difference HH1 - HH2 and store them in self.data
+        """
+        if not self.data['HH1-HH2'].isna().any():
+            return
+        self.data['HH1-HH2'] = self.__get_output_subfolder_paths().apply(self.shortcuts.get_HH1_HH2_energy_difference)
 
 
     def plot_overlap_squared(self, x_axis, y_axis, x_label=None, y_label=None, force_lightHole=False, plot_title='', figFilename=None, colormap='Greys'):
@@ -1198,8 +1210,8 @@ class SweepHelper:
         return fig
 
 
-    ### highest hole state ###################################################
-    def plot_hole_energy_difference(self, x_axis, y_axis, x_label=None, y_label=None, plot_title='', figFilename=None, colormap=None, set_center_to_zero=True):
+    ### highest hole states ###################################################
+    def plot_HH1_LH1_energy_difference(self, x_axis, y_axis, x_label=None, y_label=None, plot_title='', figFilename=None, colormap=None, set_center_to_zero=True):
         """
         Plot the hole energy difference (HH - LH) colormap as a function of two selected sweep axes.
 
@@ -1235,15 +1247,15 @@ class SweepHelper:
         self.__validate_sweep_variables(x_axis)
         self.__validate_sweep_variables(y_axis)
 
-        self.__calc_hole_energy_differences()
+        self.__calc_HH1_LH1_energy_differences()
 
         # x- and y-axis coordinates and 2D array-like of overlap data
-        x_values, y_values, transition_energies = self.__slice_data_for_colormap_2D('hole_energy_difference', x_axis, y_axis, datatype=np.double)
+        x_values, y_values, transition_energies = self.__slice_data_for_colormap_2D('HH1-LH1', x_axis, y_axis, datatype=np.double)
 
 
         # instantiate 2D color plot
         fig, ax = plt.subplots()
-        if not plot_title: plot_title = "Energy difference HH - LH"
+        if not plot_title: plot_title = "Energy difference HH1 - LH1"
         self.__setup_2D_color_plot(ax, x_axis, y_axis, x_label, y_label, plot_title, x_values, y_values)
 
         # color setting
@@ -1267,11 +1279,84 @@ class SweepHelper:
 
         if figFilename is None or figFilename == "":
             name = os.path.split(self.output_folder_path['original'])[1]
-            figFilename = name + "_holeEnergyDifference"
+            figFilename = name + "_HH1_LH1_EnergyDifference"
         self.shortcuts.export_figs(figFilename, "png", output_folder_path=self.__get_output_folder_path(), fig=fig)
 
         return fig
 
+
+    def plot_HH1_HH2_energy_difference(self, x_axis, y_axis, x_label=None, y_label=None, plot_title='', figFilename=None, colormap=None, set_center_to_zero=True):
+        """
+        Plot the hole energy difference (HH - LH) colormap as a function of two selected sweep axes.
+
+        Parameters
+        ----------
+        x_axis : str
+            sweep variable for x-axis
+        y_axis : str
+            sweep variable for y-axis
+        x_label : str, optional
+            custom x-axis label
+        y_label : str, optional
+            custom y-axis label
+        plot_title : str, optional
+            title of the plot
+        figFilename : str, optional
+            output file name
+        colormap : str, optional
+            colormap used for the color bar
+        set_center_to_zero : bool, optional
+            If you are interested in the sign of transition energy (e.g. insulator-semimetal-topological insulator phase transition), set to True.
+            Default is True
+
+        Returns
+        -------
+        fig : matplotlib.figure.Figure object
+
+        """
+        if not self.__output_subfolders_exist():
+            raise RuntimeError("Simulation output does not exist for this sweep!")
+
+        # validate input
+        self.__validate_sweep_variables(x_axis)
+        self.__validate_sweep_variables(y_axis)
+
+        self.__calc_HH1_HH2_energy_differences()
+
+        # x- and y-axis coordinates and 2D array-like of overlap data
+        x_values, y_values, transition_energies = self.__slice_data_for_colormap_2D('HH1-HH2', x_axis, y_axis, datatype=np.double)
+
+
+        # instantiate 2D color plot
+        fig, ax = plt.subplots()
+        if not plot_title: plot_title = "Energy difference HH1 - HH2"
+        self.__setup_2D_color_plot(ax, x_axis, y_axis, x_label, y_label, plot_title, x_values, y_values)
+
+        # color setting
+        if colormap is None:  
+            # default colors
+            if set_center_to_zero: 
+                colormap = 'seismic'
+            else:
+                colormap = 'viridis'
+        if set_center_to_zero:
+            from matplotlib import colors
+            divnorm = colors.TwoSlopeNorm(vcenter=0.)
+            pcolor = ax.pcolormesh(x_values, y_values, transition_energies * CommonShortcuts.scale1ToMilli, cmap=colormap, norm=divnorm, shading='auto')
+        else:
+            pcolor = ax.pcolormesh(x_values, y_values, transition_energies * CommonShortcuts.scale1ToMilli, cmap=colormap, shading='auto')
+        
+        cbar = fig.colorbar(pcolor)
+        cbar.set_label("Hole energy difference HH-LH ($\mathrm{meV}$)")
+        fig.tight_layout()
+        plt.show()
+
+        if figFilename is None or figFilename == "":
+            name = os.path.split(self.output_folder_path['original'])[1]
+            figFilename = name + "_HH1_HH2_EnergyDifference"
+        self.shortcuts.export_figs(figFilename, "png", output_folder_path=self.__get_output_folder_path(), fig=fig)
+
+        return fig
 
     ### in-plane k ###########################################################
     def plot_inplaneK(self):

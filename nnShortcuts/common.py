@@ -959,9 +959,13 @@ class CommonShortcuts:
         return self.get_DataFile_probabilities_in_folder(outputSubFolder, bias=bias)
         
 
-    def get_DataFile_probabilities_in_folder(self, bias=None):
+    def get_DataFile_probabilities_in_folder(self):
         raise NotImplementedError("There is no common implementation")
 
+
+    def get_DataFile_amplitudesK0_in_folder(self):
+        raise NotImplementedError("There is no common implementation")
+    
 
     def __get_num_evs(probability_dict):
         """ number of eigenvalues for each quantum model """
@@ -1089,9 +1093,11 @@ class CommonShortcuts:
     def get_transition_energy(self):
         raise NotImplementedError("There is no common implementation")
     
-    def get_hole_energy_difference(self):
+    def get_HH1_LH1_energy_difference(self):
         raise NotImplementedError("There is no common implementation")
 
+    def get_HH1_HH2_energy_difference(self):
+        raise NotImplementedError("There is no common implementation")
 
     # -------------------------------------------------------
     # Data postprocessing

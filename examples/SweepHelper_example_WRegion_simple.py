@@ -54,7 +54,7 @@ helper.plot_transition_energies(x_axis, y_axis,
                     unit="micron",  # 'meV' 'micron' 'um' or 'nm'
                     )
 
-helper.plot_hole_energy_difference(x_axis, y_axis,
+helper.plot_HH1_LH1_energy_difference(x_axis, y_axis,
                     x_label="InAs thickness (nm)",
                     y_label="GaInSb thickness (nm)",
                     # plot_title="Hole energy difference",

@@ -68,7 +68,7 @@ class NEGFShortcuts(CommonShortcuts):
 
 
 
-    def get_DataFiles_NEGF_init(self, keywords, filename_no_extension, search_raw_solution_folder = False, search_WannierStark_folder = False):
+    def get_DataFiles_NEGFInit_in_folder(self, keywords, folder, search_raw_solution_folder = False, search_WannierStark_folder = False, exclude_keywords = None):
         """
         Get one or more nextnanopy.DataFile objects in the 'Init' folder.
         'Init' folder may contain both the raw Schrodinger solution and Wannier-Stark states.
@@ -76,9 +76,13 @@ class NEGFShortcuts(CommonShortcuts):
         if search_raw_solution_folder and search_WannierStark_folder:
             raise ValueError("Invalid input")
         
-        output_folder = nn.config.get(self.product_name, 'outputdirectory')
-        filename_no_extension = os.path.split(filename_no_extension)[1]   # remove paths if present
-        subfolder = os.path.join(output_folder, filename_no_extension)
+        if os.path.isdir(folder):
+            subfolder = folder
+        else:
+            # unexpected, but alternative candidate path
+            output_folder = nn.config.get(self.product_name, 'outputdirectory')
+            filename_no_extension = os.path.split(folder)[1]   # remove paths if present
+            subfolder = os.path.join(output_folder, filename_no_extension)
         d = nn.DataFolder(subfolder)
 
         # Get the fullpath of 'Init' subfolder
@@ -97,9 +101,43 @@ class NEGFShortcuts(CommonShortcuts):
         else:
             search_folder = init_folder.fullpath
 
-        return self.get_DataFiles_in_folder(keywords, search_folder)  # TODO: add options available
+        return self.get_DataFiles_in_folder(keywords, search_folder, exclude_keywords)  # TODO: add options available
 
         
+    def get_DataFile_amplitudesK0_in_folder(self, folder_path):
+        """
+        Get single nextnanopy.DataFile of zone-center amplitude data in the folder of specified name.
+        Shifted data is avoided since non-shifted one is used to calculate overlap and matrix elements.
+
+        INPUT:
+            folder_path      output folder path in which the datafile should be sought
+
+        RETURN:
+            dictionary { quantum model key: list of nn.DataFile() objects for amplitude data }
+        """
+        datafiles = self.get_DataFiles_NEGFInit_in_folder('wavefunctions', folder_path, search_raw_solution_folder=True, exclude_keywords=['shift', 'spinor'])   # return a list of nn.DataFile
+
+        # amplitude_dict = {
+        #     'Gamma': list(),
+        #     'kp6': list(),
+        #     'kp8': list()
+        # }
+        amplitude_dict = {model_name: list() for model_name in self.model_names}
+        for df in datafiles:
+            filename = os.path.split(df.fullpath)[1]
+            quantum_model = 'kp8'  # currently, NEGF has amplitude output on in kp8
+
+            if quantum_model == 'kp8' or quantum_model == 'kp6':
+                if '_k000_' not in filename: continue   # exclude non k|| = 0 amplitudes
+            amplitude_dict[quantum_model].append(df)
+
+        # delete quantum model keys whose probabilities do not exist in output folder
+        amplitude_dict_trimmed = {model: amplitude_dict[model] for model in amplitude_dict if len(amplitude_dict[model]) > 0}
+
+        if len(amplitude_dict_trimmed) == 0:
+            raise NextnanoInputFileError(f"Amplitudes are not found at {folder_path}! Modify the input file.")
+
+        return amplitude_dict_trimmed
 
 
     def get_DataFile_NEGF_atBias(self, keywords, name, bias):
@@ -290,7 +328,7 @@ class NEGFShortcuts(CommonShortcuts):
             datafile.variables['Conduction BandEdge']
             datafile.variables['Psi_*']
         """
-        datafiles = self.get_DataFiles_NEGF_init('EigenStates.dat', filename_no_extension, search_WannierStark_folder=True)
+        datafiles = self.get_DataFiles_NEGFInit_in_folder('EigenStates.dat', filename_no_extension, search_WannierStark_folder=True)
         for df in datafiles:
             if NEGFShortcuts.wannierStarkFolder in df.fullpath: 
                 datafile = df
@@ -459,7 +497,7 @@ class NEGFShortcuts(CommonShortcuts):
 
         x, y, quantity = self.get_2Ddata_atBias(input_file_name, bias, 'LDOS')
 
-        print("Plotting DOS...")
+        logging.info("Plotting DOS...")
         unit = r'$\mathrm{nm}^{-1} \mathrm{eV}^{-1}$'
         label = 'Density of states (' + unit + ')'
 
@@ -507,7 +545,7 @@ class NEGFShortcuts(CommonShortcuts):
 
         x, y, quantity = self.get_2Ddata_atBias(input_file_name, bias, 'carrier')
 
-        print("Plotting carrier density...")
+        logging.info("Plotting carrier density...")
         unit = r'$\mathrm{cm}^{-3} \mathrm{eV}^{-1}$'
         label = 'Carrier density (' + unit + ')'
 
@@ -555,7 +593,7 @@ class NEGFShortcuts(CommonShortcuts):
 
         x, y, quantity = self.get_2Ddata_atBias(input_file_name, bias, 'current')
 
-        print("Plotting current density...")
+        logging.info("Plotting current density...")
         unit = r'$\mathrm{A}$ $\mathrm{cm}^{-2} \mathrm{eV}^{-1}$'
         label = 'Current density (' + unit + ')'
 
@@ -695,7 +733,7 @@ class NEGFShortcuts(CommonShortcuts):
 
         cwd = os.getcwd()
         # os.chdir(output_folder_path)
-        print(f'Exporting GIF animation to: {os.getcwd()}\n')
+        logging.info(f'Exporting GIF animation to: {os.getcwd()}\n')
         anim = animation.FuncAnimation(fig, animate_2D_plots, frames=len(array_of_biases)-1, interval=700)
         anim.save(f'{input_file_name}.gif', writer='pillow')
         # os.chdir(cwd)
@@ -857,7 +895,7 @@ class NEGFShortcuts(CommonShortcuts):
             output_powers.append(P)
 
 
-        print("\nPlotting L-I-V curves...")
+        logging.info("\nPlotting L-I-V curves...")
         from matplotlib.ticker import MultipleLocator
 
         fig, ax1 = plt.subplots()
@@ -1085,7 +1123,7 @@ class NEGFShortcuts(CommonShortcuts):
                 'kp6': list(),
                 'kp8': list()
             }
-            datafiles = self.get_DataFiles(['wavefunctions_spinor_composition_AngMom'], input_file.fullpath)
+            datafiles = self.get_DataFiles(['wavefunctions_k000_spinor_composition_AngMom'], input_file.fullpath)
             # datafiles = [df for cnt in range(len(datafiles)) for df in datafiles if str(cnt).zfill(5) + '_CbHhLhSo' in os.path.split(df.fullpath)[1]]   # sort spinor composition datafiles in ascending kIndex  # TODO: C++ doesn't have multiple in-plane k output
             for df in datafiles:
                 datafiles_spinor['kp8'].append(df)
@@ -1449,7 +1487,7 @@ class NEGFShortcuts(CommonShortcuts):
         """
         if bias is None:
             # search for the raw solution in Init folder
-            datafiles = self.get_DataFiles_NEGF_init("EigenStates.dat", folder_path, search_raw_solution_folder=True)
+            datafiles = self.get_DataFiles_NEGFInit_in_folder("EigenStates.dat", folder_path, search_raw_solution_folder=True)
             datafiles = [df for df in datafiles if NEGFShortcuts.SchrodingerRawSolutionFolder in df.fullpath]
             if len(datafiles) > 1: raise RuntimeError("Multiple data files found with keyword 'EigenStates.dat' in 'Init' folder!")
             probability_dict = {'kp8': list(datafiles)}  # TODO: generalize to cover 1,2,3-band cases
@@ -1491,16 +1529,15 @@ class NEGFShortcuts(CommonShortcuts):
         """
         # get nn.DataFile object
         try:
-            datafile = self.get_DataFile_in_folder(['wavefunctions_spinor_composition_AngMom'], output_folder)   # spinor composition at in-plane k = 0
+            datafile = self.get_DataFile_in_folder(['wavefunctions_k000_spinor_composition_AngMom'], output_folder)   # spinor composition at in-plane k = 0
         except FileNotFoundError:
             raise
 
         # find the lowest conduction band state
-        # TODO: nextnanopy.DataFile parses the labels in NEGF++ output file wrong?
+        # nextnanopy.DataFile parses the labels in NEGF++ output file wrongly. But datafile.variables contain the data 'cb1 hh1 lh1 so1 cb2 hh2 lh2 so2 sum' for index 0-8
         num_evs = len(datafile.variables[0].value)
         # print(f"datafile coords {datafile.coords}")
         # print(f"datafile variables {datafile.variables}")
-        # print(f"s2 spinor compositions:\n{datafile.variables[4].value}")
         for stateIndex in range(num_evs):
             electronFraction = datafile.variables[0].value[stateIndex] + datafile.variables[4].value[stateIndex]
             if electronFraction > threshold:
@@ -1535,12 +1572,14 @@ class NEGFShortcuts(CommonShortcuts):
         """
         # get nn.DataFile object
         try:
-            datafile = self.get_DataFile_in_folder(['wavefunctions_spinor_composition_AngMom'], output_folder)   # spinor composition at in-plane k = 0
+            datafile = self.get_DataFile_in_folder(['wavefunctions_k000_spinor_composition_AngMom'], output_folder)   # spinor composition at in-plane k = 0
         except FileNotFoundError:
             raise
 
         # find the highest valence band state
-        # TODO: nextnanopy.DataFile parses the labels in NEGF++ output file wrong?
+        # nextnanopy.DataFile parses the labels in NEGF++ output file wrongly. But datafile.variables contain the data 'cb1 hh1 lh1 so1 cb2 hh2 lh2 so2 sum' for index 0-8
+        # print(datafile.coords)
+        # print(f"find_highest_valence_state: datafile.variables\n{datafile.variables}")
         num_evs = len(datafile.variables[0].value)
         for stateIndex in reversed(range(num_evs)):
             electronFraction = datafile.variables[0].value[stateIndex] + datafile.variables[4].value[stateIndex]
@@ -1551,7 +1590,7 @@ class NEGFShortcuts(CommonShortcuts):
         raise RuntimeError(f"No hole states found in: {output_folder}")
 
 
-    def find_highest_HH_state_atK0(self, output_folder, threshold=0.5):
+    def find_highest_HH_state_atK0(self, output_folder, threshold=0.5, want_second_highest=False):
         """
             From spinor composition data, determine the highest heavy-hole state in an 8-band k.p simulation.
             This method should be able to detect it properly even when the effective bandgap is negative.
@@ -1563,6 +1602,8 @@ class NEGFShortcuts(CommonShortcuts):
             threshold : real, optional
                 If electron fraction in the spinor composition is less than this value, the state is assumed to be a hole state.
                 The default is 0.5.
+            want_second_highest : bool
+                If True, return the index of the second highest heavy-hole state.
 
             Returns
             -------
@@ -1571,20 +1612,33 @@ class NEGFShortcuts(CommonShortcuts):
         """
         # get nn.DataFile object
         try:
-            datafile = self.get_DataFile_in_folder(['wavefunctions_spinor_composition_AngMom'], output_folder)   # spinor composition at in-plane k = 0
+            datafile = self.get_DataFile_in_folder(['wavefunctions_k000_spinor_composition_AngMom'], output_folder)   # spinor composition at in-plane k = 0
         except FileNotFoundError:
             raise
 
         # find the highest heavy-hole state
-        # TODO: nextnanopy.DataFile parses the labels in NEGF++ output file wrong?
+        # nextnanopy.DataFile parses the labels in NEGF++ output file wrongly. But datafile.variables contain the data 'cb1 hh1 lh1 so1 cb2 hh2 lh2 so2 sum' for index 0-8
+        firstStateIndex = None
+        secondStateIndex = None
         num_evs = len(datafile.variables[0].value)
         for stateIndex in reversed(range(num_evs)):
             HHFraction = datafile.variables[1].value[stateIndex] + datafile.variables[5].value[stateIndex]
-            if HHFraction < threshold:
+            if HHFraction > threshold:
                 logging.info(f"Highest heavy-hole index = {stateIndex} (heavy-hole contribution = {HHFraction})")
-                return stateIndex
+                if firstStateIndex is None:
+                    firstStateIndex = stateIndex
+                elif want_second_highest and (secondStateIndex is None):
+                    secondStateIndex = stateIndex
+                else:  # states have been found
+                    if want_second_highest:
+                        return firstStateIndex, secondStateIndex
+                    else:
+                        return firstStateIndex
 
-        raise RuntimeError(f"No heavy-hole states found in: {output_folder}")
+        if firstStateIndex is None:
+            raise RuntimeError(f"No heavy-hole states found in: {output_folder}")
+        elif want_second_highest and (secondStateIndex is None):
+            raise RuntimeError(f"Second heavy-hole state wasn't found in: {output_folder}")
     
 
     def find_highest_LH_state_atK0(self, output_folder, threshold=0.5):
@@ -1607,16 +1661,18 @@ class NEGFShortcuts(CommonShortcuts):
         """
         # get nn.DataFile object
         try:
-            datafile = self.get_DataFile_in_folder(['wavefunctions_spinor_composition_AngMom'], output_folder)   # spinor composition at in-plane k = 0
+            datafile = self.get_DataFile_in_folder(['wavefunctions_k000_spinor_composition_AngMom'], output_folder)   # spinor composition at in-plane k = 0
         except FileNotFoundError:
             raise
 
         # find the highest light-hole state
-        # TODO: nextnanopy.DataFile parses the labels in NEGF++ output file wrong?
+        # nextnanopy.DataFile parses the labels in NEGF++ output file wrongly. But datafile.variables contain the data 'cb1 hh1 lh1 so1 cb2 hh2 lh2 so2 sum' for index 0-8
         num_evs = len(datafile.variables[0].value)
+        # print(datafile.coords)
+        # print(datafile.variables)
         for stateIndex in reversed(range(num_evs)):
             LHFraction = datafile.variables[2].value[stateIndex] + datafile.variables[6].value[stateIndex]
-            if LHFraction < threshold:
+            if LHFraction > threshold:
                 logging.info(f"Highest light-hole index = {stateIndex} (light-hole contribution = {LHFraction})")
                 return stateIndex
 
@@ -1638,16 +1694,63 @@ class NEGFShortcuts(CommonShortcuts):
         return E_electron - E_hole
     
     
-    def get_hole_energy_difference(self, output_folder):
+    def get_HH1_LH1_energy_difference(self, output_folder):
         """
-        Get the hole energy difference = energy separation between the highest HH and highest LH states.
+        Get the energy separation between the highest HH and highest LH states.
+        Unit: eV
+        """
+        E_HH = self.__get_highest_HH_energy(output_folder, False)
+        E_LH = self.__get_highest_LH_energy(output_folder)
+
+        return E_HH - E_LH 
+    
+
+    def get_HH1_HH2_energy_difference(self, output_folder):
+        """
+        Get the energy separation between the highest HH and second highest HH states.
+        Unit: eV
+        """
+        E_HH1, E_HH2 = self.__get_highest_HH_energy(output_folder, True)
+
+        return E_HH1 - E_HH2 
+    
+
+    def __get_lowest_electron_energy(self, output_folder):
+        """
         Unit: eV
         """
         datafile = self.get_DataFile_in_folder(["EnergySpectrum"], output_folder)
+        iLowestElectron = self.find_lowest_conduction_state_atK0(output_folder, threshold=0.5)
+        return datafile.variables[0].value[iLowestElectron]
+    
 
-        iHighestHH = self.find_highest_HH_state_atK0(output_folder, threshold=0.5)
+    def __get_highest_hole_energy(self, output_folder):
+        """
+        Unit: eV
+        """
+        datafile = self.get_DataFile_in_folder(["EnergySpectrum"], output_folder)
+        iHighestHole = self.find_highest_valence_state_atK0(output_folder, threshold=0.5)
+        return datafile.variables[0].value[iHighestHole]
+
+
+    def __get_highest_HH_energy(self, output_folder, want_second_highest):
+        """
+        Unit: eV
+        """
+        datafile = self.get_DataFile_in_folder(["EnergySpectrum"], output_folder)
+        if want_second_highest:
+            iFirstHighestHH, iSecondHighestHH = self.find_highest_HH_state_atK0(output_folder, threshold=0.5, want_second_highest=want_second_highest)
+            return datafile.variables[0].value[iFirstHighestHH], datafile.variables[0].value[iSecondHighestHH]
+        else:
+            iHighestHH = self.find_highest_HH_state_atK0(output_folder, threshold=0.5, want_second_highest=want_second_highest)
+            return datafile.variables[0].value[iHighestHH]
+
+
+    def __get_highest_LH_energy(self, output_folder):
+        """
+        Unit: eV
+        """
+        datafile = self.get_DataFile_in_folder(["EnergySpectrum"], output_folder)
         iHighestLH = self.find_highest_LH_state_atK0(output_folder, threshold=0.5)
-        E_HH = datafile.variables[0].value[iHighestHH]
-        E_LH = datafile.variables[0].value[iHighestLH]
+        return datafile.variables[0].value[iHighestLH]
 
-        return E_HH - E_LH 

@@ -1602,8 +1602,8 @@ class nnpShortcuts(CommonShortcuts):
                 h_state_basis = ['LH']
             else:
                 # take the highest of HH and LH eigenstates
-                E_HH = self.get_DataFile_in_folder(['energy_spectrum', '_HH'], output_folder).variables['Energy'].value[0]   # energy of the first eigenstate
-                E_LH = self.get_DataFile_in_folder(['energy_spectrum', '_LH'], output_folder).variables['Energy'].value[0]   # energy of the first eigenstate
+                E_HH = self.__get_highest_HH_energy(output_folder, False)
+                E_LH = self.__get_highest_LH_energy(output_folder)
                 if E_HH >= E_LH:
                     df_h = df_HH
                     h_state_basis = ['HH']
@@ -1655,6 +1655,7 @@ class nnpShortcuts(CommonShortcuts):
         return overlap
 
 
+    ################ Energy getters #############################################
     def get_transition_energy(self, output_folder, force_lightHole=False):
         """
         Get the transition energy = energy separation between the lowest electron and highest valence band states.
@@ -1679,26 +1680,27 @@ class nnpShortcuts(CommonShortcuts):
         else:  # single band
             df_HH_Gamma = self.get_DataFile_in_folder(["transition_energies", "HH_Gamma", ".fld"], output_folder)
             df_LH_Gamma = self.get_DataFile_in_folder(["transition_energies", "LH_Gamma", ".fld"], output_folder)
-            dE_HH_Gamma = - df_HH_Gamma.variables[0].value[iHighestHole][iLowestElectron]
-            dE_LH_Gamma = - df_LH_Gamma.variables[0].value[iHighestHole][iLowestElectron]
-
+            # TODO: If single-band simulation has been performed and the VB contains just one state, the nextnano++ output data file becomes a .dat file
+            dE_Gamma_HH = - df_HH_Gamma.variables[0].value[iHighestHole][iLowestElectron]  
+            dE_Gamma_LH = - df_LH_Gamma.variables[0].value[iHighestHole][iLowestElectron]
+            
             if force_lightHole:
                 # always take Gamma-LH
-                dE = dE_LH_Gamma
+                dE = dE_Gamma_LH
             else:
                 # take the highest of HH and LH
                 # this also works for negative effective bandgap
-                if dE_HH_Gamma <= dE_LH_Gamma:
-                    dE = dE_HH_Gamma
+                if dE_Gamma_HH <= dE_Gamma_LH:
+                    dE = dE_Gamma_HH
                 else:
-                    dE = dE_LH_Gamma
+                    dE = dE_Gamma_LH
 
         return dE
 
 
-    def get_hole_energy_difference(self, output_folder):
+    def get_HH1_LH1_energy_difference(self, output_folder):
         """
-        Get the hole energy difference = energy separation between the highest HH and highest LH states.
+        Get the energy separation between the highest HH and highest LH states.
         Unit: eV
 
         WARNING
@@ -1707,10 +1709,41 @@ class nnpShortcuts(CommonShortcuts):
         TODO: Generalize following NEGFShortcuts.find_highest_HH_state_atK0() etc.
         """
         try:
-            E_HH = self.get_DataFile_in_folder(['energy_spectrum', '_HH'], output_folder).variables['Energy'].value[0]   # energy of the first eigenstate
-            E_LH = self.get_DataFile_in_folder(['energy_spectrum', '_LH'], output_folder).variables['Energy'].value[0]   # energy of the first eigenstate
+            E_HH = self.__get_highest_HH_energy(output_folder, False)
+            E_LH = self.__get_highest_LH_energy(output_folder)
         except FileNotFoundError:
             warnings.warn("Energy spectrum for heavy- and light-hole states not found.")
             return 0
         else:
             return E_HH - E_LH 
+
+
+    def get_HH1_HH2_energy_difference(self, output_folder):
+        """
+        Get the energy separation between the highest HH and second highest HH states.
+        Unit: eV
+        """
+        E_HH1, E_HH2 = self.__get_highest_HH_energy(output_folder, True)
+
+        return E_HH1 - E_HH2 
+
+
+    def __get_highest_HH_energy(self, output_folder, want_second_highest):
+        """
+        Unit: eV
+        """
+        datafile = self.get_DataFile_in_folder(['energy_spectrum', '_HH'], output_folder)
+        if want_second_highest:
+            if len(datafile.variables['Energy'].value) < 2:
+                raise RuntimeError("Second highest HH state is not found")
+            return datafile.variables['Energy'].value[0], datafile.variables['Energy'].value[1]
+        else:
+            return datafile.variables['Energy'].value[0]
+    
+
+    def __get_highest_LH_energy(self, output_folder):
+        """
+        Unit: eV
+        """
+        datafile = self.get_DataFile_in_folder(['energy_spectrum', '_LH'], output_folder)
+        return datafile.variables['Energy'].value[0]
