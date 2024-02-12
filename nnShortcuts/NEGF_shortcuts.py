@@ -1679,17 +1679,70 @@ class NEGFShortcuts(CommonShortcuts):
         raise RuntimeError(f"No light-hole states found in: {output_folder}")
     
 
+    ################ optics analysis #############################################
+    kp8_basis = ['cb1', 'cb2', 'hh1', 'hh2', 'lh1', 'lh2', 'so1', 'so2']
+    
+    def calculate_overlap(self, output_folder, force_lightHole=False):
+        """
+        Calculate envelope overlap (complex absolute value |z|) between the lowest electron and highest valence band states from wavefunction output data
+
+        Parameters
+        ----------
+        output_folder : str
+            Absolute path of output folder that contains the amplitude data
+        force_lightHole : bool, optional
+            If True, always use the overlap of Gamma and light-hole states. Effective only for single-band models.
+            Default is False
+            TODO: To be implemented
+
+        Returns
+        -------
+        overlap : np.ndarray with dtype=cdouble
+            Spatial overlap of envelope functions
+
+        Requires
+        --------
+        SciPy package installation
+
+        """
+        from scipy.integrate import simps
+
+        iLowestElectron = self.find_lowest_conduction_state_atK0(output_folder, threshold=0.5)
+        iHighestHole    = self.find_highest_valence_state_atK0(output_folder, threshold=0.5)
+
+        # load amplitude data
+        datafile_amplitude_at_k0 = self.get_DataFile_amplitudesK0_in_folder(output_folder)   # returns a dict of nn.DataFile
+        
+        # extract amplitude of electron- and hole-like states
+        x = datafile_amplitude_at_k0['kp8'][0].coords['Position'].value  # real space coords are common for all amplitude outputs
+        amplitude_e = np.zeros((len(self.kp8_basis), len(x)), dtype=np.cdouble)  # psi of lowest CB state
+        amplitude_h = np.zeros((len(self.kp8_basis), len(x)), dtype=np.cdouble)  # psi of highest VB state
+        for iBand, band in enumerate(self.kp8_basis):
+            for df in datafile_amplitude_at_k0['kp8']:
+                if band in os.path.split(df.fullpath)[1]:  # if the band name is in the output filename
+                    amplitude_e[iBand,:].real = df.variables[f'Psi_{iLowestElectron+1}_real'].value
+                    amplitude_e[iBand,:].imag = df.variables[f'Psi_{iLowestElectron+1}_imag'].value
+                    amplitude_h[iBand,:].real = df.variables[f'Psi_{iHighestHole+1}_real'].value
+                    amplitude_h[iBand,:].imag = df.variables[f'Psi_{iHighestHole+1}_imag'].value
+
+        overlap = 0.
+
+        # calculate overlap
+        for mu in range(len(self.kp8_basis)):
+            for nu in range(len(self.kp8_basis)):
+                prod = np.multiply(np.conjugate(amplitude_h[nu,:]), amplitude_e[mu,:])   # multiply arguments element-wise (NOT inner product of spinor vector!)
+                overlap += simps(prod, x)
+        return np.absolute(overlap)
+
+
+    ################ Energy getters #############################################
     def get_transition_energy(self, output_folder):
         """
         Get the transition energy = energy separation between the lowest electron and highest valence band states.
         Unit: eV
         """
-        datafile = self.get_DataFile_in_folder(["EnergySpectrum"], output_folder)
-
-        iLowestElectron = self.find_lowest_conduction_state_atK0(output_folder, threshold=0.5)
-        iHighestHole    = self.find_highest_valence_state_atK0(output_folder, threshold=0.5)
-        E_electron = datafile.variables[0].value[iLowestElectron]
-        E_hole = datafile.variables[0].value[iHighestHole]
+        E_electron = self.__get_lowest_electron_energy(output_folder)
+        E_hole = self.__get_highest_hole_energy(output_folder)
 
         return E_electron - E_hole
     

@@ -1649,7 +1649,7 @@ class nnpShortcuts(CommonShortcuts):
                 prod = np.multiply(np.conjugate(amplitude_h[nu,:]), amplitude_e[:])   # multiply arguments element-wise
                 overlap += simps(prod, x)
         else:
-            prod = np.multiply(np.conjugate(amplitude_h[:]), amplitude_e[:])   # multiply arguments element-wise
+            prod = np.multiply(np.conjugate(amplitude_h[:]), amplitude_e[:])   # multiply arguments element-wise (NOT inner product of spinor vector!)
             overlap += simps(prod, x)
 
         return overlap
