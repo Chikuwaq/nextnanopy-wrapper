@@ -68,7 +68,7 @@ class NEGFShortcuts(CommonShortcuts):
 
 
 
-    def get_DataFiles_NEGF_init(self, keywords, name, search_raw_solution_folder = False, search_WannierStark_folder = False):
+    def get_DataFiles_NEGF_init(self, keywords, filename_no_extension, search_raw_solution_folder = False, search_WannierStark_folder = False):
         """
         Get one or more nextnanopy.DataFile objects in the 'Init' folder.
         'Init' folder may contain both the raw Schrodinger solution and Wannier-Stark states.
@@ -77,7 +77,7 @@ class NEGFShortcuts(CommonShortcuts):
             raise ValueError("Invalid input")
         
         output_folder = nn.config.get(self.product_name, 'outputdirectory')
-        filename_no_extension = CommonShortcuts.separate_extension(name)[0]
+        filename_no_extension = os.path.split(filename_no_extension)[1]   # remove paths if present
         subfolder = os.path.join(output_folder, filename_no_extension)
         d = nn.DataFolder(subfolder)
 
@@ -283,14 +283,14 @@ class NEGFShortcuts(CommonShortcuts):
         return position, bandedge
     
 
-    def get_WannierStarkStates_init(self, name):
+    def get_WannierStarkStates_init(self, filename_no_extension):
         """
         RETURN: nn.DataFile() attribute
             datafile.coords['Position']
             datafile.variables['Conduction BandEdge']
             datafile.variables['Psi_*']
         """
-        datafiles = self.get_DataFiles_NEGF_init('EigenStates.dat', name, search_WannierStark_folder=True)
+        datafiles = self.get_DataFiles_NEGF_init('EigenStates.dat', filename_no_extension, search_WannierStark_folder=True)
         for df in datafiles:
             if NEGFShortcuts.wannierStarkFolder in df.fullpath: 
                 datafile = df
@@ -332,7 +332,7 @@ class NEGFShortcuts(CommonShortcuts):
 
 
     def plot_WannierStarkStates_init(self,
-            name, 
+            filename_no_extension, 
             start_position = -10000., 
             end_position   = 10000., 
             labelsize      = None, 
@@ -356,7 +356,7 @@ class NEGFShortcuts(CommonShortcuts):
         if labelsize is None: labelsize = self.labelsize_default
         if ticksize is None: ticksize = self.ticksize_default
 
-        position, CB, Psi_squareds = self.get_WannierStarkStates_init(name)
+        position, CB, Psi_squareds = self.get_WannierStarkStates_init(filename_no_extension)
 
         # Store data arrays.
         # Cut off edges of the simulation region if needed.
