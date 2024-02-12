@@ -1491,7 +1491,7 @@ class NEGFShortcuts(CommonShortcuts):
         """
         # get nn.DataFile object
         try:
-            datafile = self.get_DataFile_in_folder(['wavefunctions_spinor_composition_SXYZ'], output_folder)   # spinor composition at in-plane k = 0
+            datafile = self.get_DataFile_in_folder(['wavefunctions_spinor_composition_AngMom'], output_folder)   # spinor composition at in-plane k = 0
         except FileNotFoundError:
             raise
 
@@ -1535,7 +1535,7 @@ class NEGFShortcuts(CommonShortcuts):
         """
         # get nn.DataFile object
         try:
-            datafile = self.get_DataFile_in_folder(['wavefunctions_spinor_composition_SXYZ'], output_folder)   # spinor composition at in-plane k = 0
+            datafile = self.get_DataFile_in_folder(['wavefunctions_spinor_composition_AngMom'], output_folder)   # spinor composition at in-plane k = 0
         except FileNotFoundError:
             raise
 
