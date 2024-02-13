@@ -19,13 +19,16 @@ import warnings
 import logging
 import copy
 import shutil
+import subprocess
+import time
 
 
 # nextnanopy includes
 import nextnanopy as nn
 
-# shortcuts
+# my includes
 from nnShortcuts.common import CommonShortcuts
+from slurmData import SlurmData
 
 
 
@@ -89,6 +92,9 @@ class SweepHelper:
 
         states_to_be_plotted : dict of numpy.ndarray - { 'quantum model': array of values }
             for each quantum model, array of eigenstate indices to be plotted in the figure (default: all states in the output data)
+
+        slurm_data : SlurmData object
+            information used for Slurm jobs
 
 
         Methods
@@ -262,6 +268,8 @@ class SweepHelper:
             #         self.states_to_be_plotted, num_evs = self.shortcuts.get_states_to_be_plotted(datafiles_probability)   # states_range_dict=None -> all states are plotted
             #     except FileNotFoundError as e:
             #         pass
+
+        self.slurm_data = SlurmData()
 
 
     # def __repr__(self):
@@ -651,6 +659,9 @@ class SweepHelper:
 
 
     def recover_original_filenames(self):
+        """
+        TODO: Implement similar method for Slurm jobs, which do not rely on nextnanopy.Sweep object
+        """
         if not self.isFilenameAbbreviated:
             return
         
@@ -721,108 +732,62 @@ class SweepHelper:
             raise
 
 
-    def submit_sweep_to_slurm(self, suffix, node='microcloud', email=None):
+    def submit_sweep_to_slurm(self, suffix='', node='microcloud', email=None, num_CPU=4, memory_limit='8G', time_limit_hrs=5, exe=None, output_folder=None, database=None):
         """
         Submit sweep simulations to Slurm workload manager.
-        """
-        self.create_sbatch_scripts(suffix, node=node, email=email)
-
-        logging.info("Saving sweep input files...")
-        self.sweep_obj.save_sweep(delete_old_files=True, round_decimal=self.round_decimal)  # creates temp input files. Ensure the same decimals for self.sweep_space and input file names
-        logging.info("Saved.")
-
-        import subprocess
-        import time
-        logging.info("Submitting jobs to Slurm...")
-        subprocess.run(['bash', 'run.sh'])
-        time.sleep(5)
-        logging.info("Slurm status:")
-        subprocess.run(['sacct'])
-        
-
-    def create_sbatch_scripts(self, suffix, node, num_CPU=4, exe=None, output_folder=None, database=None, email=None):
-        """
-        Generate sbatch files to submit the sweep simulations to cloud computers by Slurm.
 
         Parameters
         ----------
             node : str
                 name of the computer node
+            email : str
+                Email is sent when the last input file in the sweep has finished.
             num_CPU : int
                 number of CPUs available. Used for the nextnano command line parameter '--threads'
+                Number of physical cores = num_CPU
+                Number of threads when hyperthreading = 2 * num_CPU
+                Optimal number of threads for omp parallelism <= (2 * num_CPU) / 2 = num_CPU
         """
+        self.slurm_data.set(node, suffix, email, num_CPU, memory_limit, time_limit_hrs)
+
         # defaults
         if exe is None:           exe, = nn.config.get(self.shortcuts.product_name, 'exe'),
-        if output_folder is None: output_folder, = nn.config.get(self.shortcuts.product_name, 'outputdirectory'),
+        if output_folder is None: output_folder = self.__get_output_folder_path()
         if database is None:      database = nn.config.get(self.shortcuts.product_name, 'database')
         license = nn.config.get(self.shortcuts.product_name, 'license')
 
-        logging.info("Writing sbatch scripts...")
+        self.input_file_fullpaths['original'] = list(set(self.input_file_fullpaths['original']))  # BUG: for some reason, input file paths are duplicated
+        self.slurm_data.create_sbatch_scripts(self.input_file_fullpaths['original'], exe, output_folder, database, license, self.shortcuts.product_name)
 
-        with open('run.sh', 'w') as f_meta:  # meta script
-            f_meta.write("#!/bin/bash\n\n")
+        logging.info("Saving sweep input files...")
+        self.sweep_obj.save_sweep(delete_old_files=True, round_decimal=self.round_decimal)  # creates temp input files. Ensure the same decimals for self.sweep_space and input file names
+        
+        for iMetascript, metascript_path in enumerate(self.slurm_data.metascript_paths):
+            logging.info(f"Submitting jobs to Slurm (metascript {iMetascript+1} / {len(self.slurm_data.metascript_paths)})...")
+            subprocess.run(['bash', metascript_path])
+            self.wait_slurm_jobs()
+
+        self.slurm_data.delete_sbatch_scripts()
+
+
+    def wait_slurm_jobs(self):
+        """
+        Wait until all jobs with the name `SlurmData.jobname` complete or fail.
+        """
+        time.sleep(5)
+        stopwatch = 0
+
+        def isRunning():
+            # Run the sacct command and capture the output
+            commands = ['sacct', '|', 'grep', SlurmData.jobname, 'grep', self.slurm_data.node]
+            result = subprocess.run(commands, capture_output=True, text=True)
+            return ('RUNNING' in result.stdout)
+        
+        while isRunning():
+            time.sleep(10)
+            stopwatch += 10
+            logging.info(f"Slurm job(s) running... ({stopwatch} sec)")
             
-            for input_file_fullpath in self.input_file_fullpaths['original']:
-                filename, extension = CommonShortcuts.separate_extension(input_file_fullpath)
-                scriptpath = "run_" + filename + ".sh"
-                f_meta.write(f"sbatch {scriptpath}\n")
-
-                # individual script
-                self.write_sbatch_script(scriptpath, input_file_fullpath, node, exe, output_folder, database, license, suffix, num_CPU, email=email)
-
-
-    def write_sbatch_script(self, scriptpath, inputpath, node, exe, output_folder, database, license, suffix, num_CPU, memory_limit='8G', time_limit_hrs=5, email=None):
-        """
-        Write a sbatch script for a single nextnano simulation.
-            Note
-            ----
-            Currently, only supports nextnano++ and nextnano.NEGF++ command line syntax.
-
-            Number of physical cores = num_CPU
-            Number of threads when hyperthreading = 2 * num_CPU
-            Optimal number of threads for omp parallelism <= (2 * num_CPU) / 2 = num_CPU
-        """
-        # validate inputs
-        if not isinstance(scriptpath, str): TypeError(f"Executable path must be a string, not {type(scriptpath)}")
-        if not isinstance(inputpath, str): TypeError(f"Input file path must be a string, not {type(inputpath)}")
-        if not isinstance(node, str): TypeError(f"Node name must be a string, not {type(node)}")
-        if not isinstance(exe, str): TypeError(f"Executable path must be a string, not {type(exe)}")
-        if not isinstance(output_folder, str): TypeError(f"Output folder must be a string, not {type(output_folder)}")
-        if not isinstance(database, str): TypeError(f"Database path must be a string, not {type(database)}")
-        if not isinstance(license, str): TypeError(f"License path must be a string, not {type(license)}")
-        if not isinstance(suffix, str): TypeError(f"Executable path must be a string, not {type(suffix)}")
-        if not isinstance(num_CPU, int) or num_CPU < 0: ValueError(f"Illegal number of CPUs: {num_CPU}")
-        if not isinstance(time_limit_hrs, int) or time_limit_hrs < 0: ValueError(f"Illegal time limit: '{time_limit_hrs} hours'")
-
-        filename, extension = CommonShortcuts.separate_extension(inputpath)
-        unique_name = filename + "_on_" + node + suffix
-        output_subfolder = os.path.join(output_folder, unique_name)
-        if not os.path.exists(output_subfolder): 
-            os.makedirs(output_subfolder)
-        logfile = os.path.join(output_subfolder, unique_name + ".log")
-        if os.path.isfile(logfile):
-            os.remove(logfile)
-
-        with open(scriptpath, 'w') as f:
-            f.write("#!/bin/bash\n\n")
-            f.write(f"#SBATCH --partition={node}\n")
-            f.write(f"#SBATCH --cpus-per-task={num_CPU}\n")
-            f.write(f"#SBATCH --mem={memory_limit}\n")
-            f.write("#SBATCH --nodes=1\n")  # multinode parallelism with MPI not implemented in nextnano
-            f.write(f"#SBATCH --time={time_limit_hrs}:00:00\n")
-            f.write(f"#SBATCH --hint=multithread\n")
-            f.write(f"#SBATCH --output={logfile}\n")
-            f.write("\n")
-            f.write("#SBATCH --job-name=nextnano\n")
-            f.write(f"#SBATCH --comment='Python Sweep simulation'\n")
-            f.write("#SBATCH --mail-type=end\n")
-            if email is not None:
-                f.write(f"#SBATCH --mail-user={email}\n")
-            f.write("\n")
-            if self.shortcuts.product_name == 'nextnano.NEGF++':
-                f.write(f"{exe} -i \"{inputpath}\" -o \"{output_subfolder}\" -m \"{database}\" -c -l \"{license}\" -t {num_CPU} -v splitfile")
-            elif self.shortcuts.product_name == 'nextnano++':
-                f.write(f"{exe} -o \"{output_subfolder}\" -d \"{database}\" -l \"{license}\" -t {num_CPU} \"{inputpath}\"")
 
     ### Import methods #######################################################
     def import_from_excel(self, excel_file_path):
