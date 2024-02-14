@@ -248,8 +248,8 @@ class SweepHelper:
         # for convenience in postprocessing/visualizing CSV/Excel output
         def extract_coord(tupl, index=0):
             return tupl[index]
-        for i, coord in enumerate(self.sweep_space.keys()):
-            self.data[coord] = self.data['sweep_coords'].apply(extract_coord, index=i)
+        for i, coord_key in enumerate(self.sweep_space.keys()):
+            self.data[coord_key] = self.data['sweep_coords'].apply(extract_coord, index=i)
 
         logging.info(f"Initialized data table:\n{self.data}")
         assert len(self.data) == len(self.input_file_fullpaths['original'])
@@ -292,8 +292,12 @@ class SweepHelper:
         """
         Sweep.save_sweep() creates temporary input files with these names.
         However, we do not use Sweep.save_sweep() in __init__ for code speed when execution of sweep is not desired (when simulation outputs already exist).
+
+        Returns
+        -------
+        input file fullpaths : list
         """
-        input_file_fullpaths = []
+        input_file_fullpaths = list()
 
         # code extracted from nextnanopy > inputs.py > Sweep.create_input_files()
         iteration_combinations = list(itertools.product(*self.sweep_space.values()))
@@ -301,7 +305,7 @@ class SweepHelper:
         for combination in iteration_combinations:
             filename_end = '__'
             for var_name, var_value in zip(self.sweep_space.keys(), combination):
-                if isinstance(var_value,str):
+                if isinstance(var_value, str):
                     var_value_string = var_value
                 else:
                     var_value_string = round(var_value, self.round_decimal)
@@ -346,7 +350,7 @@ class SweepHelper:
     def __output_subfolders_exist(self):
         """
         Check if all output subfolders with the same input file name and sweep values exist
-        (does not guarantee that the results are up-to-date!)
+        (does not guarantee that the simulation output is up-to-date!)
 
         Returns
         -------
@@ -484,7 +488,7 @@ class SweepHelper:
         """
         Extract 1D line from multidimensional (d >= 1) sweep space.
         """
-        sweep_space_reduced = self.sweep_space
+        sweep_space_reduced = copy.deepcopy(self.sweep_space)
 
         # ask the values for other axes
         logging.info(f"Taking '{sweep_var}' for plot axis.")
@@ -519,7 +523,7 @@ class SweepHelper:
         """
         Extract 2D plane from multidimensional (d >= 2) sweep space.
         """
-        sweep_space_reduced = self.sweep_space
+        sweep_space_reduced = copy.deepcopy(self.sweep_space)
 
         # ask the values for other axes
         logging.info(f"Taking '{sweep_var1}' and '{sweep_var2}' for plot axes.")
@@ -707,7 +711,7 @@ class SweepHelper:
         Convenient to have a separate method so that self.execute_sweep() can be invoked independently of __init__().
         """
         input_file_fullpaths = self.input_file_fullpaths['original'] + self.input_file_fullpaths['short']
-        paths = set(input_file_fullpaths)  # avoid duplicates
+        paths = set(input_file_fullpaths)  # avoid duplicates (NOTE: set object does not preserve the order of elements!)
         for path in paths:
             if os.path.exists(path):
                 os.remove(path)
@@ -756,8 +760,8 @@ class SweepHelper:
         if database is None:      database = nn.config.get(self.shortcuts.product_name, 'database')
         license = nn.config.get(self.shortcuts.product_name, 'license')
 
-        self.input_file_fullpaths['original'] = list(set(self.input_file_fullpaths['original']))  # BUG: for some reason, input file paths are duplicated
-        self.slurm_data.create_sbatch_scripts(self.input_file_fullpaths['original'], exe, output_folder, database, license, self.shortcuts.product_name)
+        input_fullpaths = list(set(self.input_file_fullpaths['original']))  # avoid duplicates. For some reason, input file paths are duplicated (NOTE: set object does not preserve the order of elements!)
+        self.slurm_data.create_sbatch_scripts(input_fullpaths, exe, output_folder, database, license, self.shortcuts.product_name)
 
         logging.info("Saving sweep input files...")
         self.sweep_obj.save_sweep(delete_old_files=True, round_decimal=self.round_decimal)  # creates temp input files. Ensure the same decimals for self.sweep_space and input file names
@@ -778,7 +782,8 @@ class SweepHelper:
         stopwatch = 0
 
         def isRunning():
-            # Run the sacct command and capture the output
+            # get the job status
+            # TODO: maybe `squeue` command is better since jobs aren't deleted from the list at midnight everyday.
             commands = ['sacct', '|', 'grep', SlurmData.jobname, 'grep', self.slurm_data.node]
             result = subprocess.run(commands, capture_output=True, text=True)
             return ('RUNNING' in result.stdout)
@@ -795,6 +800,8 @@ class SweepHelper:
         Enables postprocessing without raw simulation data.
         Useful when the sweep output occupies a lot of memory and the user wishes to delete them.
         """
+        if not os.path.exists(excel_file_path):
+            raise ValueError(f"Excel file {excel_file_path} does not exist!")
         try:
             self.data = pd.read_excel(excel_file_path)
         except:

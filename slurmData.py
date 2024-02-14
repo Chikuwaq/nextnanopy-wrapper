@@ -40,9 +40,13 @@ class SlurmData:
 		self.unique_tag = "_on_" + node + suffix
 
 
-	def create_sbatch_scripts(self, input_file_fullpaths, exe, output_folder, database, license, product_name):
+	def create_sbatch_scripts(self, input_file_fullpaths : list, exe, output_folder, database, license, product_name):
 		"""
 		Generate sbatch files to submit the sweep simulations to cloud computers by Slurm.
+
+		Parameters
+		----------
+		input_file_fullpaths : list of str
 		"""
 		# validate arguments
 		if not isinstance(exe, str): TypeError(f"Executable path must be a string, not {type(exe)}")
@@ -116,8 +120,8 @@ class SlurmData:
 			f.write("\n")
 			f.write(f"#SBATCH --job-name={SlurmData.jobname}\n")
 			f.write(f"#SBATCH --comment='Python Sweep simulation'\n")
-			f.write("#SBATCH --mail-type=end\n")
 			if self.email is not None and isLastInputFile:
+				f.write("#SBATCH --mail-type=end\n")
 				f.write(f"#SBATCH --mail-user={self.email}\n")
 			f.write("\n")
 			if product_name == 'nextnano.NEGF++':
