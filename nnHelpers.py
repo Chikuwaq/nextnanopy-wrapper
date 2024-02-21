@@ -1042,7 +1042,7 @@ class SweepHelper:
         return fig
 
 
-    def plot_transition_energies(self, x_axis, y_axis=None, x_label=None, y_label=None, force_lightHole=False, plot_title='', figFilename=None, colormap=None, set_center_to_zero=False, unit='meV', export_data=False):
+    def plot_transition_energies(self, x_axis, y_axis=None, x_label=None, y_label=None, force_lightHole=False, plot_title='', figFilename=None, colormap=None, set_center_to_zero=False, unit='meV', export_data=False, contour_energy=None):
         """
         Plot the transition energy (lowest electron eigenenergy - highest hole eigenenergy) colormap as a function of two selected sweep axes.
 
@@ -1070,6 +1070,9 @@ class SweepHelper:
         export_data : bool, optional
             If True, return the processed data ready for manual plot.
             If False, return figure
+        contour_energy : float, optional
+            Specify the energy at which to draw a contour line on top of the colormap
+            In units of 'unit' argument.
 
         Returns
         -------
@@ -1118,7 +1121,7 @@ class SweepHelper:
                 return x_values, transition_energies
         else:
             if plot_2D:
-                fig = self.__plot_transition_energies_2D(x_axis, y_axis, x_label, y_label, x_values, y_values, plot_title, colormap, set_center_to_zero, unit, transition_energies)
+                fig = self.__plot_transition_energies_2D(x_axis, y_axis, x_label, y_label, x_values, y_values, plot_title, colormap, set_center_to_zero, unit, transition_energies, contour_energy=contour_energy)
             else:
                 fig = self.__plot_transition_energies_1D(x_axis, x_label, x_values, plot_title, unit, transition_energies)
 
@@ -1130,7 +1133,7 @@ class SweepHelper:
 
         
 
-    def __plot_transition_energies_2D(self, x_axis, y_axis, x_label, y_label, x_values, y_values, plot_title, colormap, set_center_to_zero, unit, transition_energies_scaled):
+    def __plot_transition_energies_2D(self, x_axis, y_axis, x_label, y_label, x_values, y_values, plot_title, colormap, set_center_to_zero, unit, transition_energies_scaled, contour_energy=None):
         if transition_energies_scaled.ndim != 2:
             raise ValueError("Transition_energies_scaled must be two dimensional!")
 
@@ -1145,7 +1148,12 @@ class SweepHelper:
             if set_center_to_zero: 
                 colormap = 'seismic'
             else:
-                colormap = 'viridis'
+                colormap = 'cividis'
+        if colormap == 'seismic':
+            contour_color = 'black'
+        elif colormap == 'viridis' or colormap == 'cividis':
+            contour_color = 'white'
+
         if set_center_to_zero:
             from matplotlib import colors
             divnorm = colors.TwoSlopeNorm(vcenter=0.)
@@ -1153,7 +1161,12 @@ class SweepHelper:
         else:
             pcolor = ax.pcolormesh(x_values, y_values, transition_energies_scaled, cmap=colormap, shading='auto')
         
-        cbar = fig.colorbar(pcolor)
+        if contour_energy is not None:
+            # add energy contour
+            contour = ax.contour(x_values, y_values, transition_energies_scaled, levels=[contour_energy], colors=contour_color)
+            ax.clabel(contour, inline=True)
+
+        cbar = fig.colorbar(pcolor, ax=ax)
         if unit == 'meV':
             cbar.set_label("Transition energy ($\mathrm{meV}$)")
         elif unit == 'micron' or unit == 'um':
@@ -1189,7 +1202,7 @@ class SweepHelper:
 
 
     ### highest hole states ###################################################
-    def plot_HH1_LH1_energy_difference(self, x_axis, y_axis, x_label=None, y_label=None, plot_title='', figFilename=None, colormap=None, set_center_to_zero=True):
+    def plot_HH1_LH1_energy_difference(self, x_axis, y_axis, x_label=None, y_label=None, plot_title='', figFilename=None, colormap=None, set_center_to_zero=True, contour_energy_meV=None):
         """
         Plot the hole energy difference (HH - LH) colormap as a function of two selected sweep axes.
 
@@ -1212,6 +1225,8 @@ class SweepHelper:
         set_center_to_zero : bool, optional
             If you are interested in the sign of transition energy (e.g. insulator-semimetal-topological insulator phase transition), set to True.
             Default is True
+        contour_energy_meV : float, optional
+            Specify the energy at which to draw a contour line on top of the colormap
 
         Returns
         -------
@@ -1228,7 +1243,7 @@ class SweepHelper:
         self.__calc_HH1_LH1_energy_differences()
 
         # x- and y-axis coordinates and 2D array-like of overlap data
-        x_values, y_values, transition_energies = self.__slice_data_for_colormap_2D('HH1-LH1', x_axis, y_axis, datatype=np.double)
+        x_values, y_values, EDifference = self.__slice_data_for_colormap_2D('HH1-LH1', x_axis, y_axis, datatype=np.double)
 
 
         # instantiate 2D color plot
@@ -1242,16 +1257,26 @@ class SweepHelper:
             if set_center_to_zero: 
                 colormap = 'seismic'
             else:
-                colormap = 'viridis'
+                colormap = 'cividis'
+        if colormap == 'seismic':
+            contour_color = 'black'
+        elif colormap == 'viridis' or colormap == 'cividis':
+            contour_color = 'white'
+
         if set_center_to_zero:
             from matplotlib import colors
             divnorm = colors.TwoSlopeNorm(vcenter=0.)
-            pcolor = ax.pcolormesh(x_values, y_values, transition_energies * CommonShortcuts.scale1ToMilli, cmap=colormap, norm=divnorm, shading='auto')
+            pcolor = ax.pcolormesh(x_values, y_values, EDifference * CommonShortcuts.scale1ToMilli, cmap=colormap, norm=divnorm, shading='auto')
         else:
-            pcolor = ax.pcolormesh(x_values, y_values, transition_energies * CommonShortcuts.scale1ToMilli, cmap=colormap, shading='auto')
+            pcolor = ax.pcolormesh(x_values, y_values, EDifference * CommonShortcuts.scale1ToMilli, cmap=colormap, shading='auto')
         
-        cbar = fig.colorbar(pcolor)
-        cbar.set_label("Hole energy difference HH-LH ($\mathrm{meV}$)")
+        if contour_energy_meV is not None:
+            # add energy contour
+            contour = ax.contour(x_values, y_values, EDifference * CommonShortcuts.scale1ToMilli, levels=[contour_energy_meV], colors=contour_color)
+            ax.clabel(contour, inline=True)
+
+        cbar = fig.colorbar(pcolor, ax=ax)
+        cbar.set_label("Hole energy difference HH1-LH1 ($\mathrm{meV}$)")
         fig.tight_layout()
         plt.show()
 
@@ -1263,7 +1288,7 @@ class SweepHelper:
         return fig
 
 
-    def plot_HH1_HH2_energy_difference(self, x_axis, y_axis, x_label=None, y_label=None, plot_title='', figFilename=None, colormap=None, set_center_to_zero=True):
+    def plot_HH1_HH2_energy_difference(self, x_axis, y_axis, x_label=None, y_label=None, plot_title='', figFilename=None, colormap=None, set_center_to_zero=True, contour_energy_meV=None):
         """
         Plot the hole energy difference (HH - LH) colormap as a function of two selected sweep axes.
 
@@ -1286,6 +1311,8 @@ class SweepHelper:
         set_center_to_zero : bool, optional
             If you are interested in the sign of transition energy (e.g. insulator-semimetal-topological insulator phase transition), set to True.
             Default is True
+        contour_energy_meV : float, optional
+            Specify the energy at which to draw a contour line on top of the colormap
 
         Returns
         -------
@@ -1302,7 +1329,7 @@ class SweepHelper:
         self.__calc_HH1_HH2_energy_differences()
 
         # x- and y-axis coordinates and 2D array-like of overlap data
-        x_values, y_values, transition_energies = self.__slice_data_for_colormap_2D('HH1-HH2', x_axis, y_axis, datatype=np.double)
+        x_values, y_values, EDifference = self.__slice_data_for_colormap_2D('HH1-HH2', x_axis, y_axis, datatype=np.double)
 
 
         # instantiate 2D color plot
@@ -1316,15 +1343,25 @@ class SweepHelper:
             if set_center_to_zero: 
                 colormap = 'seismic'
             else:
-                colormap = 'viridis'
+                colormap = 'cividis'
+        if colormap == 'seismic':
+            contour_color = 'black'
+        elif colormap == 'viridis' or colormap == 'cividis':
+            contour_color = 'white'
+
         if set_center_to_zero:
             from matplotlib import colors
             divnorm = colors.TwoSlopeNorm(vcenter=0.)
-            pcolor = ax.pcolormesh(x_values, y_values, transition_energies * CommonShortcuts.scale1ToMilli, cmap=colormap, norm=divnorm, shading='auto')
+            pcolor = ax.pcolormesh(x_values, y_values, EDifference * CommonShortcuts.scale1ToMilli, cmap=colormap, norm=divnorm, shading='auto')
         else:
-            pcolor = ax.pcolormesh(x_values, y_values, transition_energies * CommonShortcuts.scale1ToMilli, cmap=colormap, shading='auto')
+            pcolor = ax.pcolormesh(x_values, y_values, EDifference * CommonShortcuts.scale1ToMilli, cmap=colormap, shading='auto')
         
-        cbar = fig.colorbar(pcolor)
+        if contour_energy_meV is not None:
+            # add energy contour
+            contour = ax.contour(x_values, y_values, EDifference * CommonShortcuts.scale1ToMilli, levels=[contour_energy_meV], colors=contour_color)
+            ax.clabel(contour, inline=True)
+
+        cbar = fig.colorbar(pcolor, ax=ax)
         cbar.set_label("Hole energy difference HH-LH ($\mathrm{meV}$)")
         fig.tight_layout()
         plt.show()
