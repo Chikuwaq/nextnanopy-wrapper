@@ -913,7 +913,8 @@ class SweepHelper:
     ### Optics analysis #######################################################
     def __calc_overlap(self, force_lightHole):
         """
-        Compute overlaps and store them in self.data
+        Compute overlaps and store them in self.data 
+        if not all overlaps have been calculated
         """
         if not self.data['overlap'].isna().any():
             return
@@ -924,11 +925,12 @@ class SweepHelper:
 
     def __calc_transition_energies(self, force_lightHole):
         """
-        Get transition energies and store them in self.data
+        Get transition energies and store them in self.data 
+        if not all transition energies have been calculated
         """
         if not self.data['transition_energy_eV'].isna().any():
             return
-        
+        logging.info("Calculating transition energies...")
         if self.shortcuts.product_name == 'nextnano++':
             self.data['transition_energy_eV'] = self.__get_output_subfolder_paths().apply(self.shortcuts.get_transition_energy, force_lightHole=force_lightHole)
         elif self.shortcuts.product_name == 'nextnano.NEGF++':
@@ -943,18 +945,22 @@ class SweepHelper:
     def __calc_HH1_LH1_energy_differences(self):
         """
         Get the energy difference HH1 - LH1 and store them in self.data
+        if not all HH1-LH1 have been calculated
         """
         if not self.data['HH1-LH1'].isna().any():
             return
+        logging.info("Calculating energy difference HH1 - LH1...")
         self.data['HH1-LH1'] = self.__get_output_subfolder_paths().apply(self.shortcuts.get_HH1_LH1_energy_difference)
 
 
     def __calc_HH1_HH2_energy_differences(self):
         """
         Get the energy difference HH1 - HH2 and store them in self.data
+        if not all HH1-HH2 have been calculated
         """
         if not self.data['HH1-HH2'].isna().any():
             return
+        logging.info("Calculating energy difference HH1 - HH2...")
         self.data['HH1-HH2'] = self.__get_output_subfolder_paths().apply(self.shortcuts.get_HH1_HH2_energy_difference)
 
 
