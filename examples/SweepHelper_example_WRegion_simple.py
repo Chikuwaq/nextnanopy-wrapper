@@ -7,6 +7,8 @@ Structure: W-shaped quantum well of the interband cascade laser design in [Vurga
 
 @author: takuma.sato@nextnano.com
 """
+import sys
+sys.path.append('../sweep-helper')
 
 import nextnanopy as nn
 from sweep_helper import SweepHelper

@@ -1,6 +1,5 @@
 [all]
-- use nextnano corporate colormap in 2D plot methods
-- format warnings console output
+- add option to use nextnano corporate colormap in 2D plot methods
 - visualization of warning in yellow (error will be in red, info in default colour)
 
 [unit test]
@@ -21,20 +20,19 @@
 - would be cool to have animation of band diagram & DOS as a function of bias (Winter School, Gerhard Klimeck)
 
 [object-oriented approach]
-- benefit of using classes is that the methods don't need to be defined above the code line of invocation. Bring the major methods up, auxilirary methods to the bottom.
-E.g. get_states_to_be_plotted()
 - is it possible to move imports to __init__? or at least to the parent class
 - if the difference between overridden methods is only 'software', they can be defined in the parent.
 
 [SweepHelper]
-- add an example to demonstrate usage
+- update the example with latest features/options
+- add an example with Slurm job submission
 - add an option 'outfolder_name' in execute_sweep()
 - get generate_gif working
 
 [README]
 
 
-[nnResults] object-oriented approach to post-processing, inspired by kwant
+[nnResults] object-oriented approach to postprocessing, inspired by kwant
 - define a parent class Results
 - within Results, define plotter class
 - implement plotter methods using nnShortcuts 
