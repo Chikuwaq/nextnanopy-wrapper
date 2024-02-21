@@ -9,7 +9,7 @@ Structure: W-shaped quantum well of the interband cascade laser design in [Vurga
 """
 
 import nextnanopy as nn
-from nnHelpers import SweepHelper
+from sweep_helper import SweepHelper
 
 # Specify input file.
 path = r"Density_WRegion_kp8_nnp_rescaleS1.in"

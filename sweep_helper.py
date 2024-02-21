@@ -28,7 +28,7 @@ import nextnanopy as nn
 
 # my includes
 from nnShortcuts.common import CommonShortcuts
-from slurmData import SlurmData
+from slurm_data import SlurmData
 from sweep_space import SweepSpace
 
 
