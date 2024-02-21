@@ -1,0 +1,9 @@
+self.sweep_space.data : dict
+
+
+[Consistency check]
+self.__extract_2D_plane_from_sweep_space vs. self.sweep_space.extract_2D_plane
+self.__extract_1D_line_from_sweep_space vs. self.sweep_space.extract_1D_line
+
+
+self.sweep_space isn't dict!
