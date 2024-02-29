@@ -502,7 +502,7 @@ class NEGFShortcuts(CommonShortcuts):
         label = 'Density of states (' + unit + ')'
 
         fig, ax = plt.subplots()
-        pcolor = ax.pcolormesh(x.value, y.value, quantity.value.T, vmin=zmin, vmax=zmax)
+        pcolor = ax.pcolormesh(x.value, y.value, quantity.value.T, vmin=zmin, vmax=zmax, cmap='cividis')
         cbar = fig.colorbar(pcolor)
         cbar.set_label(label, fontsize=labelsize)
         cbar.ax.tick_params(labelsize=ticksize * 0.9)
@@ -550,7 +550,7 @@ class NEGFShortcuts(CommonShortcuts):
         label = 'Carrier density (' + unit + ')'
 
         fig, ax = plt.subplots()
-        pcolor = ax.pcolormesh(x.value, y.value, quantity.value.T, vmin=zmin, vmax=zmax)
+        pcolor = ax.pcolormesh(x.value, y.value, quantity.value.T, vmin=zmin, vmax=zmax, cmap='cividis')
         cbar = fig.colorbar(pcolor)
         cbar.set_label(label, fontsize=labelsize)
         cbar.ax.tick_params(labelsize=ticksize * 0.9)
@@ -598,7 +598,7 @@ class NEGFShortcuts(CommonShortcuts):
         label = 'Current density (' + unit + ')'
 
         fig, ax = plt.subplots()
-        pcolor = ax.pcolormesh(x.value, y.value, quantity.value.T, vmin=zmin, vmax=zmax)
+        pcolor = ax.pcolormesh(x.value, y.value, quantity.value.T, vmin=zmin, vmax=zmax, cmap='cividis')
         cbar = fig.colorbar(pcolor)
         cbar.set_label(label, fontsize=labelsize)
         cbar.ax.tick_params(labelsize=ticksize * 0.9)
@@ -712,7 +712,7 @@ class NEGFShortcuts(CommonShortcuts):
 
         # Plot colormap for the initial bias.
         # F[:-1, :-1, 0] gives the values on the x-y plane at initial bias.
-        cax = ax.pcolormesh(x.value, y.value, F[:-1, :-1, 0], vmin=-1, vmax=1, cmap='viridis')
+        cax = ax.pcolormesh(x.value, y.value, F[:-1, :-1, 0], vmin=-1, vmax=1, cmap='cividis')
         cbar = fig.colorbar(cax)
         cbar.set_label(label)
 
