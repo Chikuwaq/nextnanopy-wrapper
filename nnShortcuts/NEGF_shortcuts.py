@@ -441,10 +441,10 @@ class NEGFShortcuts(CommonShortcuts):
             variableKey = 'Electron density'
         elif data == 'current':
             file = 'CurrentDensity_energy_resolved.vtr'
-            variableKey = 'Current Density (reduced real space)'
+            variableKey = 'Current Density'
         elif data == 'current_with_dispersion':
             file = 'CurrentDensity_energy_resolved_WithDispersion.vtr'
-            variableKey = 'Current Density (reduced real space)'
+            variableKey = 'Current Density'
         else:
             raise KeyError(f'Illegal data {data} requested!')
 
