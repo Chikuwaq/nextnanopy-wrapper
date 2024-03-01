@@ -1408,6 +1408,25 @@ class CommonShortcuts:
         return title
 
 
+    @staticmethod
+    def draw_inplane_dispersion(ax, kPoints, dispersions, states_toBePlotted, flip_xAxis, set_ylabel, labelsize, title='Inplane dispersion'):
+        """
+        flip_xAxis : bool
+            if True, invert the x axis.
+        labelsize : float
+        """
+        ax.set_xlabel("$k_x$ (1/nm)", fontsize=labelsize)
+        ax.set_xlim(np.amin(kPoints), np.amax(kPoints))
+        for index in states_toBePlotted:
+            ax.plot(kPoints, dispersions[index, ], linewidth=0.7, marker='.', label=f'Band_{index+1}', color='orange')
+        if flip_xAxis:
+            ax.invert_xaxis()
+            ax.grid(axis='y')
+        if set_ylabel:
+            ax.set_ylabel("Energy (eV)", fontsize=labelsize)
+        # ax.legend(labels=states_toBePlotted+1, bbox_to_anchor=(1.05, 1))
+        ax.set_title(title, fontsize=labelsize)
+
 
     def export_figs(self, 
             figFilename, 

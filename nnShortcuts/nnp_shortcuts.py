@@ -307,8 +307,6 @@ class nnpShortcuts(CommonShortcuts):
         savePNG : bool, optional
             save the plot in the PNG format. The default is False.
 
-
-
         Returns
         -------
         fig: matplotlib.subplot object
@@ -321,11 +319,50 @@ class nnpShortcuts(CommonShortcuts):
         if labelsize is None: labelsize = self.labelsize_default
         if ticksize is None: ticksize = self.ticksize_default
 
+        filename_no_extension = CommonShortcuts.separate_extension(name)[0]
+
+        # define plot title
+        if plot_title:
+            title = CommonShortcuts.get_plot_title(plot_title)
+        else:
+            title = ''
+
+        # instantiate matplotlib subplot object
+        fig, ax = plt.subplots()
+        ax.set_xlabel('In-plane $k$ ($\mathrm{nm}^{-1}$)', fontsize=labelsize)  # TODO: Ideally, it should detect the in-plane k-direction from input file. Note that multiple dispersions can be output.
+        ax.set_ylabel('Energy (eV)', fontsize=labelsize)
+        ax.set_title(f'{title}', fontsize=labelsize)
+        ax.tick_params(axis='x', labelsize=ticksize)
+        ax.tick_params(axis='y', labelsize=ticksize)
+        kPoints, dispersions, states_toBePlotted = self.__get_inplane_dispersion(name, startIdx, stopIdx)
+        CommonShortcuts.draw_inplane_dispersion(ax, kPoints, dispersions, states_toBePlotted)
+        fig.tight_layout()
+
+        #-------------------------------------------
+        # Save the figure to an image file
+        #-------------------------------------------
+        export_filename = f'{filename_no_extension}_dispersion'
+        if savePDF: self.export_figs(export_filename, 'pdf')
+        if savePNG: self.export_figs(export_filename, 'png', fig=fig)
+
+        # --- display in the GUI
+        plt.show()
+
+        return fig
+
+
+    def __get_inplane_dispersion(self, input_file_name, startIdx, stopIdx):
+        """
+        Parameters
+        ----------
+        input_file_name : str
+            input file name (= output subfolder name). May contain extensions and/or fullpath.
+        """
         # load output data files
         try:
-            datafile_dispersion = self.get_DataFile('dispersion_', name)
+            datafile_dispersion = self.get_DataFile('dispersion_', input_file_name)
         except ValueError:
-            datafile_dispersion = self.get_DataFile_in_folder('dispersion_', name)
+            datafile_dispersion = self.get_DataFile_in_folder('dispersion_', input_file_name)
 
         # store data in arrays
         kPoints     = datafile_dispersion.coords['|k|'].value
@@ -343,38 +380,7 @@ class nnpShortcuts(CommonShortcuts):
         for index in states_toBePlotted:
             dispersions[index, ] = datafile_dispersion.variables[f'Band_{index+1}'].value
 
-        filename_no_extension = CommonShortcuts.separate_extension(name)[0]
-
-        # define plot title
-        if plot_title:
-            title = CommonShortcuts.get_plot_title(plot_title)
-        else:
-            title = ''
-
-        # instantiate matplotlib subplot object
-        fig, ax = plt.subplots()
-        ax.set_xlabel('In-plane $k$ ($\mathrm{nm}^{-1}$)', fontsize=labelsize)  # TODO: Ideally, it should detect the in-plane k-direction from input file. Note that multiple dispersions can be output.
-        ax.set_ylabel('Energy (eV)', fontsize=labelsize)
-        ax.set_title(f'{title}', fontsize=labelsize)
-        ax.tick_params(axis='x', labelsize=ticksize)
-        ax.tick_params(axis='y', labelsize=ticksize)
-        for index in states_toBePlotted:
-            ax.plot(kPoints, dispersions[index, ], marker='o', label=f'Band_{index+1}')
-        ax.legend(labels=states_toBePlotted+1, bbox_to_anchor=(1.05, 1))
-        fig.tight_layout()
-
-        #-------------------------------------------
-        # Save the figure to an image file
-        #-------------------------------------------
-        export_filename = f'{filename_no_extension}_dispersion'
-        if savePDF: self.export_figs(export_filename, 'pdf')
-        if savePNG: self.export_figs(export_filename, 'png', fig=fig)
-
-        # --- display in the GUI
-        plt.show()
-
-        return fig
-
+        return kPoints, dispersions, states_toBePlotted
 
 
     def plot_patched_dispersions(self, 

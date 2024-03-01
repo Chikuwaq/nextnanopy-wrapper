@@ -197,7 +197,7 @@ class NEGFShortcuts(CommonShortcuts):
     def get_conduction_bandedge(self, input_file_name, bias):
         """
         INPUT:
-            nn.InputFile() object
+            input file name
             bias value
 
         RETURN: nn.DataFile() attributes
@@ -205,7 +205,7 @@ class NEGFShortcuts(CommonShortcuts):
             datafile.variables['Conduction Band Edge']
         """
         try:
-            datafile = self.get_DataFile_NEGF_atBias("EigenStates.dat", input_file_name, bias=bias)
+            datafile = self.get_DataFile_NEGF_atBias("EigenStates.dat", input_file_name, bias)
         except FileNotFoundError:
             try:
                 datafile = self.get_DataFile_NEGF_atBias('Conduction_BandEdge.dat', input_file_name, bias)
@@ -234,7 +234,7 @@ class NEGFShortcuts(CommonShortcuts):
     def get_lightHole_bandedge(self, input_file_name, bias):
         """
         INPUT:
-            nn.InputFile() object
+            input file name
             bias value
 
         RETURN: nn.DataFile() attributes
@@ -242,7 +242,7 @@ class NEGFShortcuts(CommonShortcuts):
             datafile.variables['Light-Hole Band Edge']
         """
         try:
-            datafile = self.get_DataFile_NEGF_atBias("EigenStates.dat", input_file_name, bias=bias)
+            datafile = self.get_DataFile_NEGF_atBias("EigenStates.dat", input_file_name, bias)
         except FileNotFoundError:
             try:
                 datafile = self.get_DataFile_NEGF_atBias('BandEdges.dat', input_file_name, bias)
@@ -264,7 +264,7 @@ class NEGFShortcuts(CommonShortcuts):
     def get_heavyHole_bandedge(self, input_file_name, bias):
         """
         INPUT:
-            nn.InputFile() object
+            input file name
             bias value
 
         RETURN: nn.DataFile() attributes
@@ -272,7 +272,7 @@ class NEGFShortcuts(CommonShortcuts):
             datafile.variables['Light-Hole Band Edge']
         """
         try:
-            datafile = self.get_DataFile_NEGF_atBias("EigenStates.dat", input_file_name, bias=bias)
+            datafile = self.get_DataFile_NEGF_atBias("EigenStates.dat", input_file_name, bias)
         except FileNotFoundError:
             try:
                 datafile = self.get_DataFile_NEGF_atBias('BandEdges.dat', input_file_name, bias)
@@ -294,7 +294,7 @@ class NEGFShortcuts(CommonShortcuts):
     def get_splitOffHole_bandedge(self, input_file_name, bias):
         """
         INPUT:
-            nn.InputFile() object
+            input file name
             bias value
 
         RETURN: nn.DataFile() attributes
@@ -302,7 +302,7 @@ class NEGFShortcuts(CommonShortcuts):
             datafile.variables['Split-Off-Hole Band Edge']
         """
         try:
-            datafile = self.get_DataFile_NEGF_atBias("EigenStates.dat", input_file_name, bias=bias)
+            datafile = self.get_DataFile_NEGF_atBias("EigenStates.dat", input_file_name, bias)
         except FileNotFoundError:
             try:
                 datafile = self.get_DataFile_NEGF_atBias('BandEdges.dat', input_file_name, bias)
@@ -320,6 +320,25 @@ class NEGFShortcuts(CommonShortcuts):
 
         return position, bandedge
     
+
+    def get_Fermi_levels(self, input_file_name, bias):
+        """
+        INPUT:
+            input file name
+            bias value
+
+        RETURN: nn.DataFile() attributes
+            z coordinates
+            electron Fermi level
+            hole Fermi level
+        """
+        datafile = self.get_DataFile_NEGF_atBias("FermiLevel.dat", input_file_name, bias=bias)
+        position = datafile.coords['Position']
+        try:
+            return position, datafile.variables['Fermi level'], datafile.variables['Fermi level']
+        except KeyError:
+            return position, datafile.variables['Electron Fermi level'], datafile.variables['Hole Fermi level']
+        
 
     def get_WannierStarkStates_init(self, filename_no_extension):
         """
@@ -456,7 +475,7 @@ class NEGFShortcuts(CommonShortcuts):
         return x, y, quantity
 
 
-    def draw_bandedges_on_2DPlot(self, input_file_name, bias, labelsize, ax):
+    def draw_bandedges_on_2DPlot(self, ax, input_file_name, bias, labelsize, shadowBandgap):
         CB = None
         LH = None
         HH = None
@@ -475,7 +494,70 @@ class NEGFShortcuts(CommonShortcuts):
         ax.plot(position.value, CB.value, color='white', linewidth=0.7, label=CB.label)
         if LH is not None: ax.plot(position.value, LH.value, color='white', linewidth=0.7, label=LH.label)
         if HH is not None: ax.plot(position.value, HH.value, color='white', linewidth=0.7, label=HH.label)
+
+        if shadowBandgap:
+            # fill the gap
+            if HH is not None:
+                if LH is not None:
+                    VBTop = np.maximum(HH.value, LH.value)
+                else:
+                    VBTop = HH.value
+                ax.fill_between(position.value, VBTop, CB.value, color='grey')
+            
+
+    def draw_Fermi_levels_on_2DPlot(self, ax, input_file_name, bias, labelsize):
+        position, FermiElectron, FermiHole = self.get_Fermi_levels(input_file_name, bias)
+        ax.plot(position.value, FermiElectron.value, color='white', linewidth=0.7, label=FermiElectron.label)
+        ax.plot(position.value, FermiHole.value, color='white', linewidth=0.7, label=FermiHole.label)
+
+        E_FermiElectron = FermiElectron.value[0]
+        E_FermiHole = FermiHole.value[0]
+        zmax = np.amax(position.value)
+        isEquilibrium = (np.amin(FermiElectron.value) == np.amin(FermiHole.value)) and (np.amax(FermiElectron.value) == np.amax(FermiHole.value))
+        if isEquilibrium:
+            ax.annotate("$E_F$", color='white', fontsize=labelsize, xy=(0.9*zmax, E_FermiElectron), xytext=(0.9*zmax, E_FermiElectron + 0.05))
+        else:
+            ax.annotate("$E_F^e$", color='white', fontsize=labelsize, xy=(0.9*zmax, E_FermiElectron), xytext=(0.9*zmax, E_FermiElectron + 0.05))
+            ax.annotate("$E_F^h$", color='white', fontsize=labelsize, xy=(0.9*zmax, E_FermiHole), xytext=(0.9*zmax, E_FermiHole + 0.05))
         
+
+    def __get_inplane_dispersion(self, input_file_name, startIdx, stopIdx):
+        """
+        Parameters
+        ----------
+        input_file_name : str
+            input file name (= output subfolder name). May contain extensions and/or fullpath.
+
+        Returns
+        -------
+        tuple of numpy arrays
+        """
+        # load output data files
+        filename_no_extension = CommonShortcuts.separate_extension(input_file_name)[0]
+        datafiles_dispersion = self.get_DataFiles_NEGFInit_in_folder('InplaneDispersionReducedCorrected', filename_no_extension, search_raw_solution_folder=True)
+        if len(datafiles_dispersion) == 0:
+            raise RuntimeError("No output found for in-plane dispersion!")
+        if len(datafiles_dispersion) > 1:
+            raise RuntimeError("More than one output file found for in-plane dispersion!")
+        df = datafiles_dispersion[0]
+
+        # store data in arrays
+        kPoints     = df.coords['inplane k'].value
+        num_bands   = len(df.variables)
+        logging.debug(f'num_bands = {num_bands}')
+        num_kPoints = len(kPoints)
+
+        # determine which states to plot   # TODO: bug: the last index isn't plotted if startIdx==0 and stopIdx==0!
+        if startIdx == 0: startIdx = 1
+        if stopIdx == 0: stopIdx = num_bands
+        states_toBePlotted = np.arange(startIdx-1, stopIdx, 1)
+
+        # store data in arrays
+        dispersions = np.zeros((num_bands, num_kPoints), dtype=np.double)
+        for index in states_toBePlotted:
+            dispersions[index, ] = df.variables[f'Energy_{index+1}'].value
+
+        return kPoints, dispersions, states_toBePlotted
 
 
     def plot_DOS(self,
@@ -484,7 +566,11 @@ class NEGFShortcuts(CommonShortcuts):
             labelsize=None,
             ticksize=None,
             zmin=None,
-            zmax=None
+            zmax=None,
+            attachDispersion=False, 
+            shadowBandgap=False,
+            showBias=True,
+            showFermiLevel=False
             ):
         """
         Overlay bandedge with local density of states. Loads the following output data:
@@ -501,20 +587,28 @@ class NEGFShortcuts(CommonShortcuts):
         unit = r'$\mathrm{nm}^{-1} \mathrm{eV}^{-1}$'
         label = 'Density of states (' + unit + ')'
 
-        fig, ax = plt.subplots()
-        pcolor = ax.pcolormesh(x.value, y.value, quantity.value.T, vmin=zmin, vmax=zmax, cmap='cividis')
-        cbar = fig.colorbar(pcolor)
-        cbar.set_label(label, fontsize=labelsize)
-        cbar.ax.tick_params(labelsize=ticksize * 0.9)
+        if attachDispersion:
+            # Create subplots with shared y-axis and remove spacing
+            fig, (ax1, ax2) = plt.subplots(1, 2, sharey=True, gridspec_kw={'width_ratios': [1, 3]})
+            plt.subplots_adjust(wspace=0)
 
-        ax.set_ylabel("Energy (eV)", fontsize=labelsize)
-        ax.set_xlim(np.amin(x.value), np.amax(x.value))
-        ax.set_ylim(np.amin(y.value), np.amax(y.value))
-        ax.set_title(f'bias={bias}mV', fontsize=labelsize)
-        ax.tick_params(axis='x', labelsize=ticksize)
-        ax.tick_params(axis='y', labelsize=ticksize)
+            kPoints, dispersions, states_toBePlotted = self.__get_inplane_dispersion(input_file_name, 0, 0)  # TODO: implement user-defined state index range (see nnpShortcuts.plot_dispersion)
+            if showBias:
+                title = 'Dispersion'
+            else:
+                title = ''
+            CommonShortcuts.draw_inplane_dispersion(ax1, kPoints, dispersions, states_toBePlotted, True, True, labelsize, title=title)  # dispersions[iState, ik]
+            NEGFShortcuts.__draw_2D_color_plot(fig, ax2, x.value, y.value, quantity.value, label, bias, labelsize, ticksize, zmin, zmax, showBias, False)
+            self.draw_bandedges_on_2DPlot(ax2, input_file_name, bias, labelsize, shadowBandgap)
+            if showFermiLevel:
+                self.draw_Fermi_levels_on_2DPlot(ax2, input_file_name, bias, labelsize)
+        else:
+            fig, ax = plt.subplots()
+            NEGFShortcuts.__draw_2D_color_plot(fig, ax, x.value, y.value, quantity.value, label, bias, labelsize, ticksize, zmin, zmax, showBias)
+            self.draw_bandedges_on_2DPlot(ax, input_file_name, bias, labelsize, shadowBandgap)
+            if showFermiLevel:
+                self.draw_Fermi_levels_on_2DPlot(ax, input_file_name, bias, labelsize)
 
-        self.draw_bandedges_on_2DPlot(input_file_name, bias, labelsize, ax)
         fig.tight_layout()
 
         # export to an image file
@@ -532,7 +626,11 @@ class NEGFShortcuts(CommonShortcuts):
             labelsize=None, 
             ticksize=None,
             zmin=None,
-            zmax=None
+            zmax=None,
+            attachDispersion=False,
+            shadowBandgap=False,
+            showBias=True,
+            showFermiLevel=False
             ):
         """
         Overlay bandedge with energy-resolved carrier density. Loads the following output data:
@@ -549,20 +647,28 @@ class NEGFShortcuts(CommonShortcuts):
         unit = r'$\mathrm{cm}^{-3} \mathrm{eV}^{-1}$'
         label = 'Carrier density (' + unit + ')'
 
-        fig, ax = plt.subplots()
-        pcolor = ax.pcolormesh(x.value, y.value, quantity.value.T, vmin=zmin, vmax=zmax, cmap='cividis')
-        cbar = fig.colorbar(pcolor)
-        cbar.set_label(label, fontsize=labelsize)
-        cbar.ax.tick_params(labelsize=ticksize * 0.9)
+        if attachDispersion:
+            # Create subplots with shared y-axis and remove spacing
+            fig, (ax1, ax2) = plt.subplots(1, 2, sharey=True, gridspec_kw={'width_ratios': [1, 3]})
+            plt.subplots_adjust(wspace=0)
 
-        ax.set_ylabel("Energy (eV)", fontsize=labelsize)
-        ax.set_xlim(np.amin(x.value), np.amax(x.value))
-        ax.set_ylim(np.amin(y.value), np.amax(y.value))
-        ax.set_title(f'bias={bias}mV', fontsize=labelsize)
-        ax.tick_params(axis='x', labelsize=ticksize)
-        ax.tick_params(axis='y', labelsize=ticksize)
+            kPoints, dispersions, states_toBePlotted = self.__get_inplane_dispersion(input_file_name, 0, 0)  # TODO: implement user-defined state index range (see nnpShortcuts.plot_dispersion)
+            if showBias:
+                title = 'Dispersion'
+            else:
+                title = ''
+            CommonShortcuts.draw_inplane_dispersion(ax1, kPoints, dispersions, states_toBePlotted, True, True, labelsize, title=title)  # dispersions[iState, ik]
+            NEGFShortcuts.__draw_2D_color_plot(fig, ax2, x.value, y.value, quantity.value, label, bias, labelsize, ticksize, zmin, zmax, showBias, False)
+            self.draw_bandedges_on_2DPlot(ax2, input_file_name, bias, labelsize, shadowBandgap)
+            if showFermiLevel:
+                self.draw_Fermi_levels_on_2DPlot(ax2, input_file_name, bias, labelsize)
+        else:
+            fig, ax = plt.subplots()
+            NEGFShortcuts.__draw_2D_color_plot(fig, ax, x.value, y.value, quantity.value, label, bias, labelsize, ticksize, zmin, zmax, showBias)
+            self.draw_bandedges_on_2DPlot(ax, input_file_name, bias, labelsize, shadowBandgap)
+            if showFermiLevel:
+                self.draw_Fermi_levels_on_2DPlot(ax, input_file_name, bias, labelsize)
 
-        self.draw_bandedges_on_2DPlot(input_file_name, bias, labelsize, ax)
         fig.tight_layout()
 
         # export to an image file
@@ -580,7 +686,9 @@ class NEGFShortcuts(CommonShortcuts):
             labelsize=None, 
             ticksize=None,
             zmin=None,
-            zmax=None
+            zmax=None,
+            shadowBandgap=False,
+            showBias=True
             ):
         """
         Overlay bandedge with energy-resolved current density. Loads the following output data:
@@ -598,19 +706,8 @@ class NEGFShortcuts(CommonShortcuts):
         label = 'Current density (' + unit + ')'
 
         fig, ax = plt.subplots()
-        pcolor = ax.pcolormesh(x.value, y.value, quantity.value.T, vmin=zmin, vmax=zmax, cmap='cividis')
-        cbar = fig.colorbar(pcolor)
-        cbar.set_label(label, fontsize=labelsize)
-        cbar.ax.tick_params(labelsize=ticksize * 0.9)
-
-        ax.set_ylabel("Energy (eV)", fontsize=labelsize)
-        ax.set_xlim(np.amin(x.value), np.amax(x.value))
-        ax.set_ylim(np.amin(y.value), np.amax(y.value))
-        ax.set_title(f'bias={bias}mV', fontsize=labelsize)
-        ax.tick_params(axis='x', labelsize=ticksize)
-        ax.tick_params(axis='y', labelsize=ticksize)
-
-        self.draw_bandedges_on_2DPlot(input_file_name, bias, labelsize, ax)
+        NEGFShortcuts.__draw_2D_color_plot(fig, ax, x.value, y.value, quantity.value, label, bias, labelsize, ticksize, zmin, zmax, showBias)
+        self.draw_bandedges_on_2DPlot(ax, input_file_name, bias, labelsize, shadowBandgap)
         fig.tight_layout()
 
         # export to an image file
@@ -620,6 +717,25 @@ class NEGFShortcuts(CommonShortcuts):
         self.export_figs("CurrentDensity", "png", output_folder_path=outputSubfolder, fig=fig)
 
         return fig
+
+
+    @staticmethod
+    def __draw_2D_color_plot(fig, ax, X, Y, Z, label, bias, labelsize, ticksize, zmin, zmax, showBias, set_ylabel):
+        pcolor = ax.pcolormesh(X, Y, Z.T, vmin=zmin, vmax=zmax, cmap='cividis')
+        cbar = fig.colorbar(pcolor)
+        cbar.set_label(label, fontsize=labelsize)
+        cbar.ax.tick_params(labelsize=ticksize * 0.9)
+
+        if set_ylabel:
+            ax.set_ylabel("Energy (eV)", fontsize=labelsize)
+        ax.set_xlim(np.amin(X), np.amax(X))
+        ax.set_ylim(np.amin(Y), np.amax(Y))
+        if showBias:
+            ax.set_title(f'bias={bias}mV', fontsize=labelsize)
+        else:
+            ax.set_title('', fontsize=labelsize)
+        ax.tick_params(axis='x', labelsize=ticksize)
+        ax.tick_params(axis='y', labelsize=ticksize)
 
 
     # TODO: Which quantity should be overlayed to Gain?
