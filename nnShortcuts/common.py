@@ -226,6 +226,7 @@ class CommonShortcuts:
 
     scale_Angstrom_to_nm = 0.1
     scale_eV_to_J = elementary_charge
+    scale_J_to_eV = 1.0 / elementary_charge
 
     @staticmethod
     def electronvolt_to_micron(E):
@@ -1404,14 +1405,16 @@ class CommonShortcuts:
 
 
     @staticmethod
-    def draw_inplane_dispersion(ax, kPoints, dispersions, states_toBePlotted, flip_xAxis, set_ylabel, labelsize, title='Inplane dispersion'):
+    def draw_inplane_dispersion(ax, kPoints, dispersions, states_toBePlotted, flip_xAxis, set_ylabel, labelsize, title='Inplane dispersion', lattice_temperature=None):
         """
         flip_xAxis : bool
             if True, invert the x axis.
         labelsize : float
         """
         ax.set_xlabel("$k_x$ (1/nm)", fontsize=labelsize)
-        ax.set_xlim(np.amin(kPoints), np.amax(kPoints))
+        kmin = np.amin(kPoints)
+        kmax = np.amax(kPoints)
+        ax.set_xlim(kmin, kmax)
         for index in states_toBePlotted:
             ax.plot(kPoints, dispersions[index, ], linewidth=0.7, marker='.', label=f'Band_{index+1}', color='orange')
         if flip_xAxis:
@@ -1419,6 +1422,19 @@ class CommonShortcuts:
             ax.grid(axis='y')
         if set_ylabel:
             ax.set_ylabel("Energy (eV)", fontsize=labelsize)
+        if lattice_temperature is not None:
+            kBT = CommonShortcuts.Boltzmann * lattice_temperature * CommonShortcuts.scale_J_to_eV
+            
+            ymin, ymax = ax.get_ylim()
+            relative_position = 0.1
+            x = (1-relative_position)*kmin + relative_position*kmax
+            y_from = (1-relative_position)*ymin + relative_position*ymax
+            y_to = y_from + kBT
+
+            relative_position_text = relative_position + 0.3
+            x_text = (1-relative_position_text)*kmin + relative_position_text*kmax
+            ax.vlines(x, y_from, y_to, colors='black')
+            ax.annotate("$k_\mathrm{B}T$", xy=(x, (y_to + y_from)/2.0), xytext=(x_text, (y_to + y_from)/2.0))
         # ax.legend(labels=states_toBePlotted+1, bbox_to_anchor=(1.05, 1))
         ax.set_title(title, fontsize=labelsize)
 

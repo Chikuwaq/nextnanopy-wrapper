@@ -571,13 +571,19 @@ class NEGFShortcuts(CommonShortcuts):
             attachDispersion=False, 
             shadowBandgap=False,
             showBias=True,
-            showFermiLevel=False
+            showFermiLevel=False,
+            lattice_temperature=None
             ):
         """
         Overlay bandedge with local density of states. Loads the following output data:
         DOS_energy_resolved.vtr
 
         The plot is saved as an png image file.
+
+        Parameters
+        ----------
+        lattice_temperature : float
+            If not None, the energy kBT is indicated inside the dispersion plot.
         """
         if labelsize is None: labelsize = self.labelsize_default
         if ticksize is None: ticksize = self.ticksize_default
@@ -593,16 +599,17 @@ class NEGFShortcuts(CommonShortcuts):
             fig, (ax1, ax2) = plt.subplots(1, 2, sharey=True, gridspec_kw={'width_ratios': [1, 3]})
             plt.subplots_adjust(wspace=0)
 
+            self.__draw_2D_color_plot(fig, ax2, x.value, y.value, quantity.value, label, bias, labelsize, ticksize, zmin, zmax, showBias, False)
+            self.draw_bandedges_on_2DPlot(ax2, input_file_name, bias, labelsize, shadowBandgap)
+            if showFermiLevel:
+                self.draw_Fermi_levels_on_2DPlot(ax2, input_file_name, bias, labelsize)
+
             kPoints, dispersions, states_toBePlotted = self.__get_inplane_dispersion(input_file_name, 0, 0)  # TODO: implement user-defined state index range (see nnpShortcuts.plot_dispersion)
             if showBias:
                 title = 'Dispersion'
             else:
                 title = ''
-            CommonShortcuts.draw_inplane_dispersion(ax1, kPoints, dispersions, states_toBePlotted, True, True, labelsize, title=title)  # dispersions[iState, ik]
-            self.__draw_2D_color_plot(fig, ax2, x.value, y.value, quantity.value, label, bias, labelsize, ticksize, zmin, zmax, showBias, False)
-            self.draw_bandedges_on_2DPlot(ax2, input_file_name, bias, labelsize, shadowBandgap)
-            if showFermiLevel:
-                self.draw_Fermi_levels_on_2DPlot(ax2, input_file_name, bias, labelsize)
+            CommonShortcuts.draw_inplane_dispersion(ax1, kPoints, dispersions, states_toBePlotted, True, True, labelsize, title=title, lattice_temperature=lattice_temperature)  # dispersions[iState, ik]
         else:
             fig, ax = plt.subplots()
             self.__draw_2D_color_plot(fig, ax, x.value, y.value, quantity.value, label, bias, labelsize, ticksize, zmin, zmax, showBias, True)
@@ -631,7 +638,8 @@ class NEGFShortcuts(CommonShortcuts):
             attachDispersion=False,
             shadowBandgap=False,
             showBias=True,
-            showFermiLevel=False
+            showFermiLevel=False,
+            lattice_temperature=None
             ):
         """
         Overlay bandedge with energy-resolved carrier density. Loads the following output data:
@@ -639,6 +647,11 @@ class NEGFShortcuts(CommonShortcuts):
         ElectronDensity_energy_resolved.vtr
         
         The plot is saved as an png image file.
+
+        Parameters
+        ----------
+        lattice_temperature : float
+            If not None, the energy kBT is indicated inside the dispersion plot.
         """
         if labelsize is None: labelsize = self.labelsize_default
         if ticksize is None: ticksize = self.ticksize_default
@@ -654,18 +667,23 @@ class NEGFShortcuts(CommonShortcuts):
             fig, (ax1, ax2) = plt.subplots(1, 2, sharey=True, gridspec_kw={'width_ratios': [1, 3]})
             plt.subplots_adjust(wspace=0)
 
+            # 2D color plot
+            self.__draw_2D_color_plot(fig, ax2, x.value, y.value, quantity.value, label, bias, labelsize, ticksize, zmin, zmax, showBias, False)
+            self.draw_bandedges_on_2DPlot(ax2, input_file_name, bias, labelsize, shadowBandgap)
+            if showFermiLevel:
+                self.draw_Fermi_levels_on_2DPlot(ax2, input_file_name, bias, labelsize)
+            
+            # dispersion plot
             kPoints, dispersions, states_toBePlotted = self.__get_inplane_dispersion(input_file_name, 0, 0)  # TODO: implement user-defined state index range (see nnpShortcuts.plot_dispersion)
             if showBias:
                 title = 'Dispersion'
             else:
                 title = ''
-            CommonShortcuts.draw_inplane_dispersion(ax1, kPoints, dispersions, states_toBePlotted, True, True, labelsize, title=title)  # dispersions[iState, ik]
-            self.__draw_2D_color_plot(fig, ax2, x.value, y.value, quantity.value, label, bias, labelsize, ticksize, zmin, zmax, showBias, False)
-            self.draw_bandedges_on_2DPlot(ax2, input_file_name, bias, labelsize, shadowBandgap)
-            if showFermiLevel:
-                self.draw_Fermi_levels_on_2DPlot(ax2, input_file_name, bias, labelsize)
+            CommonShortcuts.draw_inplane_dispersion(ax1, kPoints, dispersions, states_toBePlotted, True, True, labelsize, title=title, lattice_temperature=lattice_temperature)  # dispersions[iState, ik]
         else:
             fig, ax = plt.subplots()
+
+            # 2D color plot
             self.__draw_2D_color_plot(fig, ax, x.value, y.value, quantity.value, label, bias, labelsize, ticksize, zmin, zmax, showBias, True)
             self.draw_bandedges_on_2DPlot(ax, input_file_name, bias, labelsize, shadowBandgap)
             if showFermiLevel:

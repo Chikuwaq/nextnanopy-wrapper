@@ -272,6 +272,7 @@ class nnpShortcuts(CommonShortcuts):
             name,
             startIdx=0,
             stopIdx=0,
+            lattice_temperature=None,
             plot_title='',
             labelsize=None,
             ticksize=None,
@@ -291,6 +292,9 @@ class nnpShortcuts(CommonShortcuts):
 
         stopIdx : int, optional
             DESCRIPTION. The default is 0.
+
+        lattice_temperature : float, optional
+            If not None, thermal energy kBT is indicated in the plot.
 
         plot_title : str, optional
             title of the plot. The default is ''.
@@ -335,7 +339,7 @@ class nnpShortcuts(CommonShortcuts):
         ax.tick_params(axis='x', labelsize=ticksize)
         ax.tick_params(axis='y', labelsize=ticksize)
         kPoints, dispersions, states_toBePlotted = self.__get_inplane_dispersion(name, startIdx, stopIdx)
-        CommonShortcuts.draw_inplane_dispersion(ax, kPoints, dispersions, states_toBePlotted)
+        CommonShortcuts.draw_inplane_dispersion(ax, kPoints, dispersions, states_toBePlotted, lattice_temperature=lattice_temperature)
         fig.tight_layout()
 
         #-------------------------------------------
