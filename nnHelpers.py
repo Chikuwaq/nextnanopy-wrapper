@@ -29,7 +29,7 @@ import nextnanopy as nn
 # my includes
 from nnShortcuts.common import CommonShortcuts
 from slurmData import SlurmData
-
+from nnShortcuts.default_colors import DefaultColors
 
 
 class SweepHelper:
@@ -95,6 +95,8 @@ class SweepHelper:
 
         slurm_data : SlurmData object
             information used for Slurm jobs
+
+        default_colors : DefaultColors object
 
 
         Methods
@@ -270,6 +272,8 @@ class SweepHelper:
             #         pass
 
         self.slurm_data = SlurmData()
+
+        self.default_colors = DefaultColors()
 
 
     # def __repr__(self):
@@ -1148,11 +1152,11 @@ class SweepHelper:
             if set_center_to_zero: 
                 colormap = 'seismic'
             else:
-                colormap = 'cividis'
+                colormap = self.default_colors.colormap
         if colormap == 'seismic':
             contour_color = 'black'
-        elif colormap == 'viridis' or colormap == 'cividis':
-            contour_color = 'white'
+        elif colormap == 'viridis' or colormap == self.default_colors.colormap:
+            contour_color = self.default_colors.lines_on_colormap
 
         if set_center_to_zero:
             from matplotlib import colors
@@ -1257,11 +1261,11 @@ class SweepHelper:
             if set_center_to_zero: 
                 colormap = 'seismic'
             else:
-                colormap = 'cividis'
+                colormap = self.default_colors.colormap
         if colormap == 'seismic':
             contour_color = 'black'
-        elif colormap == 'viridis' or colormap == 'cividis':
-            contour_color = 'white'
+        elif colormap == 'viridis' or colormap == self.default_colors.colormap:
+            contour_color = self.default_colors.lines_on_colormap
 
         if set_center_to_zero:
             from matplotlib import colors
@@ -1343,11 +1347,11 @@ class SweepHelper:
             if set_center_to_zero: 
                 colormap = 'seismic'
             else:
-                colormap = 'cividis'
+                colormap = self.default_colors.colormap
         if colormap == 'seismic':
             contour_color = 'black'
-        elif colormap == 'viridis' or colormap == 'cividis':
-            contour_color = 'white'
+        elif colormap == 'viridis' or colormap == self.default_colors.colormap:
+            contour_color = self.default_colors.lines_on_colormap
 
         if set_center_to_zero:
             from matplotlib import colors

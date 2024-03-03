@@ -429,14 +429,13 @@ class NEGFShortcuts(CommonShortcuts):
         ax.set_title('Wannier-Stark states', fontsize=labelsize)
         ax.tick_params(axis='x', labelsize=ticksize)
         ax.tick_params(axis='y', labelsize=ticksize)
-        ax.plot(x, conduction_bandedge, color='red', linewidth=0.7, label=CB.label)
+        ax.plot(x, conduction_bandedge, color=self.default_colors.bands['CB'], linewidth=0.7, label=CB.label)
         for WS_state in WS_states:
             ax.plot(x, WS_state, label='')   # TODO: label
         fig.tight_layout()
 
         # export to an image file
         outputFolder = nn.config.get(self.product_name, 'outputdirectory')
-        filename_no_extension = CommonShortcuts.separate_extension(name)[0]
         outputSubfolder = os.path.join(outputFolder, filename_no_extension)
         self.export_figs("WannierStarkStates_init", "png", output_folder_path=outputSubfolder, fig=fig)
 
@@ -491,9 +490,9 @@ class NEGFShortcuts(CommonShortcuts):
             pass
 
         ax.set_xlabel(position.label, fontsize=labelsize)
-        ax.plot(position.value, CB.value, color='white', linewidth=0.7, label=CB.label)
-        if LH is not None: ax.plot(position.value, LH.value, color='white', linewidth=0.7, label=LH.label)
-        if HH is not None: ax.plot(position.value, HH.value, color='white', linewidth=0.7, label=HH.label)
+        ax.plot(position.value, CB.value, color=self.default_colors.bands_dark_background['CB'], linewidth=0.7, label=CB.label)
+        if LH is not None: ax.plot(position.value, LH.value, color=self.default_colors.bands_dark_background['LH'], linewidth=0.7, label=LH.label)
+        if HH is not None: ax.plot(position.value, HH.value, color=self.default_colors.bands_dark_background['HH'], linewidth=0.7, label=HH.label)
 
         if shadowBandgap:
             # fill the gap
@@ -506,19 +505,21 @@ class NEGFShortcuts(CommonShortcuts):
             
 
     def draw_Fermi_levels_on_2DPlot(self, ax, input_file_name, bias, labelsize):
+        color = self.default_colors.lines_on_colormap
+
         position, FermiElectron, FermiHole = self.get_Fermi_levels(input_file_name, bias)
-        ax.plot(position.value, FermiElectron.value, color='white', linewidth=0.7, label=FermiElectron.label)
-        ax.plot(position.value, FermiHole.value, color='white', linewidth=0.7, label=FermiHole.label)
+        ax.plot(position.value, FermiElectron.value, color=color, linewidth=0.7, label=FermiElectron.label)
+        ax.plot(position.value, FermiHole.value, color=color, linewidth=0.7, label=FermiHole.label)
 
         E_FermiElectron = FermiElectron.value[0]
         E_FermiHole = FermiHole.value[0]
         zmax = np.amax(position.value)
         isEquilibrium = (np.amin(FermiElectron.value) == np.amin(FermiHole.value)) and (np.amax(FermiElectron.value) == np.amax(FermiHole.value))
         if isEquilibrium:
-            ax.annotate("$E_F$", color='white', fontsize=labelsize, xy=(0.9*zmax, E_FermiElectron), xytext=(0.9*zmax, E_FermiElectron + 0.05))
+            ax.annotate("$E_F$", color=color, fontsize=labelsize, xy=(0.9*zmax, E_FermiElectron), xytext=(0.9*zmax, E_FermiElectron + 0.05))
         else:
-            ax.annotate("$E_F^e$", color='white', fontsize=labelsize, xy=(0.9*zmax, E_FermiElectron), xytext=(0.9*zmax, E_FermiElectron + 0.05))
-            ax.annotate("$E_F^h$", color='white', fontsize=labelsize, xy=(0.9*zmax, E_FermiHole), xytext=(0.9*zmax, E_FermiHole + 0.05))
+            ax.annotate("$E_F^e$", color=color, fontsize=labelsize, xy=(0.9*zmax, E_FermiElectron), xytext=(0.9*zmax, E_FermiElectron + 0.05))
+            ax.annotate("$E_F^h$", color=color, fontsize=labelsize, xy=(0.9*zmax, E_FermiHole), xytext=(0.9*zmax, E_FermiHole + 0.05))
         
 
     def __get_inplane_dispersion(self, input_file_name, startIdx, stopIdx):
@@ -598,13 +599,13 @@ class NEGFShortcuts(CommonShortcuts):
             else:
                 title = ''
             CommonShortcuts.draw_inplane_dispersion(ax1, kPoints, dispersions, states_toBePlotted, True, True, labelsize, title=title)  # dispersions[iState, ik]
-            NEGFShortcuts.__draw_2D_color_plot(fig, ax2, x.value, y.value, quantity.value, label, bias, labelsize, ticksize, zmin, zmax, showBias, False)
+            self.__draw_2D_color_plot(fig, ax2, x.value, y.value, quantity.value, label, bias, labelsize, ticksize, zmin, zmax, showBias, False)
             self.draw_bandedges_on_2DPlot(ax2, input_file_name, bias, labelsize, shadowBandgap)
             if showFermiLevel:
                 self.draw_Fermi_levels_on_2DPlot(ax2, input_file_name, bias, labelsize)
         else:
             fig, ax = plt.subplots()
-            NEGFShortcuts.__draw_2D_color_plot(fig, ax, x.value, y.value, quantity.value, label, bias, labelsize, ticksize, zmin, zmax, showBias)
+            self.__draw_2D_color_plot(fig, ax, x.value, y.value, quantity.value, label, bias, labelsize, ticksize, zmin, zmax, showBias)
             self.draw_bandedges_on_2DPlot(ax, input_file_name, bias, labelsize, shadowBandgap)
             if showFermiLevel:
                 self.draw_Fermi_levels_on_2DPlot(ax, input_file_name, bias, labelsize)
@@ -658,13 +659,13 @@ class NEGFShortcuts(CommonShortcuts):
             else:
                 title = ''
             CommonShortcuts.draw_inplane_dispersion(ax1, kPoints, dispersions, states_toBePlotted, True, True, labelsize, title=title)  # dispersions[iState, ik]
-            NEGFShortcuts.__draw_2D_color_plot(fig, ax2, x.value, y.value, quantity.value, label, bias, labelsize, ticksize, zmin, zmax, showBias, False)
+            self.__draw_2D_color_plot(fig, ax2, x.value, y.value, quantity.value, label, bias, labelsize, ticksize, zmin, zmax, showBias, False)
             self.draw_bandedges_on_2DPlot(ax2, input_file_name, bias, labelsize, shadowBandgap)
             if showFermiLevel:
                 self.draw_Fermi_levels_on_2DPlot(ax2, input_file_name, bias, labelsize)
         else:
             fig, ax = plt.subplots()
-            NEGFShortcuts.__draw_2D_color_plot(fig, ax, x.value, y.value, quantity.value, label, bias, labelsize, ticksize, zmin, zmax, showBias)
+            self.__draw_2D_color_plot(fig, ax, x.value, y.value, quantity.value, label, bias, labelsize, ticksize, zmin, zmax, showBias)
             self.draw_bandedges_on_2DPlot(ax, input_file_name, bias, labelsize, shadowBandgap)
             if showFermiLevel:
                 self.draw_Fermi_levels_on_2DPlot(ax, input_file_name, bias, labelsize)
@@ -706,7 +707,7 @@ class NEGFShortcuts(CommonShortcuts):
         label = 'Current density (' + unit + ')'
 
         fig, ax = plt.subplots()
-        NEGFShortcuts.__draw_2D_color_plot(fig, ax, x.value, y.value, quantity.value, label, bias, labelsize, ticksize, zmin, zmax, showBias)
+        self.__draw_2D_color_plot(fig, ax, x.value, y.value, quantity.value, label, bias, labelsize, ticksize, zmin, zmax, showBias)
         self.draw_bandedges_on_2DPlot(ax, input_file_name, bias, labelsize, shadowBandgap)
         fig.tight_layout()
 
@@ -719,9 +720,8 @@ class NEGFShortcuts(CommonShortcuts):
         return fig
 
 
-    @staticmethod
-    def __draw_2D_color_plot(fig, ax, X, Y, Z, label, bias, labelsize, ticksize, zmin, zmax, showBias, set_ylabel):
-        pcolor = ax.pcolormesh(X, Y, Z.T, vmin=zmin, vmax=zmax, cmap='cividis')
+    def __draw_2D_color_plot(self, fig, ax, X, Y, Z, label, bias, labelsize, ticksize, zmin, zmax, showBias, set_ylabel):
+        pcolor = ax.pcolormesh(X, Y, Z.T, vmin=zmin, vmax=zmax, cmap=self.default_colors.colormap)
         cbar = fig.colorbar(pcolor)
         cbar.set_label(label, fontsize=labelsize)
         cbar.ax.tick_params(labelsize=ticksize * 0.9)
@@ -828,7 +828,7 @@ class NEGFShortcuts(CommonShortcuts):
 
         # Plot colormap for the initial bias.
         # F[:-1, :-1, 0] gives the values on the x-y plane at initial bias.
-        cax = ax.pcolormesh(x.value, y.value, F[:-1, :-1, 0], vmin=-1, vmax=1, cmap='cividis')
+        cax = ax.pcolormesh(x.value, y.value, F[:-1, :-1, 0], vmin=-1, vmax=1, cmap=self.default_colors.colormap)
         cbar = fig.colorbar(cax)
         cbar.set_label(label)
 
@@ -839,7 +839,7 @@ class NEGFShortcuts(CommonShortcuts):
             # update 2D color plot
             cax.set_array(F[:-1, :-1, i].flatten())
             # update conduction bandedge plot
-            ax.plot(x.value, CB.value, color='white', linewidth=0.7, label=CB.label)
+            ax.plot(x.value, CB.value, color=self.default_colors.lines_on_colormap, linewidth=0.7, label=CB.label)
 
 
         # ax.legend(loc='upper left')
@@ -1019,7 +1019,7 @@ class NEGFShortcuts(CommonShortcuts):
         linetypes = ['solid', 'dashed', 'dotted', 'dashdot']
 
         # I-V curves
-        color = 'tab:blue'
+        color = self.default_colors.current_voltage
         cnt = 0
         for current_density, V in zip(current_densities_IV, voltages):
             I = backward_conversion(current_density)
@@ -1041,7 +1041,7 @@ class NEGFShortcuts(CommonShortcuts):
 
 
         # Optical power - voltage curves
-        color = 'tab:red'
+        color = self.default_colors.light_voltage
         ax2 = ax1.twinx()   # shared x axis
         cnt = 0
         for density, P in zip(current_densities_LV, output_powers):
@@ -1269,16 +1269,16 @@ class NEGFShortcuts(CommonShortcuts):
         def draw_bandedges(ax, model, want_valence_band):
             self.set_plot_labels(ax, 'Position (nm)', 'Energy (eV)', title)
             if model == 'Gamma' or model == 'kp8':
-                ax.plot(x, CBBandedge, label='conduction band', linewidth=0.6, color=self.band_colors['CB'])
+                ax.plot(x, CBBandedge, label='conduction band', linewidth=0.6, color=self.default_colors.bands['CB'])
             if want_valence_band:
                 if model == 'HH' or model == 'kp6' or model == 'kp8':
-                    ax.plot(x, HHBandedge, label='heavy hole', linewidth=0.6, color=self.band_colors['HH'])
+                    ax.plot(x, HHBandedge, label='heavy hole', linewidth=0.6, color=self.default_colors.bands['HH'])
                 if model == 'LH' or model == 'kp6' or model == 'kp8':
-                    ax.plot(x, LHBandedge, label='light hole', linewidth=0.6, color=self.band_colors['LH'])
+                    ax.plot(x, LHBandedge, label='light hole', linewidth=0.6, color=self.default_colors.bands['LH'])
                 # if model == 'SO' or model == 'kp6' or model == 'kp8':
-                #     ax.plot(x, SOBandedge, label='split-off hole', linewidth=0.6, color=self.band_colors['SO'])
+                #     ax.plot(x, SOBandedge, label='split-off hole', linewidth=0.6, color=self.default_colors.bands['SO'])
                 # if model == 'LH' or model == 'kp6' or model == 'kp8':
-                #     ax.plot(x, VBTop, label='VB top without strain', linewidth=0.6, color=self.band_colors['LH'])
+                #     ax.plot(x, VBTop, label='VB top without strain', linewidth=0.6, color=self.default_colors.bands['LH'])
 
         def draw_probabilities(self, ax, state_indices, model, kIndex, show_state_index, color_by_fraction_of):
             if model != 'kp8' and color_by_fraction_of:
@@ -1295,7 +1295,7 @@ class NEGFShortcuts(CommonShortcuts):
                         plot_color = scalarmappable.to_rgba(compositions['kp8'][stateIndex, kIndex, 1])
                 else:
                     # color according to the quantum model that yielded the solution
-                    plot_color = self.band_colors[model]
+                    plot_color = self.default_colors.bands[model]
                 ax.plot(x, psiSquared[model][cnt][kIndex], color=plot_color)
 
                 if show_state_index:
@@ -1321,7 +1321,7 @@ class NEGFShortcuts(CommonShortcuts):
 
         def draw_spinor_pie_charts(gs_spinor, state_indices, model, stateIndex, kIndex, show_state_index):
             num_rows, num_columns = self.get_rowColumn_for_display(len(state_indices))  # determine arrangement of spinor composition plots
-            list_of_colors = [self.band_colors[model] for model in ['CB', 'HH', 'LH', 'SO']]
+            list_of_colors = [self.default_colors.bands[model] for model in ['CB', 'HH', 'LH', 'SO']]
             for i in range(num_rows):
                 for j in range(num_columns):
                     subplotIndex = j + num_columns * i
@@ -1348,9 +1348,9 @@ class NEGFShortcuts(CommonShortcuts):
                 else:
                     fig, ax_probability = plt.subplots()
                 if only_k0:
-                    ax_probability.set_title(f'{title} (quantum model: {model})', color=self.band_colors[model])
+                    ax_probability.set_title(f'{title} (quantum model: {model})', color=self.default_colors.bands[model])
                 else:
-                    ax_probability.set_title(f'{title} (quantum model: {model}), k index: {kIndex}', color=self.band_colors[model])
+                    ax_probability.set_title(f'{title} (quantum model: {model}), k index: {kIndex}', color=self.default_colors.bands[model])
                 draw_bandedges(ax_probability, model, want_valence_band)
 
 
@@ -1509,16 +1509,16 @@ class NEGFShortcuts(CommonShortcuts):
         def draw_bandedges(ax, model, want_valence_band):
             self.set_plot_labels(ax, 'Position (nm)', 'Energy (eV)', title)
             if model == 'Gamma' or model == 'kp8':
-                ax.plot(x, CBBandedge, label='conduction band', linewidth=0.6, color=self.band_colors['CB'])
+                ax.plot(x, CBBandedge, label='conduction band', linewidth=0.6, color=self.default_colors.bands['CB'])
             if want_valence_band:
                 if model == 'HH' or model == 'kp6' or model == 'kp8':
-                    ax.plot(x, HHBandedge, label='heavy hole', linewidth=0.6, color=self.band_colors['HH'])
+                    ax.plot(x, HHBandedge, label='heavy hole', linewidth=0.6, color=self.default_colors.bands['HH'])
                 if model == 'LH' or model == 'kp6' or model == 'kp8':
-                    ax.plot(x, LHBandedge, label='light hole', linewidth=0.6, color=self.band_colors['LH'])
+                    ax.plot(x, LHBandedge, label='light hole', linewidth=0.6, color=self.default_colors.bands['LH'])
                 # if model == 'SO' or model == 'kp6' or model == 'kp8':
-                #     ax.plot(x, SOBandedge, label='split-off hole', linewidth=0.6, color=self.band_colors['SO'])
+                #     ax.plot(x, SOBandedge, label='split-off hole', linewidth=0.6, color=self.default_colors.bands['SO'])
                 # if model == 'LH' or model == 'kp6' or model == 'kp8':
-                #     ax.plot(x, VBTop, label='VB top without strain', linewidth=0.6, color=self.band_colors['LH'])
+                #     ax.plot(x, VBTop, label='VB top without strain', linewidth=0.6, color=self.default_colors.bands['LH'])
 
         def draw_probabilities(self, ax, state_indices, model, show_state_index, color_by_fraction_of):
             if model != 'kp8' and color_by_fraction_of:
@@ -1554,7 +1554,7 @@ class NEGFShortcuts(CommonShortcuts):
         fig, ax_probability = plt.subplots()
         model = 'kp8'
         draw_bandedges(ax_probability, model, want_valence_band)
-        # ax_probability.set_title(f'{title} (quantum model: {model})', color=self.band_colors[model])
+        # ax_probability.set_title(f'{title} (quantum model: {model})', color=self.default_colors.bands[model])
 
 
         # if model == 'kp8':

@@ -836,13 +836,13 @@ class nnpShortcuts(CommonShortcuts):
         def draw_bandedges(ax, model):
             self.set_plot_labels(ax, 'Position (nm)', 'Energy (eV)', title)
             if model == 'Gamma' or model == 'kp8':
-                ax.plot(x, CBBandedge, label='CB', linewidth=0.6, color=self.band_colors['CB'])
+                ax.plot(x, CBBandedge, label='CB', linewidth=0.6, color=self.default_colors.bands['CB'])
             if model == 'HH' or model == 'kp6' or model == 'kp8':
-                ax.plot(x, HHBandedge, label='HH', linewidth=0.6, color=self.band_colors['HH'])
+                ax.plot(x, HHBandedge, label='HH', linewidth=0.6, color=self.default_colors.bands['HH'])
             if model == 'LH' or model == 'kp6' or model == 'kp8':
-                ax.plot(x, LHBandedge, label='LH', linewidth=0.6, color=self.band_colors['LH'])
+                ax.plot(x, LHBandedge, label='LH', linewidth=0.6, color=self.default_colors.bands['LH'])
             if model == 'SO' or model == 'kp6' or model == 'kp8':
-                ax.plot(x, SOBandedge, label='SO', linewidth=0.6, color=self.band_colors['SO'])
+                ax.plot(x, SOBandedge, label='SO', linewidth=0.6, color=self.default_colors.bands['SO'])
 
         def draw_probabilities(self, ax, state_indices, model, kIndex, show_state_index, color_by_fraction_of):
             if model != 'kp8' and color_by_fraction_of:
@@ -859,7 +859,7 @@ class nnpShortcuts(CommonShortcuts):
                         plot_color = scalarmappable.to_rgba(compositions['kp8'][stateIndex, kIndex, 1])
                 else:
                     # color according to the quantum model that yielded the solution
-                    plot_color = self.band_colors[model]
+                    plot_color = self.default_colors.bands[model]
                 ax.plot(x, psiSquared[model][cnt][kIndex], color=plot_color)
 
                 if show_state_index:
@@ -883,7 +883,7 @@ class nnpShortcuts(CommonShortcuts):
 
         def draw_spinor_pie_charts(gs_spinor, state_indices, model, stateIndex, kIndex, show_state_index):
             num_rows, num_columns = self.get_rowColumn_for_display(len(state_indices))  # determine arrangement of spinor composition plots
-            list_of_colors = [self.band_colors[model] for model in ['CB', 'HH', 'LH', 'SO']]
+            list_of_colors = [self.default_colors.bands[model] for model in ['CB', 'HH', 'LH', 'SO']]
             for i in range(num_rows):
                 for j in range(num_columns):
                     subplotIndex = j + num_columns * i
@@ -910,9 +910,9 @@ class nnpShortcuts(CommonShortcuts):
                 else:
                     fig, ax_probability = plt.subplots()
                 if only_k0:
-                    ax_probability.set_title(f'{title} (quantum model: {model})', color=self.band_colors[model])
+                    ax_probability.set_title(f'{title} (quantum model: {model})', color=self.default_colors.bands[model])
                 else:
-                    ax_probability.set_title(f'{title} (quantum model: {model}), k index: {kIndex}', color=self.band_colors[model])
+                    ax_probability.set_title(f'{title} (quantum model: {model}), k index: {kIndex}', color=self.default_colors.bands[model])
                 draw_bandedges(ax_probability, model)
 
 
@@ -1046,10 +1046,10 @@ class nnpShortcuts(CommonShortcuts):
 
         # --- plot charge density
         fig, ax = plt.subplots()
-        ax.plot(x, CBBandedge, label='CB', linewidth=0.6, color=self.band_colors['CB'])
-        ax.plot(x, HHBandedge, label='HH', linewidth=0.6, color=self.band_colors['HH'])
-        ax.plot(x, LHBandedge, label='LH', linewidth=0.6, color=self.band_colors['LH'])
-        ax.plot(x, SOBandedge, label='SO', linewidth=0.6, color=self.band_colors['SO'])
+        ax.plot(x, CBBandedge, label='CB', linewidth=0.6, color=self.default_colors.bands['CB'])
+        ax.plot(x, HHBandedge, label='HH', linewidth=0.6, color=self.default_colors.bands['HH'])
+        ax.plot(x, LHBandedge, label='LH', linewidth=0.6, color=self.default_colors.bands['LH'])
+        ax.plot(x, SOBandedge, label='SO', linewidth=0.6, color=self.default_colors.bands['SO'])
 
         ylabel_unit_str = "{:.0e}".format(1e18 / scale_factor)
         ax.plot(x, scale_factor * densityEl, 'r', label='electron')

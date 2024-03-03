@@ -23,6 +23,9 @@ import logging
 import nextnanopy as nn
 from nextnanopy.utils.misc import mkdir_if_not_exist
 
+# my includes
+from .default_colors import DefaultColors
+
 
 # -------------------------------------------------------
 # Exceptions
@@ -65,16 +68,6 @@ class CommonShortcuts:
     figFormat_list = ['.pdf', '.png', '.jpg', '.svg']
     figFormat_list_display = ['pdf', 'png', 'jpg', 'svg']
 
-    band_colors = {
-        'Gamma': 'tomato',
-        'CB': 'tomato',
-        'HH': 'royalblue',
-        'LH': 'forestgreen',
-        'SO': 'goldenrod',
-        'kp6': 'blueviolet',
-        'kp8': 'black'
-        }
-
     labelsize_default = 16
     ticksize_default = 14
 
@@ -94,6 +87,8 @@ class CommonShortcuts:
             # return "%(filename)s:%(lineno)d:\n %(category.__name__)s: %(message)s"
         warnings.formatwarning = warning_on_one_line
         logging.getLogger('matplotlib.font_manager').disabled = True  # suppress excessive 'findfont' warnings
+
+        self.default_colors = DefaultColors()
 
         logging.info(f'{self.product_name} shortcuts initialized.')
 
