@@ -605,7 +605,7 @@ class NEGFShortcuts(CommonShortcuts):
                 self.draw_Fermi_levels_on_2DPlot(ax2, input_file_name, bias, labelsize)
         else:
             fig, ax = plt.subplots()
-            self.__draw_2D_color_plot(fig, ax, x.value, y.value, quantity.value, label, bias, labelsize, ticksize, zmin, zmax, showBias)
+            self.__draw_2D_color_plot(fig, ax, x.value, y.value, quantity.value, label, bias, labelsize, ticksize, zmin, zmax, showBias, True)
             self.draw_bandedges_on_2DPlot(ax, input_file_name, bias, labelsize, shadowBandgap)
             if showFermiLevel:
                 self.draw_Fermi_levels_on_2DPlot(ax, input_file_name, bias, labelsize)
@@ -636,7 +636,8 @@ class NEGFShortcuts(CommonShortcuts):
         """
         Overlay bandedge with energy-resolved carrier density. Loads the following output data:
         CarrierDensity_energy_resolved.vtr
-
+        ElectronDensity_energy_resolved.vtr
+        
         The plot is saved as an png image file.
         """
         if labelsize is None: labelsize = self.labelsize_default
@@ -644,9 +645,9 @@ class NEGFShortcuts(CommonShortcuts):
 
         x, y, quantity = self.get_2Ddata_atBias(input_file_name, bias, 'carrier')
 
-        logging.info("Plotting carrier density...")
+        logging.info("Plotting electron density...")
         unit = r'$\mathrm{cm}^{-3} \mathrm{eV}^{-1}$'
-        label = 'Carrier density (' + unit + ')'
+        label = 'Electron density (' + unit + ')'
 
         if attachDispersion:
             # Create subplots with shared y-axis and remove spacing
@@ -665,7 +666,7 @@ class NEGFShortcuts(CommonShortcuts):
                 self.draw_Fermi_levels_on_2DPlot(ax2, input_file_name, bias, labelsize)
         else:
             fig, ax = plt.subplots()
-            self.__draw_2D_color_plot(fig, ax, x.value, y.value, quantity.value, label, bias, labelsize, ticksize, zmin, zmax, showBias)
+            self.__draw_2D_color_plot(fig, ax, x.value, y.value, quantity.value, label, bias, labelsize, ticksize, zmin, zmax, showBias, True)
             self.draw_bandedges_on_2DPlot(ax, input_file_name, bias, labelsize, shadowBandgap)
             if showFermiLevel:
                 self.draw_Fermi_levels_on_2DPlot(ax, input_file_name, bias, labelsize)
@@ -707,7 +708,7 @@ class NEGFShortcuts(CommonShortcuts):
         label = 'Current density (' + unit + ')'
 
         fig, ax = plt.subplots()
-        self.__draw_2D_color_plot(fig, ax, x.value, y.value, quantity.value, label, bias, labelsize, ticksize, zmin, zmax, showBias)
+        self.__draw_2D_color_plot(fig, ax, x.value, y.value, quantity.value, label, bias, labelsize, ticksize, zmin, zmax, showBias, True)
         self.draw_bandedges_on_2DPlot(ax, input_file_name, bias, labelsize, shadowBandgap)
         fig.tight_layout()
 
