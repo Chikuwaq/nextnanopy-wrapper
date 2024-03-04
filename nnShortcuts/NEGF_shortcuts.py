@@ -439,6 +439,55 @@ class NEGFShortcuts(CommonShortcuts):
         return fig
 
 
+    def get_gain_atBias(self, input_file, bias):
+        datafile = self.get_DataFile_NEGF_atBias(['Gain', 'vs_Energy'], input_file, bias)
+        return datafile.coords['Photon Energy'], datafile.variables['Gain']
+
+
+    def plot_gain(self,
+            input_file_name, 
+            bias,
+            start_position = -10000., 
+            end_position   = 10000., 
+            labelsize      = CommonShortcuts.labelsize_default, 
+            ticksize       = CommonShortcuts.ticksize_default,
+            title = 'Gain spectrum'
+            ):
+        """
+        Plot Wannier-Stark states on top of the conduction bandedge.
+        The plot is saved as an png image file.
+
+        Parameters
+        ----------
+            
+        labelsize : int, optional
+            font size of xlabel and ylabel
+        ticksize : int, optional
+            font size of xtics and ytics
+
+        RETURN:
+            matplotlib plot
+        """
+        EPhoton, gain = self.get_gain_atBias(input_file_name, bias)
+
+        # Store data arrays.
+        # Cut off edges of the simulation region if needed.
+        gain_trimmed = CommonShortcuts.cutOff_edges1D(gain.value, EPhoton.value, start_position, end_position)
+        EPhoton_trimmed = CommonShortcuts.cutOff_edges1D(EPhoton.value, EPhoton.value, start_position, end_position)
+
+        fig, ax = plt.subplots()
+        ax.set_xlabel(EPhoton.label, fontsize=labelsize)
+        ax.set_ylabel("Gain (1/cm)", fontsize=labelsize)
+        ax.set_title(title, fontsize=labelsize)
+        ax.tick_params(axis='x', labelsize=ticksize)
+        ax.tick_params(axis='y', labelsize=ticksize)
+        ax.axhline(color='grey', linewidth=1.0)
+        ax.plot(EPhoton_trimmed, gain_trimmed, color='orange', linewidth=1.0, label=EPhoton.label)
+        fig.tight_layout()
+
+        return fig
+    
+
     def get_2Ddata_atBias(self, input_file_name, bias, data='carrier'):
         """
         INPUT: one of the following strings: ['LDOS', 'carrier', 'current', 'current_with_dispersion']
