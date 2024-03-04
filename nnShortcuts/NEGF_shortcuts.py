@@ -392,8 +392,8 @@ class NEGFShortcuts(CommonShortcuts):
             filename_no_extension, 
             start_position = -10000., 
             end_position   = 10000., 
-            labelsize      = None, 
-            ticksize       = None
+            labelsize      = CommonShortcuts.labelsize_default, 
+            ticksize       = CommonShortcuts.ticksize_default
             ):
         """
         Plot Wannier-Stark states on top of the conduction bandedge.
@@ -410,9 +410,6 @@ class NEGFShortcuts(CommonShortcuts):
         RETURN:
             matplotlib plot
         """
-        if labelsize is None: labelsize = self.labelsize_default
-        if ticksize is None: ticksize = self.ticksize_default
-
         position, CB, Psi_squareds = self.get_WannierStarkStates_init(filename_no_extension)
 
         # Store data arrays.
@@ -564,8 +561,8 @@ class NEGFShortcuts(CommonShortcuts):
     def plot_DOS(self,
             input_file_name, 
             bias, 
-            labelsize=None,
-            ticksize=None,
+            labelsize=CommonShortcuts.labelsize_default,
+            ticksize=CommonShortcuts.ticksize_default,
             zmin=None,
             zmax=None,
             attachDispersion=False, 
@@ -585,9 +582,6 @@ class NEGFShortcuts(CommonShortcuts):
         lattice_temperature : float
             If not None, the energy kBT is indicated inside the dispersion plot.
         """
-        if labelsize is None: labelsize = self.labelsize_default
-        if ticksize is None: ticksize = self.ticksize_default
-
         x, y, quantity = self.get_2Ddata_atBias(input_file_name, bias, 'LDOS')
 
         logging.info("Plotting DOS...")
@@ -631,8 +625,8 @@ class NEGFShortcuts(CommonShortcuts):
     def plot_carrier_density(self,
             input_file_name, 
             bias, 
-            labelsize=None, 
-            ticksize=None,
+            labelsize=CommonShortcuts.labelsize_default, 
+            ticksize=CommonShortcuts.ticksize_default,
             zmin=None,
             zmax=None,
             attachDispersion=False,
@@ -653,9 +647,6 @@ class NEGFShortcuts(CommonShortcuts):
         lattice_temperature : float
             If not None, the energy kBT is indicated inside the dispersion plot.
         """
-        if labelsize is None: labelsize = self.labelsize_default
-        if ticksize is None: ticksize = self.ticksize_default
-
         x, y, quantity = self.get_2Ddata_atBias(input_file_name, bias, 'carrier')
 
         logging.info("Plotting electron density...")
@@ -703,8 +694,8 @@ class NEGFShortcuts(CommonShortcuts):
     def plot_current_density(self,
             input_file_name, 
             bias, 
-            labelsize=None, 
-            ticksize=None,
+            labelsize=CommonShortcuts.labelsize_default, 
+            ticksize=CommonShortcuts.ticksize_default,
             zmin=None,
             zmax=None,
             shadowBandgap=False,
@@ -716,9 +707,6 @@ class NEGFShortcuts(CommonShortcuts):
 
         The plot is saved as an png image file.
         """
-        if labelsize is None: labelsize = self.labelsize_default
-        if ticksize is None: ticksize = self.ticksize_default
-
         x, y, quantity = self.get_2Ddata_atBias(input_file_name, bias, 'current')
 
         logging.info("Plotting current density...")
@@ -923,8 +911,8 @@ class NEGFShortcuts(CommonShortcuts):
             front_mirror_loss, 
             total_cavity_loss, 
             labels, 
-            labelsize=None, 
-            ticksize=None, 
+            labelsize=CommonShortcuts.labelsize_default, 
+            ticksize=CommonShortcuts.ticksize_default, 
             Imin=None, Imax=None, 
             Vmin=None, Vmax=None, 
             Pmin=None, Pmax=None
@@ -988,9 +976,6 @@ class NEGFShortcuts(CommonShortcuts):
         fig : matplotlib.figure.Figure object
 
         """
-        if labelsize is None: labelsize = self.labelsize_default
-        if ticksize is None: ticksize = self.ticksize_default
-
         # validate arguments
         if len(names) != len(labels): 
             raise NextnanopyScriptError(f"Number of input files ({len(names)}) do not match that of plot labels ({len(labels)})")
@@ -1094,8 +1079,8 @@ class NEGFShortcuts(CommonShortcuts):
             want_valence_band   = True,
             color_by_fraction_of = 'conduction_band',
             plot_title          = '',
-            labelsize           = None,
-            ticksize            = None,
+            labelsize           = CommonShortcuts.labelsize_default,
+            ticksize            = CommonShortcuts.ticksize_default,
             savePDF             = False,
             savePNG             = False,
             ):
@@ -1153,8 +1138,6 @@ class NEGFShortcuts(CommonShortcuts):
         None.
 
         """
-        if labelsize is None: labelsize = self.labelsize_default
-        if ticksize is None: ticksize = self.ticksize_default
         if color_by_fraction_of not in ['conduction_band', 'heavy_hole']:
             raise ValueError(f"color_by_fraction_of '{color_by_fraction_of}' is not supported")
 
@@ -1414,8 +1397,8 @@ class NEGFShortcuts(CommonShortcuts):
             want_valence_band   = True,
             color_by_fraction_of = 'conduction_band',
             plot_title          = '',
-            labelsize           = None,
-            ticksize            = None,
+            labelsize           = CommonShortcuts.labelsize_default,
+            ticksize            = CommonShortcuts.ticksize_default,
             savePDF             = False,
             savePNG             = False,
             ):
@@ -1467,8 +1450,6 @@ class NEGFShortcuts(CommonShortcuts):
         None.
 
         """
-        if labelsize is None: labelsize = self.labelsize_default
-        if ticksize is None: ticksize = self.ticksize_default
         if color_by_fraction_of not in ['conduction_band', 'heavy_hole']:
             raise ValueError(f"color_by_fraction_of '{color_by_fraction_of}' is not supported")
 

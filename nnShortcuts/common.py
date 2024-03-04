@@ -930,10 +930,6 @@ class CommonShortcuts:
         return datafiles
 
 
-    def plot_probabilities(self):
-        raise NotImplementedError("There is no common implementation")
-
-
     def get_DataFile_probabilities_with_name(self, name, bias=None):
         """
         Get single nextnanopy.DataFile of probability_shift data in the folder of specified name.
@@ -1230,6 +1226,24 @@ class CommonShortcuts:
     # - these utility functions do not depend on the class state but makes sense that they belong to the class
     # - we want to make this method available without instantiation of an object.
     # -------------------------------------------------------
+    def plot_probabilities(self):
+        raise NotImplementedError("There is no common implementation")
+    
+    def plot_IV(self):
+        raise NotImplementedError("There is no common implementation")
+
+    def plot_DOS(self):
+        raise NotImplementedError("There is no common implementation")
+
+    def plot_carrier_density(self):
+        raise NotImplementedError("There is no common implementation")
+    
+    def plot_current_density(self):
+        raise NotImplementedError("There is no common implementation")
+    
+    def plot_gain(self):
+        raise NotImplementedError("There is no common implementation")
+
 
     @staticmethod
     def get_rowColumn_for_display(num_elements):
