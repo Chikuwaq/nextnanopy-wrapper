@@ -968,7 +968,17 @@ class SweepHelper:
         self.data['HH1-HH2'] = self.__get_output_subfolder_paths().apply(self.shortcuts.get_HH1_HH2_energy_difference)
 
 
-    def plot_overlap_squared(self, x_axis, y_axis, x_label=None, y_label=None, force_lightHole=False, plot_title='', figFilename=None, colormap='Greys'):
+    def plot_overlap_squared(self, 
+                             x_axis, 
+                             y_axis, 
+                             x_label=None, 
+                             y_label=None, 
+                             force_lightHole=False, 
+                             plot_title='', 
+                             figFilename=None, 
+                             colormap='Greys', 
+                             contour_value=None
+                             ):
         """
         Plot the overlap colormap as a function of two selected sweep axes.
 
@@ -988,6 +998,8 @@ class SweepHelper:
             output file name
         colormap : str, optional
             colormap used for the color bar
+        contour_value : float, optional
+            Specify the overlap squared at which to draw a contour line on top of the colormap
 
         Returns
         -------
@@ -1016,6 +1028,8 @@ class SweepHelper:
         self.__setup_2D_color_plot(ax, x_axis, y_axis, x_label, y_label, plot_title, x_values, y_values)
 
         # color setting
+        contour_color = 'white'
+        
         from matplotlib import colors
         divnorm = colors.Normalize(vmin=0.)   # set the colorscale minimum to 0
         pcolor = ax.pcolormesh(x_values, y_values, overlap_squared, cmap=colormap, norm=divnorm, shading='auto')
@@ -1023,6 +1037,12 @@ class SweepHelper:
 
         cbar = fig.colorbar(pcolor)
         cbar.set_label("Envelope overlap")
+
+        if contour_value is not None:
+            # add contour line
+            contour = ax.contour(x_values, y_values, overlap_squared, levels=[contour_value], colors=contour_color)
+            ax.clabel(contour, inline=True)
+
         fig.tight_layout()
         plt.show()
 
@@ -1046,7 +1066,20 @@ class SweepHelper:
         return fig
 
 
-    def plot_transition_energies(self, x_axis, y_axis=None, x_label=None, y_label=None, force_lightHole=False, plot_title='', figFilename=None, colormap=None, set_center_to_zero=False, unit='meV', export_data=False, contour_energy=None):
+    def plot_transition_energies(self, 
+                                 x_axis, 
+                                 y_axis=None, 
+                                 x_label=None, 
+                                 y_label=None, 
+                                 force_lightHole=False, 
+                                 plot_title='', 
+                                 figFilename=None, 
+                                 colormap=None, 
+                                 set_center_to_zero=False, 
+                                 unit='meV', 
+                                 export_data=False, 
+                                 contour_energy=None
+                                 ):
         """
         Plot the transition energy (lowest electron eigenenergy - highest hole eigenenergy) colormap as a function of two selected sweep axes.
 
@@ -1206,7 +1239,17 @@ class SweepHelper:
 
 
     ### highest hole states ###################################################
-    def plot_HH1_LH1_energy_difference(self, x_axis, y_axis, x_label=None, y_label=None, plot_title='', figFilename=None, colormap=None, set_center_to_zero=True, contour_energy_meV=None):
+    def plot_HH1_LH1_energy_difference(self, 
+                                       x_axis, 
+                                       y_axis, 
+                                       x_label=None, 
+                                       y_label=None, 
+                                       plot_title='', 
+                                       figFilename=None, 
+                                       colormap=None, 
+                                       set_center_to_zero=True, 
+                                       contour_energy_meV=None
+                                       ):
         """
         Plot the hole energy difference (HH - LH) colormap as a function of two selected sweep axes.
 
@@ -1292,7 +1335,17 @@ class SweepHelper:
         return fig
 
 
-    def plot_HH1_HH2_energy_difference(self, x_axis, y_axis, x_label=None, y_label=None, plot_title='', figFilename=None, colormap=None, set_center_to_zero=True, contour_energy_meV=None):
+    def plot_HH1_HH2_energy_difference(self, 
+                                       x_axis, 
+                                       y_axis, 
+                                       x_label=None, 
+                                       y_label=None, 
+                                       plot_title='', 
+                                       figFilename=None, 
+                                       colormap=None, 
+                                       set_center_to_zero=True, 
+                                       contour_energy_meV=None
+                                       ):
         """
         Plot the hole energy difference (HH - LH) colormap as a function of two selected sweep axes.
 
