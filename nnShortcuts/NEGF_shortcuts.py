@@ -340,6 +340,11 @@ class NEGFShortcuts(CommonShortcuts):
             return position, datafile.variables['Electron Fermi level'], datafile.variables['Hole Fermi level']
         
 
+    def get_carrier_density_deviation(self, input_file_name, bias):
+        datafile = self.get_DataFile_NEGF_atBias("CarrierDensityDeviation.dat", input_file_name, bias=bias)
+        return datafile.coords['Position'], datafile.variables['Deviation from local neutrality']
+
+
     def get_WannierStarkStates_init(self, filename_no_extension):
         """
         RETURN: nn.DataFile() attribute
@@ -551,6 +556,14 @@ class NEGFShortcuts(CommonShortcuts):
             
 
     def draw_Fermi_levels_on_2DPlot(self, ax, input_file_name, bias, labelsize):
+        """
+        Returns
+        -------
+        E_FermiElectron : float
+            electron Fermi energy
+        E_FermiHole : float
+            hole Fermi energy
+        """
         color = self.default_colors.lines_on_colormap
 
         position, FermiElectron, FermiHole = self.get_Fermi_levels(input_file_name, bias)
@@ -566,7 +579,26 @@ class NEGFShortcuts(CommonShortcuts):
         else:
             ax.annotate("$E_F^e$", color=color, fontsize=labelsize, xy=(0.9*zmax, E_FermiElectron), xytext=(0.9*zmax, E_FermiElectron + 0.05))
             ax.annotate("$E_F^h$", color=color, fontsize=labelsize, xy=(0.9*zmax, E_FermiHole), xytext=(0.9*zmax, E_FermiHole + 0.05))
+        return E_FermiElectron, E_FermiHole
         
+
+    def draw_carrier_density_deviation_on_2DPlot(self, ax, input_file_name, bias, labelsize, E_FermiElectron):
+        color = 'orange'
+
+        position, carrier_dens_deviation = self.get_carrier_density_deviation(input_file_name, bias)
+        max_deviation = np.amax(carrier_dens_deviation.value)
+        min_deviation = np.amin(carrier_dens_deviation.value)
+        min_energy, max_energy = ax.get_ylim()
+        
+        # rescale the density deviation so it fits within the energy range of ax
+        scaling_factor = 0.3 * (max_energy - min_energy) / (max_deviation - min_deviation)
+        print(f"Scaling deviation by {scaling_factor}")
+        carrier_dens_deviation_scaled = carrier_dens_deviation.value * scaling_factor        
+        ax.plot(position.value, E_FermiElectron + carrier_dens_deviation_scaled, color=color, linewidth=1.0, label=carrier_dens_deviation.label)
+
+        zmax = np.amax(position.value)
+        ax.annotate("$n_e - n_B$", color=color, fontsize=labelsize, xy=(0.1*zmax, E_FermiElectron), xytext=(0.1*zmax, E_FermiElectron + 0.2))
+
 
     def __get_inplane_dispersion(self, input_file_name, startIdx, stopIdx):
         """
@@ -615,9 +647,10 @@ class NEGFShortcuts(CommonShortcuts):
             zmin=None,
             zmax=None,
             attachDispersion=False, 
-            shadowBandgap=False,
+            shadowBandgap=True,
             showBias=True,
-            showFermiLevel=False,
+            showFermiLevel=True,
+            showDensityDeviation=True,
             lattice_temperature=None
             ):
         """
@@ -645,7 +678,9 @@ class NEGFShortcuts(CommonShortcuts):
             self.__draw_2D_color_plot(fig, ax2, x.value, y.value, quantity.value, label, bias, labelsize, ticksize, zmin, zmax, showBias, False)
             self.draw_bandedges_on_2DPlot(ax2, input_file_name, bias, labelsize, shadowBandgap)
             if showFermiLevel:
-                self.draw_Fermi_levels_on_2DPlot(ax2, input_file_name, bias, labelsize)
+                E_FermiElectron, E_FermiHole = self.draw_Fermi_levels_on_2DPlot(ax2, input_file_name, bias, labelsize)
+                if showDensityDeviation:
+                    self.draw_carrier_density_deviation_on_2DPlot(ax2, input_file_name, bias, labelsize, E_FermiElectron)
 
             kPoints, dispersions, states_toBePlotted = self.__get_inplane_dispersion(input_file_name, 0, 0)  # TODO: implement user-defined state index range (see nnpShortcuts.plot_dispersion)
             if showBias:
@@ -658,7 +693,9 @@ class NEGFShortcuts(CommonShortcuts):
             self.__draw_2D_color_plot(fig, ax, x.value, y.value, quantity.value, label, bias, labelsize, ticksize, zmin, zmax, showBias, True)
             self.draw_bandedges_on_2DPlot(ax, input_file_name, bias, labelsize, shadowBandgap)
             if showFermiLevel:
-                self.draw_Fermi_levels_on_2DPlot(ax, input_file_name, bias, labelsize)
+                E_FermiElectron, E_FermiHole = self.draw_Fermi_levels_on_2DPlot(ax, input_file_name, bias, labelsize)
+                if showDensityDeviation:
+                    self.draw_carrier_density_deviation_on_2DPlot(ax, input_file_name, bias, labelsize, E_FermiElectron)
 
         fig.tight_layout()
 
@@ -679,15 +716,15 @@ class NEGFShortcuts(CommonShortcuts):
             zmin=None,
             zmax=None,
             attachDispersion=False,
-            shadowBandgap=False,
+            shadowBandgap=True,
             showBias=True,
-            showFermiLevel=False,
+            showFermiLevel=True,
+            showDensityDeviation=True,
             lattice_temperature=None
             ):
         """
         Overlay bandedge with energy-resolved carrier density. Loads the following output data:
-        CarrierDensity_energy_resolved.vtr
-        ElectronDensity_energy_resolved.vtr
+        CarrierDensity_energy_resolved.vtr or ElectronDensity_energy_resolved.vtr
         
         The plot is saved as an png image file.
 
@@ -711,7 +748,9 @@ class NEGFShortcuts(CommonShortcuts):
             self.__draw_2D_color_plot(fig, ax2, x.value, y.value, quantity.value, label, bias, labelsize, ticksize, zmin, zmax, showBias, False)
             self.draw_bandedges_on_2DPlot(ax2, input_file_name, bias, labelsize, shadowBandgap)
             if showFermiLevel:
-                self.draw_Fermi_levels_on_2DPlot(ax2, input_file_name, bias, labelsize)
+                E_FermiElectron, E_FermiHole = self.draw_Fermi_levels_on_2DPlot(ax2, input_file_name, bias, labelsize)
+                if showDensityDeviation:
+                    self.draw_carrier_density_deviation_on_2DPlot(ax2, input_file_name, bias, labelsize, E_FermiElectron)
             
             # dispersion plot
             kPoints, dispersions, states_toBePlotted = self.__get_inplane_dispersion(input_file_name, 0, 0)  # TODO: implement user-defined state index range (see nnpShortcuts.plot_dispersion)
@@ -727,8 +766,10 @@ class NEGFShortcuts(CommonShortcuts):
             self.__draw_2D_color_plot(fig, ax, x.value, y.value, quantity.value, label, bias, labelsize, ticksize, zmin, zmax, showBias, True)
             self.draw_bandedges_on_2DPlot(ax, input_file_name, bias, labelsize, shadowBandgap)
             if showFermiLevel:
-                self.draw_Fermi_levels_on_2DPlot(ax, input_file_name, bias, labelsize)
-
+                E_FermiElectron, E_FermiHole = self.draw_Fermi_levels_on_2DPlot(ax, input_file_name, bias, labelsize)
+                if showDensityDeviation:
+                    self.draw_carrier_density_deviation_on_2DPlot(ax, input_file_name, bias, labelsize, E_FermiElectron)
+            
         fig.tight_layout()
 
         # export to an image file
