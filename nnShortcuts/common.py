@@ -241,6 +241,18 @@ class CommonShortcuts:
         return wavelength_in_meter * CommonShortcuts.scale1ToMicro   # m to micron
 
     @staticmethod
+    def micron_to_electronvolt(wavelength_in_micron):
+        """
+        Convert energy in micron to eV.
+
+        wavelength_in_micron : array-like
+            energy in micron
+        """
+        wavelength_in_meter = wavelength_in_micron / CommonShortcuts.scale1ToMicro
+        energy_in_J = CommonShortcuts.Planck * CommonShortcuts.speed_of_light / wavelength_in_meter
+        return energy_in_J / CommonShortcuts.elementary_charge
+    
+    @staticmethod
     def wavenumber_to_energy(sound_velocity, k_in_inverseMeter):
         """
         For linear dispersion, convert wavenumber in [1/m] to energy [eV].
