@@ -1017,7 +1017,7 @@ class SweepHelper:
 
         # x- and y-axis coordinates and 2D array-like of overlap data
         x_values, y_values, overlap = self.__slice_data_for_colormap_2D('overlap', x_axis, y_axis, datatype=np.cdouble)   # complex double = two double-precision floats
-        overlap_squared = np.abs(overlap)**2
+        overlap_squared = np.absolute(overlap)**2
         
         assert np.amin(overlap_squared) >= 0
 
@@ -1419,7 +1419,7 @@ class SweepHelper:
             ax.clabel(contour, inline=True)
 
         cbar = fig.colorbar(pcolor, ax=ax)
-        cbar.set_label("Hole energy difference HH-LH ($\mathrm{meV}$)")
+        cbar.set_label("Hole energy difference HH1-HH2 ($\mathrm{meV}$)")
         fig.tight_layout()
         plt.show()
 

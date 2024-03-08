@@ -1938,7 +1938,10 @@ class NEGFShortcuts(CommonShortcuts):
             for nu in range(len(self.kp8_basis)):
                 prod = np.multiply(np.conjugate(amplitude_h[nu,:]), amplitude_e[mu,:])   # multiply arguments element-wise (NOT inner product of spinor vector!)
                 overlap += simps(prod, x)
-        return np.absolute(overlap)
+        # for mu in range(len(self.kp8_basis)):
+        #     prod = np.multiply(np.conjugate(amplitude_e[mu,:]), amplitude_e[mu,:])   # inner product of spinor vector
+        #     overlap += simps(prod, x)
+        return overlap
 
 
     ################ Energy getters #############################################
