@@ -179,7 +179,7 @@ class SweepHelper:
 
         # prepare shortcuts for the nextnano solver used
         self.shortcuts = CommonShortcuts.get_shortcut(master_input_file)
-        if self.shortcuts.product_name not in ['nextnano++', 'nextnano.NEGF', 'nextnano.NEGF++']: 
+        if self.shortcuts.product_name not in ['nextnano3', 'nextnano++', 'nextnano.NEGF', 'nextnano.NEGF++']: 
             raise NotImplementedError("class SweepHelper currently supports only nextnano++ and nextnano.NEGF++ simulations.")
 
         if eigenstate_range is not None:
@@ -935,7 +935,7 @@ class SweepHelper:
         if not self.data['transition_energy_eV'].isna().any():
             return
         logging.info("Calculating transition energies...")
-        if self.shortcuts.product_name == 'nextnano++':
+        if self.shortcuts.product_name in ['nextnano3', 'nextnano++']:
             self.data['transition_energy_eV'] = self.__get_output_subfolder_paths().apply(self.shortcuts.get_transition_energy, force_lightHole=force_lightHole)
         elif self.shortcuts.product_name == 'nextnano.NEGF++':
             self.data['transition_energy_eV'] = self.__get_output_subfolder_paths().apply(self.shortcuts.get_transition_energy)

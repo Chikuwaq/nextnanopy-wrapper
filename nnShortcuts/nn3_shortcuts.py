@@ -159,7 +159,7 @@ class nn3Shortcuts(CommonShortcuts):
         RETURN:
             dictionary { quantum model key: list of nn.DataFile() objects for amplitude data }
         """
-        datafiles = self.get_DataFiles_in_folder('psi', folder_path, exclude_keywords='shift')   # return a list of nn.DataFile
+        datafiles = self.get_DataFiles_in_folder('psi', folder_path, exclude_keywords=['shift', 'squared'])   # return a list of nn.DataFile
 
         # amplitude_dict = {
         #     'Gamma': list(),
@@ -177,7 +177,7 @@ class nn3Shortcuts(CommonShortcuts):
 
         # delete quantum model keys whose probabilities do not exist in output folder
         amplitude_dict_trimmed = {model: amplitude_dict[model] for model in amplitude_dict if len(amplitude_dict[model]) > 0}
-
+        print(amplitude_dict_trimmed.keys())
         if len(amplitude_dict_trimmed) == 0:
             raise NextnanoInputFileError("Amplitudes are not output! Modify the input file.")
 
@@ -334,9 +334,9 @@ class nn3Shortcuts(CommonShortcuts):
         else:  # single band
             electron_state_is_multiband = False
             hole_state_is_multiband = False
-            df_e = datafile_amplitude_at_k0['Gamma'][0]
-            df_HH = datafile_amplitude_at_k0['HH'][0]
-            df_LH = datafile_amplitude_at_k0['LH'][0]
+            df_e = datafile_amplitude_at_k0['cb1'][0]
+            df_HH = datafile_amplitude_at_k0['vb1'][0]
+            df_LH = datafile_amplitude_at_k0['vb2'][0]
             
             if force_lightHole:
                 # always take Gamma-LH
@@ -344,8 +344,8 @@ class nn3Shortcuts(CommonShortcuts):
                 h_state_basis = ['LH']
             else:
                 # take the highest of HH and LH eigenstates
-                E_HH = self.get_DataFile_in_folder(['energy_spectrum', '_HH'], output_folder).variables['Energy'].value[0]   # energy of the first eigenstate
-                E_LH = self.get_DataFile_in_folder(['energy_spectrum', '_LH'], output_folder).variables['Energy'].value[0]   # energy of the first eigenstate
+                E_HH = self.get_DataFile_in_folder(['ev_', '_vb1'], output_folder).variables['energy'].value[0]   # energy of the first eigenstate
+                E_LH = self.get_DataFile_in_folder(['ev_', '_vb2'], output_folder).variables['energy'].value[0]   # energy of the first eigenstate
                 if E_HH >= E_LH:
                     df_h = df_HH
                     h_state_basis = ['HH']
@@ -353,7 +353,7 @@ class nn3Shortcuts(CommonShortcuts):
                     df_h = df_LH
                     h_state_basis = ['LH']
             
-        x = df_e.coords['x'].value
+        x = df_e.coords['position'].value
         iLowestElectron = self.find_lowest_conduction_state_atK0(output_folder, threshold=0.5)
         iHighestHole    = self.find_highest_valence_state_atK0(output_folder, threshold=0.5)
         
@@ -362,21 +362,22 @@ class nn3Shortcuts(CommonShortcuts):
         if electron_state_is_multiband:
             amplitude_e = np.zeros((len(self.kp8_basis), len(x)), dtype=np.cdouble)
             for mu, band in enumerate(self.kp8_basis):
-                amplitude_e[mu,:].real = df_e.variables[f'Psi_{iLowestElectron+1}_{band}_real'].value
-                amplitude_e[mu,:].imag = df_e.variables[f'Psi_{iLowestElectron+1}_{band}_imag'].value
+                amplitude_e[mu,:].real = df_e.variables[f'psi_{iLowestElectron+1}_{band}_real'].value
+                amplitude_e[mu,:].imag = df_e.variables[f'psi_{iLowestElectron+1}_{band}_imag'].value
         else:
             amplitude_e = np.zeros(len(x), dtype=np.double)
-            amplitude_e[:] = df_e.variables[f'Psi_{iLowestElectron+1}'].value
+            print(df_e.variables)
+            amplitude_e[:] = df_e.variables[f'psi_{iLowestElectron+1}'].value
         
         # extract amplitude of hole-like state
         if hole_state_is_multiband:
             amplitude_h = np.zeros((len(h_state_basis), len(x)), dtype=np.cdouble)
             for nu, band in enumerate(h_state_basis):
-                amplitude_h[nu,:].real = df_h.variables[f'Psi_{iHighestHole+1}_{band}_real'].value
-                amplitude_h[nu,:].imag = df_h.variables[f'Psi_{iHighestHole+1}_{band}_imag'].value
+                amplitude_h[nu,:].real = df_h.variables[f'psi_{iHighestHole+1}_{band}_real'].value
+                amplitude_h[nu,:].imag = df_h.variables[f'psi_{iHighestHole+1}_{band}_imag'].value
         else:
             amplitude_h = np.zeros(len(x), dtype=np.double)
-            amplitude_h[:] = df_h.variables[f'Psi_{iHighestHole+1}'].value
+            amplitude_h[:] = df_h.variables[f'psi_{iHighestHole+1}'].value
 
         overlap = 0.
 
@@ -402,13 +403,17 @@ class nn3Shortcuts(CommonShortcuts):
         Get the transition energy = energy separation between the lowest electron and highest valence band states.
         Unit: eV
         """
-        # TODO: make it compatible with single-band & kp6 models. See nnp implementation
+        # TODO: make it compatible with kp6 models. See nnp implementation
         # NOTE: nn3 has two output files '_el' and '_hl' also in 8kp calculation.
-        datafile_el = self.get_DataFile_in_folder(["eigenvalues", "el"], output_folder, exclude_keywords=["info", "pos"])
-        datafile_hl = self.get_DataFile_in_folder(["eigenvalues", "hl"], output_folder, exclude_keywords=["info", "pos"])
-        if 'kp8' not in datafile_el.fullpath or 'kp8' not in datafile_hl.fullpath:
-            raise NotImplementedError("This method is currently limited to kp8!")
-
+        try:
+            datafile_el = self.get_DataFile_in_folder(["eigenvalues", "el"], output_folder, exclude_keywords=["info", "pos"])
+        except FileNotFoundError:
+            datafile_el = self.get_DataFile_in_folder(["ev_", "cb1"], output_folder, exclude_keywords=None)
+        try:
+            datafile_hl = self.get_DataFile_in_folder(["eigenvalues", "hl"], output_folder, exclude_keywords=["info", "pos"])
+        except FileNotFoundError:
+            datafile_hl = self.get_DataFile_in_folder(["ev_", "vb1"], output_folder, exclude_keywords=None)  # TODO: assuming HH ground state is higher than LH ground state
+        
         iLowestElectron = 0
         iHighestHole    = 0
 
@@ -427,7 +432,18 @@ class nn3Shortcuts(CommonShortcuts):
         Get the energy separation between the highest HH and highest LH states.
         Unit: eV
         """
-        E_HH = self.get_DataFile_in_folder(['energy_spectrum', '_HH'], output_folder).variables['Energy'].value[0]   # energy of the first eigenstate
-        E_LH = self.get_DataFile_in_folder(['energy_spectrum', '_LH'], output_folder).variables['Energy'].value[0]   # energy of the first eigenstate
+        E_HH = self.get_DataFile_in_folder(['ev_', 'vb1'], output_folder).variables['energy'].value[0]   # energy of the first eigenstate  # TODO: is 'vb1' heavy-hole?
+        E_LH = self.get_DataFile_in_folder(['ev_', 'vb2'], output_folder).variables['energy'].value[0]   # energy of the first eigenstate  # TODO: is 'vb2' light-hole?
             
         return E_HH - E_LH
+    
+
+    def get_HH1_HH2_energy_difference(self, output_folder):
+        """ 
+        Get the energy separation between the highest HH and highest LH states.
+        Unit: eV
+        """
+        E_HH1 = self.get_DataFile_in_folder(['ev_', 'vb1'], output_folder).variables['energy'].value[0]   # energy of the first eigenstate  # TODO: is 'vb1' heavy-hole?
+        E_HH2 = self.get_DataFile_in_folder(['ev_', 'vb1'], output_folder).variables['energy'].value[1]   # energy of the second eigenstate
+            
+        return E_HH1 - E_HH2
