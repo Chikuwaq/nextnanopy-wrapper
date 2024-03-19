@@ -403,7 +403,7 @@ class nn3Shortcuts(CommonShortcuts):
         Get the transition energy = energy separation between the lowest electron and highest valence band states.
         Unit: eV
         """
-        # TODO: make it compatible with single-band & kp6 models. See nnp implementation
+        # TODO: make it compatible with kp6 models. See nnp implementation
         # NOTE: nn3 has two output files '_el' and '_hl' also in 8kp calculation.
         try:
             datafile_el = self.get_DataFile_in_folder(["eigenvalues", "el"], output_folder, exclude_keywords=["info", "pos"])
