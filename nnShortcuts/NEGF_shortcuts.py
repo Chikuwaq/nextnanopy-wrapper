@@ -447,6 +447,16 @@ class NEGFShortcuts(CommonShortcuts):
     def get_gain_atBias(self, input_file, bias):
         datafile = self.get_DataFile_NEGF_atBias(['Gain', 'vs_Energy'], input_file, bias)
         return datafile.coords['Photon Energy'], datafile.variables['Gain']
+    
+
+    def get_SCGain_atBias(self, input_file, bias):
+        datafile = self.get_DataFile_NEGF_atBias(['SemiClassical_', 'vs_Energy'], input_file, bias)
+        return datafile.coords['Photon Energy'], datafile.variables['Gain']
+    
+
+    def get_SCGainDecomposed_atBias(self, input_file, bias):
+        datafile = self.get_DataFile_NEGF_atBias(['SemiClassicalDecomposed', 'vs_Energy'], input_file, bias)
+        return datafile.coords['Photon Energy'], datafile.variables['Gain']
 
 
     def plot_gain(self,
@@ -456,10 +466,11 @@ class NEGFShortcuts(CommonShortcuts):
             end_position   = 10000., 
             labelsize      = CommonShortcuts.labelsize_default, 
             ticksize       = CommonShortcuts.ticksize_default,
-            title = 'Gain spectrum'
+            title          = 'Gain spectrum',
+            flipSign       = False
             ):
         """
-        Plot Wannier-Stark states on top of the conduction bandedge.
+        Plot NEGF gain (calculated from dynamical conductivity).
         The plot is saved as an png image file.
 
         Parameters
@@ -480,6 +491,61 @@ class NEGFShortcuts(CommonShortcuts):
         gain_trimmed = CommonShortcuts.cutOff_edges1D(gain.value, EPhoton.value, start_position, end_position)
         EPhoton_trimmed = CommonShortcuts.cutOff_edges1D(EPhoton.value, EPhoton.value, start_position, end_position)
 
+        if flipSign:
+            gain_trimmed = - gain_trimmed
+
+        fig, ax = plt.subplots()
+        ax.set_xlabel(EPhoton.label, fontsize=labelsize)
+        ax.set_ylabel("Gain (1/cm)", fontsize=labelsize)
+        ax.set_title(title, fontsize=labelsize)
+        ax.tick_params(axis='x', labelsize=ticksize)
+        ax.tick_params(axis='y', labelsize=ticksize)
+        ax.axhline(color='grey', linewidth=1.0)
+        ax.plot(EPhoton_trimmed, gain_trimmed, color='orange', linewidth=1.0, label=EPhoton.label)
+        fig.tight_layout()
+
+        return fig
+    
+
+    def plot_SCGain(self,
+            input_file_name, 
+            bias,
+            start_position = -10000., 
+            end_position   = 10000., 
+            labelsize      = CommonShortcuts.labelsize_default, 
+            ticksize       = CommonShortcuts.ticksize_default,
+            title          = 'Semiclassical gain spectrum',
+            flip_sign       = False
+            ):
+        """
+        Plot semiclassical gain (calculated from Fermi's golden rule).
+        The plot is saved as an png image file.
+
+        Parameters
+        ----------
+            
+        labelsize : int, optional
+            font size of xlabel and ylabel
+        ticksize : int, optional
+            font size of xtics and ytics
+
+        RETURN:
+            matplotlib plot
+        """
+        EPhoton, gain = self.get_SCGain_atBias(input_file_name, bias)
+        # EPhoton, gain_decomposed = self.get_SCGainDecomposed_atBias(input_file_name, bias)
+        print(gain)
+
+        # Store data arrays.
+        # Cut off edges of the simulation region if needed.
+        gain_trimmed = CommonShortcuts.cutOff_edges1D(gain.value, EPhoton.value, start_position, end_position)
+        # gain_decomposed_trimmed = CommonShortcuts.cutOff_edges1D(gain_decomposed.value, EPhoton.value, start_position, end_position)
+        EPhoton_trimmed = CommonShortcuts.cutOff_edges1D(EPhoton.value, EPhoton.value, start_position, end_position)
+
+        if flip_sign:
+            gain_trimmed = - gain_trimmed
+            # gain_decomposed_trimmed = - gain_decomposed_trimmed
+            
         fig, ax = plt.subplots()
         ax.set_xlabel(EPhoton.label, fontsize=labelsize)
         ax.set_ylabel("Gain (1/cm)", fontsize=labelsize)
