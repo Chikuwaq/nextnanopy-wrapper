@@ -1348,6 +1348,8 @@ class NEGFShortcuts(CommonShortcuts):
         for model in states_toBePlotted:
             psiSquared[model] = [ [ 0 for kIndex in range(num_kPoints[model]) ] for stateIndex in range(num_evs[model]) ]  # stateIndex in states_toBePlotted[model] would give a list of the same size
 
+        nBandEdgeOutputs = 5
+
         for model, dfs in datafiles_probability_dict.items():
             if not isinstance(dfs, list):
                 datafile = dfs
@@ -1360,8 +1362,10 @@ class NEGFShortcuts(CommonShortcuts):
                 for kIndex in range(num_kPoints[model]):
                     # psiSquared_oldgrid = dfs[kIndex].variables[f"Psi^2_{stateIndex+1} (lev.{stateIndex+1} per.0)"].value  # TODO: generalize. nPeriod is not always 1
                     lis = list(dfs[kIndex].variables.keys())  # workaround: get the keys
+                    if stateIndex+1 > len(dfs[kIndex].variables) - nBandEdgeOutputs:
+                        raise NextnanopyScriptError("Specified state range is out of the range of calculated states.")
                     
-                    psiSquared_oldgrid = dfs[kIndex].variables[lis[5 + stateIndex]].value # first five data are bandedges
+                    psiSquared_oldgrid = dfs[kIndex].variables[lis[nBandEdgeOutputs + stateIndex]].value # first five data are bandedges
                     psiSquared[model][cnt][kIndex] = CommonShortcuts.convert_grid(psiSquared_oldgrid, x_probability, x)   # grid interpolation needed because of 'output_bandedges{ averaged=no }'
 
 
