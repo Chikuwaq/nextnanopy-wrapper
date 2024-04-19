@@ -426,6 +426,18 @@ class CommonShortcuts:
         new_S = 1./mass - Ep*factor
 
         return Lprime, Nprime, new_S
+    
+    @staticmethod
+    def get_ratio_inplaneK_over_KaneMomentum(inplaneK_in_inverseNm, Kane_energy_in_eV):
+        """
+        momentum 
+        = m_0 / (i hbar) * Kane_P 
+        = m_0 / (i hbar) * (hbar * sqrt(Kane_energy / 2m_0))
+        = -i * sqrt(m_0 * Kane_energy / 2)
+        """
+        Kane_energy_in_J = Kane_energy_in_eV * CommonShortcuts.scale_eV_to_J
+        Kane_momentum_kgmPerSec = np.sqrt(CommonShortcuts.electron_mass * Kane_energy_in_J / 2.)
+        return CommonShortcuts.hbar * (inplaneK_in_inverseNm * CommonShortcuts.scale1ToNano) / Kane_momentum_kgmPerSec
 
 
 
