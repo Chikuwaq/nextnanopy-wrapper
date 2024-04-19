@@ -679,7 +679,7 @@ class NEGFShortcuts(CommonShortcuts):
         """
         # load output data files
         filename_no_extension = CommonShortcuts.separate_extension(input_file_name)[0]
-        datafiles_dispersion = self.get_DataFiles_NEGFInit_in_folder('InplaneDispersionReducedCorrected', filename_no_extension, search_raw_solution_folder=True)
+        datafiles_dispersion = self.get_DataFiles_NEGFInit_in_folder('InplaneDispersionReduced_Corrected', filename_no_extension, search_raw_solution_folder=True)
         if len(datafiles_dispersion) == 0:
             raise RuntimeError("No output found for in-plane dispersion!")
         if len(datafiles_dispersion) > 1:
