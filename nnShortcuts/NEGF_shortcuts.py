@@ -562,7 +562,9 @@ class NEGFShortcuts(CommonShortcuts):
 
     def get_2Ddata_atBias(self, input_file_name, bias, data='carrier'):
         """
-        INPUT: one of the following strings: ['LDOS', 'carrier', 'current', 'current_with_dispersion']
+        INPUT: 
+            data
+                one of the following strings: ['LDOS', 'carrier', 'current', 'current_with_dispersion']
 
         RETURN: nn.DataFile() attributes
             x = datafile.coords['x']
@@ -570,22 +572,32 @@ class NEGFShortcuts(CommonShortcuts):
             z = datafile.variables[variableKey]
         """
         if data == 'LDOS' or data == 'DOS':
-            file = 'DOS_energy_resolved.vtr'
+            files = ['DOS_WithDispersion.vtr']
             variableKey = 'Density of states'
         elif data == 'carrier':
-            file = 'ElectronDensity_energy_resolved.vtr'
-            variableKey = 'Electron density'
+            files = ['ElectronHoleDensity_WithDispersion.vtr', 'ElectronDensity_WithDispersion.vtr']
+            variableKey = 'Electron-hole density'
         elif data == 'current':
-            file = 'CurrentDensity_energy_resolved.vtr'
+            files = ['CurrentDensity_WithDispersion.vtr']
             variableKey = 'Current Density'
         elif data == 'current_with_dispersion':
-            file = 'CurrentDensity_energy_resolved_WithDispersion.vtr'
+            files = ['CurrentDensity_WithDispersion.vtr']
             variableKey = 'Current Density'
         else:
-            raise KeyError(f'Illegal data {data} requested!')
+            raise KeyError(f'Unexpected data {data} requested!')
 
-        datafile = self.get_DataFile_NEGF_atBias(file, input_file_name, bias)
+        datafile = None
+        for file in files:
+            try:
+                datafile = self.get_DataFile_NEGF_atBias(file, input_file_name, bias)
+            except FileNotFoundError:
+                continue
+            else:
+                break
 
+        if datafile is None:
+            raise FileNotFoundError(f"NEGF 2D data '{data}' not found!")
+        
         x = datafile.coords['x']
         y = datafile.coords['y']
         quantity = datafile.variables[variableKey]
@@ -723,7 +735,7 @@ class NEGFShortcuts(CommonShortcuts):
             ):
         """
         Overlay bandedge with local density of states. Loads the following output data:
-        DOS_energy_resolved.vtr
+        DOS.vtr
 
         The plot is saved as an png image file.
 
@@ -792,7 +804,7 @@ class NEGFShortcuts(CommonShortcuts):
             ):
         """
         Overlay bandedge with energy-resolved carrier density. Loads the following output data:
-        CarrierDensity_energy_resolved.vtr or ElectronDensity_energy_resolved.vtr
+        CarrierDensity_WithDispersion.vtr or ElectronDensity_WithDispersion.vtr
         
         The plot is saved as an png image file.
 
@@ -805,7 +817,7 @@ class NEGFShortcuts(CommonShortcuts):
 
         logging.info("Plotting electron density...")
         unit = r'$\mathrm{cm}^{-3} \mathrm{eV}^{-1}$'
-        label = 'Electron density (' + unit + ')'
+        label = 'Electron-hole density (' + unit + ')'
 
         if attachDispersion:
             # Create subplots with shared y-axis and remove spacing
@@ -861,7 +873,7 @@ class NEGFShortcuts(CommonShortcuts):
             ):
         """
         Overlay bandedge with energy-resolved current density. Loads the following output data:
-        CurrentDensity_energy_resolved.vtr
+        CurrentDensity_WithDispersion.vtr
 
         The plot is saved as an png image file.
         """
