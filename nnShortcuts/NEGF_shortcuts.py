@@ -331,13 +331,14 @@ class NEGFShortcuts(CommonShortcuts):
             z coordinates
             electron Fermi level
             hole Fermi level
+            electron-hole border energy
         """
         datafile = self.get_DataFile_NEGF_atBias("FermiLevel.dat", input_file_name, bias=bias)
         position = datafile.coords['Position']
         try:
             return position, datafile.variables['Fermi level'], datafile.variables['Fermi level']
         except KeyError:
-            return position, datafile.variables['Electron Fermi level'], datafile.variables['Hole Fermi level']
+            return position, datafile.variables['Electron Fermi level'], datafile.variables['Hole Fermi level'], datafile.variables['Electron-hole border']
         
 
     def get_carrier_density_deviation(self, input_file_name, bias):
@@ -632,9 +633,10 @@ class NEGFShortcuts(CommonShortcuts):
         """
         color = self.default_colors.lines_on_colormap
 
-        position, FermiElectron, FermiHole = self.get_Fermi_levels(input_file_name, bias)
+        position, FermiElectron, FermiHole, ElectronHoleBorder = self.get_Fermi_levels(input_file_name, bias)
         ax.plot(position.value, FermiElectron.value, color=color, linewidth=0.7, label=FermiElectron.label)
         ax.plot(position.value, FermiHole.value, color=color, linewidth=0.7, label=FermiHole.label)
+        ax.plot(position.value, ElectronHoleBorder.value, color=color, linewidth=0.7, linestyle='dashed')
 
         E_FermiElectron = FermiElectron.value[0]
         E_FermiHole = FermiHole.value[0]
@@ -644,7 +646,7 @@ class NEGFShortcuts(CommonShortcuts):
             ax.annotate("$E_F$", color=color, fontsize=labelsize, xy=(0.9*zmax, E_FermiElectron), xytext=(0.9*zmax, E_FermiElectron + 0.05))
         else:
             ax.annotate("$E_F^e$", color=color, fontsize=labelsize, xy=(0.9*zmax, E_FermiElectron), xytext=(0.9*zmax, E_FermiElectron + 0.05))
-            ax.annotate("$E_F^h$", color=color, fontsize=labelsize, xy=(0.9*zmax, E_FermiHole), xytext=(0.9*zmax, E_FermiHole + 0.05))
+            ax.annotate("$E_F^h$", color=color, fontsize=labelsize, xy=(0.9*zmax, E_FermiHole), xytext=(0.9*zmax, E_FermiHole - 0.20))
         return E_FermiElectron, E_FermiHole
         
 
