@@ -2109,3 +2109,16 @@ class NEGFShortcuts(CommonShortcuts):
         
         return datafile.variables[0].value[iHighestLH]
 
+
+    ################ Optical absorption getters #############################################
+    def get_absorption_at_transition_energy(self, output_folder, bias=0):
+        """
+        Unit: 1/cm
+        """
+        deltaE = self.get_transition_energy(output_folder)
+        datafile = self.get_DataFile_NEGF_atBias(['SemiClassical_vs_Energy'], output_folder, bias)
+        print(type(datafile.coords['Photon Energy']).value)
+        datafile.variables['Gain']
+        i_energy = 0
+        return datafile.coords['Photon Energy'].value[i_energy]
+

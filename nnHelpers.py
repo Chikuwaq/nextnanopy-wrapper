@@ -88,6 +88,8 @@ class SweepHelper:
                     energy difference between the highest hole-like and lowest electron-like states
                 hole_energy_difference : real
                     energy difference between the highest heavy-hole and highest light-hole states
+                absorption_at_transition_energy : real
+                    amplitude of optical absorption at the transition energy (1/cm)
             Rows are ordered in the same manner as self.sweep_obj.input_files.
 
         states_to_be_plotted : dict of numpy.ndarray - { 'quantum model': array of values }
@@ -240,7 +242,8 @@ class SweepHelper:
             'transition_energy_micron' : None,
             'transition_energy_nm' : None,
             'HH1-LH1' : None,
-            'HH1-HH2' : None
+            'HH1-HH2' : None,
+            'absorption_at_transition_energy' : None,
             })
         
         # simulation outputs of this sweep might exist already. The user might want to access those outputs without executing sweep simulation.
@@ -824,7 +827,7 @@ class SweepHelper:
 
                 
     ### Export methods #######################################################
-    def export_to_excel(self, excel_file_path, force_lightHole=False):
+    def export_to_excel(self, excel_file_path, force_lightHole=False, bias=0):
         """
         The sweep data can be exported to an Excel file by:
             SweepHelper.data.to_excel()
@@ -837,6 +840,8 @@ class SweepHelper:
         self.__calc_transition_energies(force_lightHole)
         self.__calc_HH1_LH1_energy_differences()
         self.__calc_HH1_HH2_energy_differences()
+        if self.shortcuts.product_name == 'nextnano.NEGF++':
+            self.__calc_absorption_at_transition_energy(bias)
 
         logging.info(f"Exporting data to Excel file:\n{excel_file_path}")
         from pathlib import Path
@@ -845,7 +850,7 @@ class SweepHelper:
         self.data.to_excel(filepath)
 
 
-    def export_to_csv(self, csv_file_path, force_lightHole=False):
+    def export_to_csv(self, csv_file_path, force_lightHole=False, bias=0):
         """
         The sweep data can be exported to a CSV file by:
             SweepHelper.data.to_csv()
@@ -858,6 +863,8 @@ class SweepHelper:
         self.__calc_transition_energies(force_lightHole)
         self.__calc_HH1_LH1_energy_differences()
         self.__calc_HH1_HH2_energy_differences()
+        if self.shortcuts.product_name == 'nextnano.NEGF++':
+            self.__calc_absorption_at_transition_energy(bias)
 
         logging.info(f"Exporting data to CSV file:\n{csv_file_path}")
         from pathlib import Path
@@ -982,6 +989,13 @@ class SweepHelper:
         logging.info("Calculating energy difference HH1 - HH2...")
         self.data['HH1-HH2'] = self.__get_output_subfolder_paths().apply(self.shortcuts.get_HH1_HH2_energy_difference)
 
+
+    def __calc_absorption_at_transition_energy(self, bias):
+        if not self.data['absorption_at_transition_energy'].isna().any():
+            return
+        logging.info("Extracting optical absorption at transition energy...")
+        self.data['absorption_at_transition_energy'] = self.__get_output_subfolder_paths().apply(self.shortcuts.get_absorption_at_transition_energy, bias=bias)
+        
 
     def plot_overlap_squared(self, 
                              x_axis, 

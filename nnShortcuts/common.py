@@ -1128,6 +1128,9 @@ class CommonShortcuts:
 
     def get_HH1_HH2_energy_difference(self):
         raise NotImplementedError("There is no common implementation")
+    
+    def get_absorption_at_transition_energy(self):
+        raise NotImplementedError("There is no common implementation")
 
     # -------------------------------------------------------
     # Data postprocessing
