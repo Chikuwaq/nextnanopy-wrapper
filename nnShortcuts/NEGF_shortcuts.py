@@ -128,7 +128,7 @@ class NEGFShortcuts(CommonShortcuts):
             quantum_model = 'kp8'  # currently, NEGF has amplitude output on in kp8
 
             if quantum_model == 'kp8' or quantum_model == 'kp6':
-                if '_k000_' not in filename: continue   # exclude non k|| = 0 amplitudes
+                if '_k0' not in filename: continue   # exclude non k|| = 0 amplitudes
             amplitude_dict[quantum_model].append(df)
 
         # delete quantum model keys whose probabilities do not exist in output folder
@@ -1415,7 +1415,7 @@ class NEGFShortcuts(CommonShortcuts):
                 'kp6': list(),
                 'kp8': list()
             }
-            datafiles = self.get_DataFiles(['wavefunctions_k000_spinor_composition_AngMom'], input_file.fullpath)
+            datafiles = self.get_DataFiles(['wavefunctions_spinor_composition_AngMom'], input_file.fullpath)
             # datafiles = [df for cnt in range(len(datafiles)) for df in datafiles if str(cnt).zfill(5) + '_CbHhLhSo' in os.path.split(df.fullpath)[1]]   # sort spinor composition datafiles in ascending kIndex  # TODO: C++ doesn't have multiple in-plane k output
             for df in datafiles:
                 datafiles_spinor['kp8'].append(df)
@@ -1819,7 +1819,7 @@ class NEGFShortcuts(CommonShortcuts):
         """
         # get nn.DataFile object
         try:
-            datafile = self.get_DataFile_in_folder(['wavefunctions_k000_spinor_composition_AngMom'], output_folder)   # spinor composition at in-plane k = 0
+            datafile = self.get_DataFile_in_folder(['wavefunctions_spinor_composition_AngMom'], output_folder)   # spinor composition at in-plane k = 0
         except FileNotFoundError:
             raise
 
@@ -1862,7 +1862,7 @@ class NEGFShortcuts(CommonShortcuts):
         """
         # get nn.DataFile object
         try:
-            datafile = self.get_DataFile_in_folder(['wavefunctions_k000_spinor_composition_AngMom'], output_folder)   # spinor composition at in-plane k = 0
+            datafile = self.get_DataFile_in_folder(['wavefunctions_spinor_composition_AngMom'], output_folder)   # spinor composition at in-plane k = 0
         except FileNotFoundError:
             raise
 
@@ -1902,7 +1902,7 @@ class NEGFShortcuts(CommonShortcuts):
         """
         # get nn.DataFile object
         try:
-            datafile = self.get_DataFile_in_folder(['wavefunctions_k000_spinor_composition_AngMom'], output_folder)   # spinor composition at in-plane k = 0
+            datafile = self.get_DataFile_in_folder(['wavefunctions_spinor_composition_AngMom'], output_folder)   # spinor composition at in-plane k = 0
         except FileNotFoundError:
             raise
 
@@ -1951,7 +1951,7 @@ class NEGFShortcuts(CommonShortcuts):
         """
         # get nn.DataFile object
         try:
-            datafile = self.get_DataFile_in_folder(['wavefunctions_k000_spinor_composition_AngMom'], output_folder)   # spinor composition at in-plane k = 0
+            datafile = self.get_DataFile_in_folder(['wavefunctions_spinor_composition_AngMom'], output_folder)   # spinor composition at in-plane k = 0
         except FileNotFoundError:
             raise
 

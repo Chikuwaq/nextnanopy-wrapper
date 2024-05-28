@@ -344,8 +344,17 @@ class nn3Shortcuts(CommonShortcuts):
                 h_state_basis = ['LH']
             else:
                 # take the highest of HH and LH eigenstates
-                E_HH = self.get_DataFile_in_folder(['ev_', '_vb1'], output_folder).variables['energy'].value[0]   # energy of the first eigenstate
-                E_LH = self.get_DataFile_in_folder(['ev_', '_vb2'], output_folder).variables['energy'].value[0]   # energy of the first eigenstate
+                try:
+                    datafile_HH_energy = self.get_DataFile_in_folder(['ev_', '_vb1'], output_folder)
+                except FileNotFoundError:
+                    datafile_HH_energy = self.get_DataFile_in_folder(['energy_spectrum_', '_vb1'], output_folder)
+                E_HH = datafile_HH_energy.variables['energy'].value[0]   # energy of the first eigenstate
+                
+                try:
+                    datafile_LH_energy = self.get_DataFile_in_folder(['ev_', '_vb2'], output_folder)
+                except FileNotFoundError:
+                    datafile_LH_energy = self.get_DataFile_in_folder(['energy_spectrum_', '_vb2'], output_folder)    
+                E_LH = datafile_LH_energy.variables['energy'].value[0]   # energy of the first eigenstate
                 if E_HH >= E_LH:
                     df_h = df_HH
                     h_state_basis = ['HH']
@@ -432,8 +441,17 @@ class nn3Shortcuts(CommonShortcuts):
         Get the energy separation between the highest HH and highest LH states.
         Unit: eV
         """
-        E_HH = self.get_DataFile_in_folder(['ev_', 'vb1'], output_folder).variables['energy'].value[0]   # energy of the first eigenstate  # TODO: is 'vb1' heavy-hole?
-        E_LH = self.get_DataFile_in_folder(['ev_', 'vb2'], output_folder).variables['energy'].value[0]   # energy of the first eigenstate  # TODO: is 'vb2' light-hole?
+        try:
+            datafile_HH = self.get_DataFile_in_folder(['ev_', 'vb1'], output_folder)
+        except FileNotFoundError:
+            datafile_HH = self.get_DataFile_in_folder(['energy_spectrum_', 'vb1'], output_folder)
+        E_HH = datafile_HH.variables['energy'].value[0]   # energy of the first eigenstate
+        
+        try:
+            datafile_LH = self.get_DataFile_in_folder(['ev_', 'vb2'], output_folder)
+        except FileNotFoundError:
+            datafile_LH = self.get_DataFile_in_folder(['energy_spectrum_', 'vb2'], output_folder)
+        E_LH = datafile_LH.variables['energy'].value[0]   # energy of the first eigenstate
             
         return E_HH - E_LH
     
@@ -443,7 +461,11 @@ class nn3Shortcuts(CommonShortcuts):
         Get the energy separation between the highest HH and highest LH states.
         Unit: eV
         """
-        E_HH1 = self.get_DataFile_in_folder(['ev_', 'vb1'], output_folder).variables['energy'].value[0]   # energy of the first eigenstate  # TODO: is 'vb1' heavy-hole?
-        E_HH2 = self.get_DataFile_in_folder(['ev_', 'vb1'], output_folder).variables['energy'].value[1]   # energy of the second eigenstate
+        try:
+            datafile_HH = self.get_DataFile_in_folder(['ev_', 'vb1'], output_folder)
+        except FileNotFoundError:
+            datafile_HH = self.get_DataFile_in_folder(['energy_spectrum_', 'vb1'], output_folder)
+        E_HH1 = datafile_HH.variables['energy'].value[0]   # energy of the first eigenstate
+        E_HH2 = datafile_HH.variables['energy'].value[1]   # energy of the second eigenstate
             
         return E_HH1 - E_HH2
