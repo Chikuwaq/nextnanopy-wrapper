@@ -417,11 +417,28 @@ class nn3Shortcuts(CommonShortcuts):
         try:
             datafile_el = self.get_DataFile_in_folder(["eigenvalues", "el"], output_folder, exclude_keywords=["info", "pos"])
         except FileNotFoundError:
-            datafile_el = self.get_DataFile_in_folder(["ev_", "cb1"], output_folder, exclude_keywords=None)
+            try:
+                datafile_el = self.get_DataFile_in_folder(["ev_", "cb1"], output_folder, exclude_keywords=None)
+            except FileNotFoundError:
+                datafile_el = self.get_DataFile_in_folder(["energy_spectrum_", "cb1"], output_folder, exclude_keywords=None)
         try:
             datafile_hl = self.get_DataFile_in_folder(["eigenvalues", "hl"], output_folder, exclude_keywords=["info", "pos"])
         except FileNotFoundError:
-            datafile_hl = self.get_DataFile_in_folder(["ev_", "vb1"], output_folder, exclude_keywords=None)  # TODO: assuming HH ground state is higher than LH ground state
+            # take the highest of HH and LH ground states
+            try:
+                datafile_HH_energy = self.get_DataFile_in_folder(["ev_", "vb1"], output_folder, exclude_keywords=None)
+            except FileNotFoundError:
+                datafile_HH_energy = self.get_DataFile_in_folder(["energy_spectrum_", "vb1"], output_folder, exclude_keywords=None)
+            E_HH = datafile_HH_energy.variables['energy'].value[0]   # energy of the first eigenstate
+            try:
+                datafile_LH_energy = self.get_DataFile_in_folder(["ev_", "vb2"], output_folder, exclude_keywords=None)
+            except FileNotFoundError:
+                datafile_LH_energy = self.get_DataFile_in_folder(["energy_spectrum_", "vb2"], output_folder, exclude_keywords=None)
+            E_LH = datafile_LH_energy.variables['energy'].value[0]   # energy of the first eigenstate
+            if E_HH >= E_LH:
+                datafile_hl = datafile_HH_energy
+            else:
+                datafile_hl = datafile_LH_energy
         
         iLowestElectron = 0
         iHighestHole    = 0
