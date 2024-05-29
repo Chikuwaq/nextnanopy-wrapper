@@ -2100,12 +2100,12 @@ class NEGFShortcuts(CommonShortcuts):
         If no LH states were found, return None.
         Unit: eV
         """
+        datafile = self.get_DataFile_in_folder(["EnergySpectrum"], output_folder, exclude_folders=["kResolved"])
         try:
-            datafile = self.get_DataFile_in_folder(["EnergySpectrum"], output_folder, exclude_folders=["kResolved"])
-        except RuntimeError:
-            logging.warning("No ")
+            iHighestLH = self.find_highest_LH_state_atK0(output_folder, threshold=0.5)
+        except RuntimeError as e:
+            logging.warning(f"{e}")
             return None
         
-        iHighestLH = self.find_highest_LH_state_atK0(output_folder, threshold=0.5)
         return datafile.variables[0].value[iHighestLH]
 
