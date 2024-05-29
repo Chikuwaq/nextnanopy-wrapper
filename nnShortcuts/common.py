@@ -776,7 +776,7 @@ class CommonShortcuts:
         return self.get_DataFile_in_folder(keywords, outputSubfolder, exclude_keywords=exclude_keywords)
 
 
-    def get_DataFile_in_folder(self, keywords, folder_path, exclude_keywords=None):
+    def get_DataFile_in_folder(self, keywords, folder_path, exclude_keywords=None, exclude_folders=None):
         """
         Get single nextnanopy.DataFile of output data with the given string keyword(s) in the specified folder.
 
@@ -788,6 +788,8 @@ class CommonShortcuts:
             absolute path of output folder in which the datafile should be sought
         exclude_keywords : str or list of str, optional
             Files containing these keywords in the file name are excluded from search.
+        exclude_folders : str or list of str, optional
+            Files with these folder names in their paths are excluded from search.
 
         Returns
         -------
@@ -804,13 +806,17 @@ class CommonShortcuts:
             raise TypeError(f"Argument 'keywords' must be either str or list, but is {type(keywords)}")
         if isinstance(exclude_keywords, str):
             exclude_keywords = [exclude_keywords]
-        elif not isinstance(exclude_keywords, list) and exclude_keywords is not None:
+        elif exclude_keywords is not None and not isinstance(exclude_keywords, list):
             raise TypeError(f"Argument 'exclude_keywords' must be either str or list, but is {type(exclude_keywords)}")
+        if isinstance(exclude_folders, str):
+            exclude_folders = [exclude_folders]
+        elif exclude_folders is not None and not isinstance(exclude_folders, list):
+            raise TypeError(f"Argument 'exclude_subfolders' must be either str or list, but is {type(exclude_folders)}")
 
         if exclude_keywords is None:
             message = " '" + "', '".join(keywords) + "'"
         else:
-            message = " '" + "', '".join(keywords) + "', excluding keyword(s) '" + "', '".join(exclude_keywords) + "'"
+            message = " '" + "', '".join(keywords) + "', excluding keyword(s) '" + "', '".join(exclude_keywords + exclude_folders) + "'"
 
         logging.info(f'Searching for output data {message}...')
 
@@ -822,10 +828,18 @@ class CommonShortcuts:
         list_of_files = list(candidates)
 
         def should_be_excluded(filepath):
-            filename = os.path.split(filepath)[1]
-            return any(key in filename for key in exclude_keywords)
+            folder, filename = os.path.split(filepath)
+            if exclude_folders is not None:
+                contain_folder_name = any(key in folder for key in exclude_folders)
+            else:
+                contain_folder_name = False
+            if exclude_keywords is not None:
+                contain_keyword = any(key in filename for key in exclude_keywords)
+            else:
+                contain_keyword = False
+            return (contain_keyword or contain_folder_name)
 
-        if exclude_keywords is not None:
+        if (exclude_keywords is not None) or (exclude_folders is not None):
             list_of_files = [file for file in list_of_files if not should_be_excluded(file)]
 
 

@@ -2065,7 +2065,7 @@ class NEGFShortcuts(CommonShortcuts):
         """
         Unit: eV
         """
-        datafile = self.get_DataFile_in_folder(["EnergySpectrum"], output_folder)
+        datafile = self.get_DataFile_in_folder(["EnergySpectrum"], output_folder, exclude_folders=["kResolved"])
         iLowestElectron = self.find_lowest_conduction_state_atK0(output_folder, threshold=0.5)
         return datafile.variables[0].value[iLowestElectron]
     
@@ -2074,7 +2074,7 @@ class NEGFShortcuts(CommonShortcuts):
         """
         Unit: eV
         """
-        datafile = self.get_DataFile_in_folder(["EnergySpectrum"], output_folder)
+        datafile = self.get_DataFile_in_folder(["EnergySpectrum"], output_folder, exclude_folders=["kResolved"])
         iHighestHole = self.find_highest_valence_state_atK0(output_folder, threshold=0.5)
         return datafile.variables[0].value[iHighestHole]
 
@@ -2083,7 +2083,7 @@ class NEGFShortcuts(CommonShortcuts):
         """
         Unit: eV
         """
-        datafile = self.get_DataFile_in_folder(["EnergySpectrum"], output_folder)
+        datafile = self.get_DataFile_in_folder(["EnergySpectrum"], output_folder, exclude_folders=["kResolved"])
         if want_second_highest:
             iFirstHighestHH, iSecondHighestHH = self.find_highest_HH_state_atK0(output_folder, threshold=0.5, want_second_highest=want_second_highest)
             return datafile.variables[0].value[iFirstHighestHH], datafile.variables[0].value[iSecondHighestHH]
