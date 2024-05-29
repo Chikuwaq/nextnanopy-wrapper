@@ -115,7 +115,7 @@ class NEGFShortcuts(CommonShortcuts):
         RETURN:
             dictionary { quantum model key: list of nn.DataFile() objects for amplitude data }
         """
-        datafiles = self.get_DataFiles_NEGFInit_in_folder('wavefunctions', folder_path, search_raw_solution_folder=True, exclude_keywords=['shift', 'spinor'])   # return a list of nn.DataFile
+        datafiles = self.get_DataFiles_NEGFInit_in_folder('EigenStates.dat', folder_path, search_raw_solution_folder=True, exclude_keywords=['shift', 'spinor'])   # return a list of nn.DataFile
 
         # amplitude_dict = {
         #     'Gamma': list(),
@@ -2048,7 +2048,10 @@ class NEGFShortcuts(CommonShortcuts):
         E_HH = self.__get_highest_HH_energy(output_folder, False)
         E_LH = self.__get_highest_LH_energy(output_folder)
 
-        return E_HH - E_LH 
+        if E_LH is not None:
+            return E_HH - E_LH 
+        else:
+            return None
     
 
     def get_HH1_HH2_energy_difference(self, output_folder):
@@ -2094,9 +2097,15 @@ class NEGFShortcuts(CommonShortcuts):
 
     def __get_highest_LH_energy(self, output_folder):
         """
+        If no LH states were found, return None.
         Unit: eV
         """
-        datafile = self.get_DataFile_in_folder(["EnergySpectrum"], output_folder)
+        try:
+            datafile = self.get_DataFile_in_folder(["EnergySpectrum"], output_folder, exclude_folders=["kResolved"])
+        except RuntimeError:
+            logging.warning("No ")
+            return None
+        
         iHighestLH = self.find_highest_LH_state_atK0(output_folder, threshold=0.5)
         return datafile.variables[0].value[iHighestLH]
 
