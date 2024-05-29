@@ -1896,7 +1896,7 @@ class NEGFShortcuts(CommonShortcuts):
         raise RuntimeError(f"No hole states found in: {output_folder}")
 
 
-    def find_highest_HH_state_atK0(self, output_folder, threshold=0.5, want_second_highest=False):
+    def find_highest_HH_state_atK0(self, output_folder, threshold=0.5, want_second_highest=False, spin_degeneracy=1):
         """
             From spinor composition data, determine the highest heavy-hole state in an 8-band k.p simulation.
             This method should be able to detect it properly even when the effective bandgap is negative.
@@ -1908,8 +1908,10 @@ class NEGFShortcuts(CommonShortcuts):
             threshold : real, optional
                 If electron fraction in the spinor composition is less than this value, the state is assumed to be a hole state.
                 The default is 0.5.
-            want_second_highest : bool
+            want_second_highest : bool, optional
                 If True, return the index of the second highest heavy-hole state.
+            spin_degeneracy : int, optional
+                is taken into account if want_second_highest is True.
 
             Returns
             -------
@@ -1934,7 +1936,7 @@ class NEGFShortcuts(CommonShortcuts):
                 if firstStateIndex is None:
                     firstStateIndex = stateIndex
                 elif want_second_highest and (secondStateIndex is None):
-                    secondStateIndex = stateIndex
+                    secondStateIndex = stateIndex + (spin_degeneracy - 1)
                 else:  # states have been found
                     if want_second_highest:
                         return firstStateIndex, secondStateIndex
@@ -2104,10 +2106,10 @@ class NEGFShortcuts(CommonShortcuts):
         """
         datafile = self.get_DataFile_in_folder(["EnergySpectrum"], output_folder, exclude_folders=["kResolved"])
         if want_second_highest:
-            iFirstHighestHH, iSecondHighestHH = self.find_highest_HH_state_atK0(output_folder, threshold=0.5, want_second_highest=want_second_highest)
+            iFirstHighestHH, iSecondHighestHH = self.find_highest_HH_state_atK0(output_folder, threshold=0.5, want_second_highest=want_second_highest, spin_degeneracy=2)  # TODO: generalize for 1,2,3-bands concerning spin degeneracy
             return datafile.variables[0].value[iFirstHighestHH], datafile.variables[0].value[iSecondHighestHH]
         else:
-            iHighestHH = self.find_highest_HH_state_atK0(output_folder, threshold=0.5, want_second_highest=want_second_highest)
+            iHighestHH = self.find_highest_HH_state_atK0(output_folder, threshold=0.5, want_second_highest=want_second_highest, spin_degeneracy=2)
             return datafile.variables[0].value[iHighestHH]
 
 
