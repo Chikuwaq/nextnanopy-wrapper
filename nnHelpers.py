@@ -271,7 +271,7 @@ class SweepHelper:
             #     except FileNotFoundError as e:
             #         pass
 
-        self.slurm_data = SlurmData()
+        self.slurm_data = SlurmData(self.output_folder_path['original'])
 
         self.default_colors = DefaultColors()
 
@@ -740,6 +740,11 @@ class SweepHelper:
             raise
 
 
+    ### Slurm methods #######################################################
+    def is_slurm_simulation(self):
+        return True  # self.slurm_data.node is not None
+    
+
     def submit_sweep_to_slurm(self, suffix='', node='microcloud', email=None, num_CPU=4, memory_limit='8G', time_limit_hrs=5, exe=None, output_folder=None, database=None):
         """
         Submit sweep simulations to Slurm workload manager.
@@ -756,6 +761,22 @@ class SweepHelper:
                 Number of threads when hyperthreading = 2 * num_CPU
                 Optimal number of threads for omp parallelism <= (2 * num_CPU) / 2 = num_CPU
         """
+        self.generate_slurm_sbatches(suffix=suffix, node=node, email=email, num_CPU=num_CPU, memory_limit=memory_limit, time_limit_hrs=time_limit_hrs, exe=exe, output_folder=output_folder, database=database)
+
+        logging.info("Saving sweep input files...")
+        self.sweep_obj.save_sweep(delete_old_files=True, round_decimal=self.round_decimal)  # creates temp input files. Ensure the same decimals for self.sweep_space and input file names
+        for iMetascript, metascript_path in enumerate(self.slurm_data.metascript_paths):
+            logging.info(f"Submitting jobs to Slurm (metascript {metascript_path}, {iMetascript+1} / {len(self.slurm_data.metascript_paths)})...")
+            subprocess.run(['bash', metascript_path])
+            # self.wait_slurm_jobs()
+
+        # self.slurm_data.delete_sbatch_scripts()
+
+
+    def generate_slurm_sbatches(self, suffix='', node='microcloud', email=None, num_CPU=4, memory_limit='8G', time_limit_hrs=5, exe=None, output_folder=None, database=None):
+        """
+        Generate sbatch files to be submitted to Slurm workload manager.
+        """
         self.slurm_data.set(node, suffix, email, num_CPU, memory_limit, time_limit_hrs)
 
         # defaults
@@ -767,36 +788,24 @@ class SweepHelper:
         input_fullpaths = list(set(self.input_file_fullpaths['original']))  # avoid duplicates. For some reason, input file paths are duplicated (NOTE: set object does not preserve the order of elements!)
         self.slurm_data.create_sbatch_scripts(input_fullpaths, exe, output_folder, database, license, self.shortcuts.product_name)
 
-        logging.info("Saving sweep input files...")
-        self.sweep_obj.save_sweep(delete_old_files=True, round_decimal=self.round_decimal)  # creates temp input files. Ensure the same decimals for self.sweep_space and input file names
-        
-        for iMetascript, metascript_path in enumerate(self.slurm_data.metascript_paths):
-            logging.info(f"Submitting jobs to Slurm (metascript {iMetascript+1} / {len(self.slurm_data.metascript_paths)})...")
-            subprocess.run(['bash', metascript_path])
-            self.wait_slurm_jobs()
 
+    def clean_slurm(self):
+        self.wait_slurm_jobs()
+        self.delete_input_files()
         self.slurm_data.delete_sbatch_scripts()
-
+    
 
     def wait_slurm_jobs(self):
         """
         Wait until all jobs with the name `SlurmData.jobname` complete or fail.
         """
-        time.sleep(5)
         stopwatch = 0
 
-        def isRunning():
-            # get the job status
-            # TODO: maybe `squeue` command is better since jobs aren't deleted from the list at midnight everyday.
-            commands = ['sacct', '|', 'grep', SlurmData.jobname, 'grep', self.slurm_data.node]
-            result = subprocess.run(commands, capture_output=True, text=True)
-            return ('RUNNING' in result.stdout)
-        
-        while isRunning():
+        while self.slurm_data.slurm_is_running():
             time.sleep(10)
             stopwatch += 10
             logging.info(f"Slurm job(s) running... ({stopwatch} sec)")
-            
+
 
     ### Import methods #######################################################
     def import_from_excel(self, excel_file_path):
@@ -821,6 +830,9 @@ class SweepHelper:
             SweepHelper.data.to_excel()
         For the available options, see pandas.DataFrame.
         """
+        if self.is_slurm_simulation():
+            self.wait_slurm_jobs()
+         
         self.__calc_overlap(force_lightHole)
         self.__calc_transition_energies(force_lightHole)
         self.__calc_HH1_LH1_energy_differences()
@@ -839,7 +851,10 @@ class SweepHelper:
             SweepHelper.data.to_csv()
         For the available options, see pandas.DataFrame.
         """
-        self.__calc_overlap(force_lightHole)
+        if self.is_slurm_simulation():
+            self.wait_slurm_jobs()
+
+        # self.__calc_overlap(force_lightHole)
         self.__calc_transition_energies(force_lightHole)
         self.__calc_HH1_LH1_energy_differences()
         self.__calc_HH1_HH2_energy_differences()

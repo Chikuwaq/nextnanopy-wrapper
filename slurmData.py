@@ -1,14 +1,17 @@
 import os
 import shutil
 import logging
+import subprocess
 
 from nnShortcuts.common import CommonShortcuts
 
 class SlurmData:
 	max_num_jobs_per_user = 5  # may be larger (check cluster's policy - also affected by numCPU requested and number of physical cores?)
 	jobname = 'nnSweep'  # used to inquire job status by the commands `sacct` and `squeue`
+	sbatch_file_name = "run_"
+	metascript_name = "submit_jobs.sh"
 
-	def __init__(self) -> None:
+	def __init__(self, output_folder) -> None:
 		self.node = None
 		self.suffix = None
 		self.email = None
@@ -16,11 +19,37 @@ class SlurmData:
 		self.memory_limit = None
 		self.time_limit_hrs = 1
 
-		self.output_subfolders = list()
+		self.output_folder = output_folder
 		self.unique_tag = None
 
 		self.metascript_paths = list()
 		self.sbatch_script_paths = list()
+
+		# cache file containing metascript paths
+		# The user can recover SlurmData even after destructing the SweepHelper object, by providing the same sweep range.
+		# This is useful e.g. when Slurm simulations take long time.
+		from pathlib import Path
+		folderpath = Path(output_folder)
+		folderpath.mkdir(parents=True, exist_ok=True)
+		
+		self.cache_path = os.path.join(output_folder, "cache.txt")
+
+		if os.path.isfile(self.cache_path):
+			logging.info("Reading SlurmData cache...")
+			with open(self.cache_path, "r") as f_cache:
+				lines = f_cache.readlines()
+			for line in lines:
+				if "#!/bin/bash" in line or line == "":
+					continue
+				if self.sbatch_file_name in line:
+					self.sbatch_script_paths.append(line)
+				elif self.metascript_name in line:
+					self.metascript_paths.append(line)
+				elif "Node" in line:
+					self.node = line
+			
+			if self.node is None:
+				logging.error("Node data wasn't found in cache!")
 
 
 	def set(self, node, suffix, email, num_CPU, memory_limit, time_limit_hrs) -> None:
@@ -30,6 +59,9 @@ class SlurmData:
 		if not isinstance(num_CPU, int) or num_CPU < 0: ValueError(f"Illegal number of CPUs: {num_CPU}")
 		if not isinstance(time_limit_hrs, int) or time_limit_hrs < 0: ValueError(f"Illegal time limit: '{time_limit_hrs} hours'")
 	
+		if os.path.isfile(self.cache_path):
+			os.remove(self.cache_path)
+
 		self.node = node
 		self.suffix = suffix
 		self.email = email
@@ -37,56 +69,86 @@ class SlurmData:
 		self.memory_limit = memory_limit
 		self.time_limit_hrs = time_limit_hrs
 
-		self.unique_tag = "_on_" + node + suffix
+		self.unique_tag = "_on_" + node + suffix  # TODO: use this to differentiate output folders, keeping consistency with SweepHelper.data
 
 
 	def create_sbatch_scripts(self, input_file_fullpaths : list, exe, output_folder, database, license, product_name):
 		"""
 		Generate sbatch files to submit the sweep simulations to cloud computers by Slurm.
 
+		Write input and output paths data to a file, which is read in at SlurmData instantiation.
+
 		Parameters
 		----------
 		input_file_fullpaths : list of str
 		"""
 		# validate arguments
+		if len(input_file_fullpaths) == 0: RuntimeError("Trying to create sbatch scripts, but no input file paths have been provided!")
 		if not isinstance(exe, str): TypeError(f"Executable path must be a string, not {type(exe)}")
 		if not isinstance(output_folder, str): TypeError(f"Output folder must be a string, not {type(output_folder)}")
 		if not isinstance(database, str): TypeError(f"Database path must be a string, not {type(database)}")
 		if not isinstance(license, str): TypeError(f"License path must be a string, not {type(license)}")
 
-		sbatch_scripts_folder = "./sbatch_temp"
-
 		# refresh sbatch_scripts_folder
+		sbatch_scripts_folder = "./sbatch_temp"
 		if os.path.isdir(sbatch_scripts_folder):
 			shutil.rmtree(sbatch_scripts_folder)
 		os.mkdir(sbatch_scripts_folder)
 
+		# refresh class variables
+		self.metascript_paths = list()
+		self.sbatch_script_paths = list()
+
 		logging.info("Writing sbatch scripts...")
+
+		def ceildiv(a, b):
+			return -(a // -b)
 		
-		for iInputFile, input_file_fullpath in enumerate(input_file_fullpaths):
-			filename, extension = CommonShortcuts.separate_extension(input_file_fullpath)
-			scriptpath = os.path.join(sbatch_scripts_folder, "run_" + filename + ".sh")
-			self.sbatch_script_paths.append(scriptpath)
-			output_subfolder_path = os.path.join(output_folder, filename)  # TODO: may be replaced by SweepHelper.data['output_subfolder'] or its short version
+		nSimulations_per_sbatch_file = ceildiv(len(input_file_fullpaths), self.max_num_jobs_per_user)
+		input_file_fullpaths_for_one_sbatch = list()
+		sbatch_file_count = 0
 
-			metascript_count = iInputFile // SlurmData.max_num_jobs_per_user  # integer division
-			metascript_path = os.path.join(sbatch_scripts_folder, f"metascript{metascript_count}.sh")
+		# initialize metascript (list of `sbatch` commands) to be run by the user
+		metascript_path = os.path.join(sbatch_scripts_folder, self.metascript_name)
+		self.metascript_paths = [metascript_path]
+		with open(metascript_path, 'w') as f_meta:
+			f_meta.write("#!/bin/bash\n\n")
 
-			with open(metascript_path, 'a') as f_meta:
-				if iInputFile % SlurmData.max_num_jobs_per_user == 0:  # first input file in the current metascript
-					self.metascript_paths.append(metascript_path)
-					f_meta.write("#!/bin/bash\n\n")
-				f_meta.write(f"sbatch {scriptpath}\n")
+		while len(input_file_fullpaths) > 0:
+			input_file_fullpaths_for_one_sbatch.append(input_file_fullpaths.pop(0))
 			
-				# individual script
-				self.write_sbatch_script(scriptpath, input_file_fullpath, exe, output_subfolder_path, database, license, product_name, (iInputFile+1 == len(input_file_fullpaths)))
+			if len(input_file_fullpaths_for_one_sbatch) == nSimulations_per_sbatch_file:
+				sbatch_file_count += 1
+				scriptpath = os.path.join(sbatch_scripts_folder, f"{self.sbatch_file_name}{sbatch_file_count}.sh")
+				self.sbatch_script_paths.append(scriptpath)
+
+				is_last_sbatch_file = (len(input_file_fullpaths) < nSimulations_per_sbatch_file)
+
+				logging.info((f"Writing sbatch file {scriptpath}..."))
+				self.write_sbatch_script(sbatch_file_count, scriptpath, input_file_fullpaths_for_one_sbatch, exe, output_folder, database, license, product_name, is_last_sbatch_file)
+				input_file_fullpaths_for_one_sbatch = list()  # delete all elements
+
+				with open(metascript_path, 'a') as f_meta:
+					f_meta.write(f"sbatch {scriptpath}\n")
+
+		# save SlurmData to file
+		with open(self.cache_path, 'w') as f_cache:
+			f_cache.write(f"Node = {self.node}\n")
+			for sbatch in self.sbatch_script_paths:
+				f_cache.write(f"{sbatch}\n")
+			for metascript in self.metascript_paths:
+				f_cache.write(f"{metascript}\n")
 
 
-
-	def write_sbatch_script(self, scriptpath, inputpath, exe, output_subfolder_path, database, license, product_name, isLastInputFile):
+	def write_sbatch_script(self, sbatch_file_count, scriptpath, inputpaths, exe, output_folder_path, database, license, product_name, is_last_sbatch_file):
 		"""
 		Write a sbatch script for a single nextnano simulation.
 		Stores output subfolder paths.
+
+		Parameters
+		----------
+		inputpaths : list of str
+			input file paths that should be executed in one sbatch script.
 
 		Note
 		----
@@ -94,19 +156,15 @@ class SlurmData:
 		"""
 		# validate inputs
 		if not isinstance(scriptpath, str): TypeError(f"Executable path must be a string, not {type(scriptpath)}")
-		if not isinstance(inputpath, str): TypeError(f"Input file path must be a string, not {type(inputpath)}")
+		if not isinstance(inputpaths, list): TypeError(f"Input file path must be a list of string, not {type(inputpaths)}")
+		if self.node is None:
+			logging.error("Node is undefined!")
 		
-		# prepare paths
-		filename, extension = CommonShortcuts.separate_extension(inputpath)
-		unique_name = filename + self.unique_tag
-		if not os.path.exists(output_subfolder_path): 
-			os.makedirs(output_subfolder_path)
-
 		# initialize log file
-		logfile = os.path.join(output_subfolder_path, unique_name + ".log")
+		logfile = os.path.join(output_folder_path, f"simulation{sbatch_file_count}.log")
 		if os.path.isfile(logfile):
 			os.remove(logfile)
-
+		
 		# write sbatch script
 		with open(scriptpath, 'w') as f:
 			f.write("#!/bin/bash\n\n")
@@ -120,14 +178,25 @@ class SlurmData:
 			f.write("\n")
 			f.write(f"#SBATCH --job-name={SlurmData.jobname}\n")
 			f.write(f"#SBATCH --comment='Python Sweep simulation'\n")
-			if self.email is not None and isLastInputFile:
+			if self.email is not None and is_last_sbatch_file:
 				f.write("#SBATCH --mail-type=end\n")
 				f.write(f"#SBATCH --mail-user={self.email}\n")
 			f.write("\n")
-			if product_name == 'nextnano.NEGF++':
-				f.write(f"{exe} -i \"{inputpath}\" -o \"{output_subfolder_path}\" -m \"{database}\" -c -l \"{license}\" -t {self.num_CPU} -v splitfile")
-			elif product_name == 'nextnano++':
-				f.write(f"{exe} -o \"{output_subfolder_path}\" -d \"{database}\" -l \"{license}\" -t {self.num_CPU} \"{inputpath}\"")
+
+			for inputpath in inputpaths:
+				filename, extension = CommonShortcuts.separate_extension(inputpath)
+				
+				output_subfolder_path = os.path.join(output_folder_path, filename)
+				if not os.path.exists(output_subfolder_path): 
+					os.makedirs(output_subfolder_path)
+
+
+				if product_name == 'nextnano.NEGF++':
+					f.write(f"{exe} -i \"{inputpath}\" -o \"{output_subfolder_path}\" -m \"{database}\" -c -l \"{license}\" -t {self.num_CPU} -v splitfile\n")
+				elif product_name == 'nextnano++':
+					f.write(f"{exe} -o \"{output_subfolder_path}\" -d \"{database}\" -l \"{license}\" -t {self.num_CPU} \"{inputpath}\"\n")
+				elif product_name == 'nextnano3':
+					f.write(f"{exe} -o \"{output_subfolder_path}\" -d \"{database}\" --check -license \"{license}\" -t {self.num_CPU} -inputfile \"{inputpath}\"\n")
 
 
 	def delete_sbatch_scripts(self):
@@ -138,3 +207,19 @@ class SlurmData:
 			if os.path.exists(metascript):
 				os.remove(metascript)
 
+
+	def slurm_is_running(self):
+		if SlurmData.jobname is None:
+			logging.error("Slurm job name is undefined!")
+		if self.node is None:
+			logging.error("Node is undefined!")
+
+		# get the job status
+		# TODO: maybe `squeue` command is better since jobs aren't deleted from the list at midnight everyday.
+		commands = ['sacct', '|', 'grep', SlurmData.jobname, '|', 'grep', self.node]
+		result = subprocess.run(commands, capture_output=True, text=True)
+		if result.stdout == "":
+			logging.error("Could not read output of sacct command. I'm not sure is Slurm is still running.")
+			return False
+		return ('RUNNING' in result.stdout)
+            
