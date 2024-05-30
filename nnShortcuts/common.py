@@ -814,9 +814,15 @@ class CommonShortcuts:
             raise TypeError(f"Argument 'exclude_subfolders' must be either str or list, but is {type(exclude_folders)}")
 
         if exclude_keywords is None:
-            message = " '" + "', '".join(keywords) + "'"
+            if exclude_folders is None:
+                message = " '" + "', '".join(keywords) + "'"
+            else:
+                message = " '" + "', '".join(keywords) + "', excluding keyword(s) '" + "', '".join(exclude_folders) + "'"
         else:
-            message = " '" + "', '".join(keywords) + "', excluding keyword(s) '" + "', '".join(exclude_keywords + exclude_folders) + "'"
+            if exclude_folders is None:
+                message = " '" + "', '".join(keywords) + "', excluding keyword(s) '" + "', '".join(exclude_keywords) + "'"
+            else:
+                message = " '" + "', '".join(keywords) + "', excluding keyword(s) '" + "', '".join(exclude_keywords + exclude_folders) + "'"
 
         logging.info(f'Searching for output data {message}...')
 
