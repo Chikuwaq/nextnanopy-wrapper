@@ -923,7 +923,7 @@ class nnpShortcuts(CommonShortcuts):
                 if model == 'kp8':
                     # define colorbar representing electron fraction
                     divnorm = colors.TwoSlopeNorm(vcenter=0.5, vmin=0.0, vmax=1.0)
-                    scalarmappable = plt.cm.ScalarMappable(cmap='seismic', norm=divnorm)
+                    scalarmappable = plt.cm.ScalarMappable(cmap=self.colormap['divergent'], norm=divnorm)
                     cbar = fig.colorbar(scalarmappable)
                     cbar.set_label("Electron fraction", fontsize=labelsize)
                     cbar.ax.tick_params(labelsize=ticksize)

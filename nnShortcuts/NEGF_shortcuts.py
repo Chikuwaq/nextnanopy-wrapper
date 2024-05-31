@@ -570,6 +570,7 @@ class NEGFShortcuts(CommonShortcuts):
             x = datafile.coords['x']
             y = datafile.coords['y']
             z = datafile.variables[variableKey]
+            is_divergent : True if the 2D data needs diverging colormap
         """
         if data == 'LDOS' or data == 'DOS':
             files = ['DOS_WithDispersion.vtr']
@@ -577,12 +578,15 @@ class NEGFShortcuts(CommonShortcuts):
         elif data == 'carrier':
             files = ['ElectronHoleDensity_WithDispersion.vtr', 'ElectronDensity_WithDispersion.vtr']
             variableKey = 'Electron-hole density'
+            is_divergent = True
         elif data == 'current':
             files = ['CurrentDensity_WithDispersion.vtr']
             variableKey = 'Current Density'
+            is_divergent = False
         elif data == 'current_with_dispersion':
             files = ['CurrentDensity_WithDispersion.vtr']
             variableKey = 'Current Density'
+            is_divergent = False
         else:
             raise KeyError(f'Unexpected data {data} requested!')
 
@@ -601,7 +605,7 @@ class NEGFShortcuts(CommonShortcuts):
         x = datafile.coords['x']
         y = datafile.coords['y']
         quantity = datafile.variables[variableKey]
-        return x, y, quantity
+        return x, y, quantity, is_divergent
 
 
     def draw_bandedges_on_2DPlot(self, ax, input_file_name, bias, labelsize, shadowBandgap):
@@ -634,7 +638,7 @@ class NEGFShortcuts(CommonShortcuts):
                 ax.fill_between(position.value, VBTop, CB.value, color='grey')
             
 
-    def draw_Fermi_levels_on_2DPlot(self, ax, input_file_name, bias, labelsize):
+    def draw_Fermi_levels_on_2DPlot(self, ax, input_file_name, bias, labelsize, is_divergent):
         """
         Returns
         -------
@@ -643,7 +647,10 @@ class NEGFShortcuts(CommonShortcuts):
         E_FermiHole : float
             hole Fermi energy
         """
-        color = self.default_colors.lines_on_colormap
+        if is_divergent:
+            color = self.default_colors.lines_on_colormap['divergent']
+        else:
+            color = self.default_colors.lines_on_colormap['linear']
 
         position, FermiElectron, FermiHole, ElectronHoleBorder = self.get_Fermi_levels(input_file_name, bias)
         ax.plot(position.value, FermiElectron.value, color=color, linewidth=0.7, label=FermiElectron.label)
@@ -744,7 +751,7 @@ class NEGFShortcuts(CommonShortcuts):
         lattice_temperature : float
             If not None, the energy kBT is indicated inside the dispersion plot.
         """
-        x, y, quantity = self.get_2Ddata_atBias(input_file_name, bias, 'LDOS')
+        x, y, quantity, is_divergent = self.get_2Ddata_atBias(input_file_name, bias, 'LDOS')
 
         logging.info("Plotting DOS...")
         unit = r'$\mathrm{nm}^{-1} \mathrm{eV}^{-1}$'
@@ -755,10 +762,10 @@ class NEGFShortcuts(CommonShortcuts):
             fig, (ax1, ax2) = plt.subplots(1, 2, sharey=True, gridspec_kw={'width_ratios': [1, 3]})
             plt.subplots_adjust(wspace=0)
 
-            self.__draw_2D_color_plot(fig, ax2, x.value, y.value, quantity.value, label, bias, labelsize, ticksize, zmin, zmax, showBias, False)
+            self.__draw_2D_color_plot(fig, ax2, x.value, y.value, quantity.value, is_divergent, label, bias, labelsize, ticksize, zmin, zmax, showBias, False)
             self.draw_bandedges_on_2DPlot(ax2, input_file_name, bias, labelsize, shadowBandgap)
             if showFermiLevel:
-                E_FermiElectron, E_FermiHole = self.draw_Fermi_levels_on_2DPlot(ax2, input_file_name, bias, labelsize)
+                E_FermiElectron, E_FermiHole = self.draw_Fermi_levels_on_2DPlot(ax2, input_file_name, bias, labelsize, is_divergent)
                 if showDensityDeviation:
                     self.draw_carrier_density_deviation_on_2DPlot(ax2, input_file_name, bias, labelsize, E_FermiElectron)
 
@@ -770,10 +777,10 @@ class NEGFShortcuts(CommonShortcuts):
             CommonShortcuts.draw_inplane_dispersion(ax1, kPoints, dispersions, states_toBePlotted, True, True, labelsize, title=title, lattice_temperature=lattice_temperature)  # dispersions[iState, ik]
         else:
             fig, ax = plt.subplots()
-            self.__draw_2D_color_plot(fig, ax, x.value, y.value, quantity.value, label, bias, labelsize, ticksize, zmin, zmax, showBias, True)
+            self.__draw_2D_color_plot(fig, ax, x.value, y.value, quantity.value, is_divergent, label, bias, labelsize, ticksize, zmin, zmax, showBias, True)
             self.draw_bandedges_on_2DPlot(ax, input_file_name, bias, labelsize, shadowBandgap)
             if showFermiLevel:
-                E_FermiElectron, E_FermiHole = self.draw_Fermi_levels_on_2DPlot(ax, input_file_name, bias, labelsize)
+                E_FermiElectron, E_FermiHole = self.draw_Fermi_levels_on_2DPlot(ax, input_file_name, bias, labelsize, is_divergent)
                 if showDensityDeviation:
                     self.draw_carrier_density_deviation_on_2DPlot(ax, input_file_name, bias, labelsize, E_FermiElectron)
 
@@ -813,7 +820,7 @@ class NEGFShortcuts(CommonShortcuts):
         lattice_temperature : float
             If not None, the energy kBT is indicated inside the dispersion plot.
         """
-        x, y, quantity = self.get_2Ddata_atBias(input_file_name, bias, 'carrier')
+        x, y, quantity, is_divergent = self.get_2Ddata_atBias(input_file_name, bias, 'carrier')
 
         logging.info("Plotting electron density...")
         unit = r'$\mathrm{cm}^{-3} \mathrm{eV}^{-1}$'
@@ -825,10 +832,10 @@ class NEGFShortcuts(CommonShortcuts):
             plt.subplots_adjust(wspace=0)
 
             # 2D color plot
-            self.__draw_2D_color_plot(fig, ax2, x.value, y.value, quantity.value, label, bias, labelsize, ticksize, zmin, zmax, showBias, False)
+            self.__draw_2D_color_plot(fig, ax2, x.value, y.value, quantity.value, is_divergent, label, bias, labelsize, ticksize, zmin, zmax, showBias, False)
             self.draw_bandedges_on_2DPlot(ax2, input_file_name, bias, labelsize, shadowBandgap)
             if showFermiLevel:
-                E_FermiElectron, E_FermiHole = self.draw_Fermi_levels_on_2DPlot(ax2, input_file_name, bias, labelsize)
+                E_FermiElectron, E_FermiHole = self.draw_Fermi_levels_on_2DPlot(ax2, input_file_name, bias, labelsize, is_divergent)
                 if showDensityDeviation:
                     self.draw_carrier_density_deviation_on_2DPlot(ax2, input_file_name, bias, labelsize, E_FermiElectron)
             
@@ -843,10 +850,10 @@ class NEGFShortcuts(CommonShortcuts):
             fig, ax = plt.subplots()
 
             # 2D color plot
-            self.__draw_2D_color_plot(fig, ax, x.value, y.value, quantity.value, label, bias, labelsize, ticksize, zmin, zmax, showBias, True)
+            self.__draw_2D_color_plot(fig, ax, x.value, y.value, quantity.value, is_divergent, label, bias, labelsize, ticksize, zmin, zmax, showBias, True)
             self.draw_bandedges_on_2DPlot(ax, input_file_name, bias, labelsize, shadowBandgap)
             if showFermiLevel:
-                E_FermiElectron, E_FermiHole = self.draw_Fermi_levels_on_2DPlot(ax, input_file_name, bias, labelsize)
+                E_FermiElectron, E_FermiHole = self.draw_Fermi_levels_on_2DPlot(ax, input_file_name, bias, labelsize, is_divergent)
                 if showDensityDeviation:
                     self.draw_carrier_density_deviation_on_2DPlot(ax, input_file_name, bias, labelsize, E_FermiElectron)
             
@@ -877,14 +884,14 @@ class NEGFShortcuts(CommonShortcuts):
 
         The plot is saved as an png image file.
         """
-        x, y, quantity = self.get_2Ddata_atBias(input_file_name, bias, 'current')
+        x, y, quantity, is_divergent = self.get_2Ddata_atBias(input_file_name, bias, 'current')
 
         logging.info("Plotting current density...")
         unit = r'$\mathrm{A}$ $\mathrm{cm}^{-2} \mathrm{eV}^{-1}$'
         label = 'Current density (' + unit + ')'
 
         fig, ax = plt.subplots()
-        self.__draw_2D_color_plot(fig, ax, x.value, y.value, quantity.value, label, bias, labelsize, ticksize, zmin, zmax, showBias, True)
+        self.__draw_2D_color_plot(fig, ax, x.value, y.value, quantity.value, is_divergent, label, bias, labelsize, ticksize, zmin, zmax, showBias, True)
         self.draw_bandedges_on_2DPlot(ax, input_file_name, bias, labelsize, shadowBandgap)
         fig.tight_layout()
 
@@ -897,8 +904,13 @@ class NEGFShortcuts(CommonShortcuts):
         return fig
 
 
-    def __draw_2D_color_plot(self, fig, ax, X, Y, Z, label, bias, labelsize, ticksize, zmin, zmax, showBias, set_ylabel):
-        pcolor = ax.pcolormesh(X, Y, Z.T, vmin=zmin, vmax=zmax, cmap=self.default_colors.colormap)
+    def __draw_2D_color_plot(self, fig, ax, X, Y, Z, is_divergent, label, bias, labelsize, ticksize, zmin, zmax, showBias, set_ylabel):
+        from matplotlib import colors
+        if is_divergent:
+            pcolor = ax.pcolormesh(X, Y, Z.T, cmap=self.default_colors.colormap['divergent'], norm=colors.CenteredNorm(vcenter=0, halfrange=zmax))
+        else:
+            pcolor = ax.pcolormesh(X, Y, Z.T, vmin=zmin, vmax=zmax, cmap=self.default_colors.colormap['linear'])
+
         cbar = fig.colorbar(pcolor)
         cbar.set_label(label, fontsize=labelsize)
         cbar.ax.tick_params(labelsize=ticksize * 0.9)
@@ -985,7 +997,7 @@ class NEGFShortcuts(CommonShortcuts):
         array_of_biases = np.array(self.get_biases(input_file_name))
 
         # get 2D data at the largest bias
-        x_last, y_last, quantity_last = self.get_2Ddata_atBias(input_file_name, array_of_biases[-1], leftFig)
+        x_last, y_last, quantity_last, is_divergent = self.get_2Ddata_atBias(input_file_name, array_of_biases[-1], leftFig)
 
         # define a map from (xIndex, yIndex, biasIndex) to scalar value
         F = np.zeros((len(x_last.value), len(y_last.value), len(array_of_biases)))
@@ -993,7 +1005,7 @@ class NEGFShortcuts(CommonShortcuts):
         # store data to F
         for i, bias in enumerate(array_of_biases):
             position, CB = self.get_conduction_bandedge(input_file_name, bias)
-            x, y, quantity = self.get_2Ddata_atBias(input_file_name, bias, leftFig)
+            x, y, quantity, is_divergent = self.get_2Ddata_atBias(input_file_name, bias, leftFig)
             F[:, :, i] = quantity.value
 
         fig, ax = plt.subplots()
@@ -1005,7 +1017,7 @@ class NEGFShortcuts(CommonShortcuts):
 
         # Plot colormap for the initial bias.
         # F[:-1, :-1, 0] gives the values on the x-y plane at initial bias.
-        cax = ax.pcolormesh(x.value, y.value, F[:-1, :-1, 0], vmin=-1, vmax=1, cmap=self.default_colors.colormap)
+        cax = ax.pcolormesh(x.value, y.value, F[:-1, :-1, 0], vmin=-1, vmax=1, cmap=self.default_colors.colormap['linear'])
         cbar = fig.colorbar(cax)
         cbar.set_label(label)
 
@@ -1016,7 +1028,7 @@ class NEGFShortcuts(CommonShortcuts):
             # update 2D color plot
             cax.set_array(F[:-1, :-1, i].flatten())
             # update conduction bandedge plot
-            ax.plot(x.value, CB.value, color=self.default_colors.lines_on_colormap, linewidth=0.7, label=CB.label)
+            ax.plot(x.value, CB.value, color=self.default_colors.lines_on_colormap['linear'], linewidth=0.7, label=CB.label)
 
 
         # ax.legend(loc='upper left')

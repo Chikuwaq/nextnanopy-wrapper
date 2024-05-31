@@ -3,8 +3,8 @@ class DefaultColors:
    bands = dict()
    bands_dark_background = dict()
 
-   colormap = ''
-   lines_on_colormap = ''
+   colormap = dict()
+   lines_on_colormap = dict()
 
    current_voltage = ''
    light_voltage = ''
@@ -29,8 +29,13 @@ class DefaultColors:
          'kp8': 'silver'
       }
 
-      self.colormap = 'cividis'
-      self.lines_on_colormap = 'white'
+      self.colormap['linear'] = 'cividis'
+      self.lines_on_colormap['linear'] = 'white'
+
+      self.colormap['sequential'] = 'Greens'
+      
+      self.colormap['divergent'] = 'bwr' #'seismic'
+      self.lines_on_colormap['divergent'] = 'black'
 
       self.current_voltage = 'tab:blue'
       self.light_voltage = 'tab:red'

@@ -1212,13 +1212,13 @@ class SweepHelper:
         if colormap is None:  
             # default colors
             if set_center_to_zero: 
-                colormap = 'seismic'
+                colormap = self.colormap['divergent']
             else:
-                colormap = self.default_colors.colormap
-        if colormap == 'seismic':
+                colormap = self.default_colors.colormap['linear']
+        if colormap == self.colormap['divergent']:
             contour_color = 'black'
-        elif colormap == 'viridis' or colormap == self.default_colors.colormap:
-            contour_color = self.default_colors.lines_on_colormap
+        elif colormap == 'viridis' or colormap == self.default_colors.colormap['linear']:
+            contour_color = self.default_colors.lines_on_colormap['linear']
 
         if set_center_to_zero:
             from matplotlib import colors
@@ -1331,13 +1331,13 @@ class SweepHelper:
         if colormap is None:  
             # default colors
             if set_center_to_zero: 
-                colormap = 'seismic'
+                colormap = self.colormap['divergent']
             else:
-                colormap = self.default_colors.colormap
-        if colormap == 'seismic':
+                colormap = self.default_colors.colormap['linear']
+        if colormap == self.colormap['divergent']:
             contour_color = 'black'
-        elif colormap == 'viridis' or colormap == self.default_colors.colormap:
-            contour_color = self.default_colors.lines_on_colormap
+        elif colormap == 'viridis' or colormap == self.default_colors.colormap['linear']:
+            contour_color = self.default_colors.lines_on_colormap['linear']
 
         if set_center_to_zero:
             from matplotlib import colors
@@ -1427,13 +1427,13 @@ class SweepHelper:
         if colormap is None:  
             # default colors
             if set_center_to_zero: 
-                colormap = 'seismic'
+                colormap = self.colormap['divergent']
             else:
-                colormap = self.default_colors.colormap
-        if colormap == 'seismic':
+                colormap = self.default_colors.colormap['linear']
+        if colormap == self.colormap['divergent']:
             contour_color = 'black'
-        elif colormap == 'viridis' or colormap == self.default_colors.colormap:
-            contour_color = self.default_colors.lines_on_colormap
+        elif colormap == 'viridis' or colormap == self.default_colors.colormap['linear']:
+            contour_color = self.default_colors.lines_on_colormap['linear']
 
         if set_center_to_zero:
             from matplotlib import colors
