@@ -342,8 +342,8 @@ class NEGFShortcuts(CommonShortcuts):
         
 
     def get_carrier_density_deviation(self, input_file_name, bias):
-        datafile = self.get_DataFile_NEGF_atBias("CarrierDensityDeviation.dat", input_file_name, bias=bias)
-        return datafile.coords['Position'], datafile.variables['Deviation from local neutrality']
+        datafile = self.get_DataFile_NEGF_atBias("CarrierDensity_ElectronHole.dat", input_file_name, bias=bias)
+        return datafile.coords['Position'], datafile.variables['Electron density'], datafile.variables['Hole density']
 
 
     def get_WannierStarkStates_init(self, filename_no_extension):
@@ -573,10 +573,11 @@ class NEGFShortcuts(CommonShortcuts):
             is_divergent : True if the 2D data needs diverging colormap
         """
         if data == 'LDOS' or data == 'DOS':
-            files = ['DOS_WithDispersion.vtr']
-            variableKey = 'Density of states'
+            files = ['DensityOfStates_WithDispersion.vtr']
+            variableKey = 'Local Density of States'
+            is_divergent = False
         elif data == 'carrier':
-            files = ['ElectronHoleDensity_WithDispersion.vtr', 'ElectronDensity_WithDispersion.vtr']
+            files = ['ElectronHoleDensity_WithDispersion.vtr']
             variableKey = 'Electron-hole density'
             is_divergent = True
         elif data == 'current':
@@ -669,22 +670,25 @@ class NEGFShortcuts(CommonShortcuts):
         return E_FermiElectron, E_FermiHole
         
 
-    def draw_carrier_density_deviation_on_2DPlot(self, ax, input_file_name, bias, labelsize, E_FermiElectron):
-        color = 'orange'
+    def draw_1D_carrier_densities_on_2DPlot(self, ax, input_file_name, bias, labelsize, E_FermiElectron, E_FermiHole):
+        color = 'green'
 
-        position, carrier_dens_deviation = self.get_carrier_density_deviation(input_file_name, bias)
-        max_deviation = np.amax(carrier_dens_deviation.value)
-        min_deviation = np.amin(carrier_dens_deviation.value)
+        position, electron_density, hole_density = self.get_carrier_density_deviation(input_file_name, bias)
+        max_density = np.amax(electron_density.value)
+        min_density = np.amin(hole_density.value)
         min_energy, max_energy = ax.get_ylim()
         
         # rescale the density deviation so it fits within the energy range of ax
-        scaling_factor = 0.3 * (max_energy - min_energy) / (max_deviation - min_deviation)
+        # scaling_factor = 0.3 * (max_energy - min_energy) / (max_density - min_density)
+        scaling_factor = 0.05 * (max_energy - min_energy)  # important to make it independent of carrier density data when visualizing carrier rebalancing
         print(f"Scaling deviation by {scaling_factor}")
-        carrier_dens_deviation_scaled = carrier_dens_deviation.value * scaling_factor        
-        ax.plot(position.value, E_FermiElectron + carrier_dens_deviation_scaled, color=color, linewidth=1.0, label=carrier_dens_deviation.label)
+        electron_density_scaled = electron_density.value * scaling_factor        
+        hole_density_scaled = hole_density.value * scaling_factor
+        ax.plot(position.value, E_FermiElectron + electron_density_scaled, color=color, linewidth=1.0, label=electron_density.label)
+        ax.plot(position.value, E_FermiHole + hole_density_scaled,     color=color, linewidth=1.0, label=hole_density.label)
 
-        zmax = np.amax(position.value)
-        ax.annotate("$n_e - n_B$", color=color, fontsize=labelsize, xy=(0.1*zmax, E_FermiElectron), xytext=(0.1*zmax, E_FermiElectron + 0.2))
+        # zmax = np.amax(position.value)
+        # ax.annotate("", color=color, fontsize=labelsize, xy=(0.1*zmax, E_FermiElectron), xytext=(0.1*zmax, E_FermiElectron + 0.2))
 
 
     def __get_inplane_dispersion(self, input_file_name, startIdx, stopIdx):
@@ -742,7 +746,7 @@ class NEGFShortcuts(CommonShortcuts):
             ):
         """
         Overlay bandedge with local density of states. Loads the following output data:
-        DOS.vtr
+        DensityOfStates_WithDispersion.vtr
 
         The plot is saved as an png image file.
 
@@ -767,7 +771,7 @@ class NEGFShortcuts(CommonShortcuts):
             if showFermiLevel:
                 E_FermiElectron, E_FermiHole = self.draw_Fermi_levels_on_2DPlot(ax2, input_file_name, bias, labelsize, is_divergent)
                 if showDensityDeviation:
-                    self.draw_carrier_density_deviation_on_2DPlot(ax2, input_file_name, bias, labelsize, E_FermiElectron)
+                    self.draw_1D_carrier_densities_on_2DPlot(ax2, input_file_name, bias, labelsize, E_FermiElectron, E_FermiHole)
 
             kPoints, dispersions, states_toBePlotted = self.__get_inplane_dispersion(input_file_name, 0, 0)  # TODO: implement user-defined state index range (see nnpShortcuts.plot_dispersion)
             if showBias:
@@ -782,7 +786,7 @@ class NEGFShortcuts(CommonShortcuts):
             if showFermiLevel:
                 E_FermiElectron, E_FermiHole = self.draw_Fermi_levels_on_2DPlot(ax, input_file_name, bias, labelsize, is_divergent)
                 if showDensityDeviation:
-                    self.draw_carrier_density_deviation_on_2DPlot(ax, input_file_name, bias, labelsize, E_FermiElectron)
+                    self.draw_1D_carrier_densities_on_2DPlot(ax, input_file_name, bias, labelsize, E_FermiElectron, E_FermiHole)
 
         fig.tight_layout()
 
@@ -837,7 +841,7 @@ class NEGFShortcuts(CommonShortcuts):
             if showFermiLevel:
                 E_FermiElectron, E_FermiHole = self.draw_Fermi_levels_on_2DPlot(ax2, input_file_name, bias, labelsize, is_divergent)
                 if showDensityDeviation:
-                    self.draw_carrier_density_deviation_on_2DPlot(ax2, input_file_name, bias, labelsize, E_FermiElectron)
+                    self.draw_1D_carrier_densities_on_2DPlot(ax2, input_file_name, bias, labelsize, E_FermiElectron, E_FermiHole)
             
             # dispersion plot
             kPoints, dispersions, states_toBePlotted = self.__get_inplane_dispersion(input_file_name, 0, 0)  # TODO: implement user-defined state index range (see nnpShortcuts.plot_dispersion)
@@ -855,7 +859,7 @@ class NEGFShortcuts(CommonShortcuts):
             if showFermiLevel:
                 E_FermiElectron, E_FermiHole = self.draw_Fermi_levels_on_2DPlot(ax, input_file_name, bias, labelsize, is_divergent)
                 if showDensityDeviation:
-                    self.draw_carrier_density_deviation_on_2DPlot(ax, input_file_name, bias, labelsize, E_FermiElectron)
+                    self.draw_1D_carrier_densities_on_2DPlot(ax, input_file_name, bias, labelsize, E_FermiElectron, E_FermiHole)
             
         fig.tight_layout()
 
