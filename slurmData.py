@@ -219,7 +219,7 @@ class SlurmData:
 		commands = ['sacct', '|', 'grep', SlurmData.jobname, '|', 'grep', self.node]
 		result = subprocess.run(commands, capture_output=True, text=True)
 		if result.stdout == "":
-			logging.error("Could not read output of sacct command. I'm not sure is Slurm is still running.")
+			logging.error("Could not read output of sacct command. I'm not sure if Slurm is still running.")
 			return False
 		return ('RUNNING' in result.stdout)
             

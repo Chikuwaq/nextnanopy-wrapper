@@ -745,7 +745,7 @@ class SweepHelper:
 
     ### Slurm methods #######################################################
     def is_slurm_simulation(self):
-        return True  # self.slurm_data.node is not None
+        return self.slurm_data.node is not None
     
 
     def submit_sweep_to_slurm(self, suffix='', node='microcloud', email=None, num_CPU=4, memory_limit='8G', time_limit_hrs=5, exe=None, output_folder=None, database=None):
@@ -788,7 +788,7 @@ class SweepHelper:
         if database is None:      database = nn.config.get(self.shortcuts.product_name, 'database')
         license = nn.config.get(self.shortcuts.product_name, 'license')
 
-        input_fullpaths = list(set(self.input_file_fullpaths['original']))  # avoid duplicates. For some reason, input file paths are duplicated (NOTE: set object does not preserve the order of elements!)
+        input_fullpaths = list(set(self.input_file_fullpaths['short']))  # avoid duplicates. For some reason, input file paths are duplicated (NOTE: set object does not preserve the order of elements!)
         self.slurm_data.create_sbatch_scripts(input_fullpaths, exe, output_folder, database, license, self.shortcuts.product_name)
 
 
