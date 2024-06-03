@@ -745,7 +745,7 @@ class SweepHelper:
 
     ### Slurm methods #######################################################
     def is_slurm_simulation(self):
-        return True  # self.slurm_data.node is not None
+        return self.slurm_data.node is not None
     
 
     def submit_sweep_to_slurm(self, suffix='', node='microcloud', email=None, num_CPU=4, memory_limit='8G', time_limit_hrs=5, exe=None, output_folder=None, database=None):
