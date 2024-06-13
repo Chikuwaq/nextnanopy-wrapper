@@ -788,7 +788,7 @@ class SweepHelper:
         if database is None:      database = nn.config.get(self.shortcuts.product_name, 'database')
         license = nn.config.get(self.shortcuts.product_name, 'license')
 
-        input_fullpaths = list(set(self.input_file_fullpaths['original']))  # avoid duplicates. For some reason, input file paths are duplicated (NOTE: set object does not preserve the order of elements!)
+        input_fullpaths = list(set(self.input_file_fullpaths['short']))  # avoid duplicates. For some reason, input file paths are duplicated (NOTE: set object does not preserve the order of elements!)
         self.slurm_data.create_sbatch_scripts(input_fullpaths, exe, output_folder, database, license, self.shortcuts.product_name)
 
 

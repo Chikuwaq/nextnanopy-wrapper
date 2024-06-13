@@ -458,7 +458,9 @@ class CommonShortcuts:
         filename_no_extension, extension = os.path.splitext(filename)
 
         if extension not in ['', '.in', '.xml', '.negf']: 
-            raise RuntimeError(f"File extension {extension} is not supported by nextnano.")
+            logging.warning(f"separate_extension(): File extension {extension} is not supported by nextnano. Appending the extension to file name again...")
+            filename_no_extension = filename
+            extension = ''
 
         return filename_no_extension, extension
 
