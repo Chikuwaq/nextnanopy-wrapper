@@ -782,7 +782,7 @@ class SweepHelper:
 
         # defaults
         if exe is None:           exe, = nn.config.get(self.shortcuts.product_name, 'exe'),
-        if output_folder is None: output_folder = self.__get_output_folder_path()
+        if output_folder is None: output_folder = self.output_folder_path['short']
         if database is None:      database = nn.config.get(self.shortcuts.product_name, 'database')
         license = nn.config.get(self.shortcuts.product_name, 'license')
 

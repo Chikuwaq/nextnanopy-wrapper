@@ -2136,22 +2136,20 @@ class NEGFShortcuts(CommonShortcuts):
     ################ Optical absorption getters #############################################
     def get_absorption_at_transition_energy(self, output_folder, bias=0):
         """
-        Calculates the mean gain in the energy range 
-        (transition energy - 5 meV) < E < (transition energy + 5 meV)
+        Interpolate two energy grid points below and above the transition energy.
         Unit: 1/cm
         """
         transition_E_meV = self.get_transition_energy(output_folder) * CommonShortcuts.scale1ToMilli
         datafile = self.get_DataFile_NEGF_atBias(['SemiClassical_vs_Energy'], '', bias, parent_folder=output_folder)
-        gain_sum = 0.
-        n_energy_points = 0
-        for E_meV, gain in zip(datafile.coords['Photon Energy'].value, datafile.variables['Gain'].value):
-            if abs(E_meV - transition_E_meV) < 5.:
-                gain_sum += gain
-                n_energy_points += 1
         
-        if n_energy_points == 0:
-            logging.warning("get_absorption_at_transition_energy(): Gain spectrum does not cover the transition energy. Returning gain = None")
-            return None
-        
-        return gain_sum / n_energy_points
+        photon_energies = datafile.coords['Photon Energy'].value
+        gain = datafile.variables['Gain'].value
+        for i_energy in range(len(photon_energies)): # energy is ascending
+            if photon_energies[i_energy] <= transition_E_meV and transition_E_meV < photon_energies[i_energy + 1]:
+                # linear interpolation
+                tangent = (gain[i_energy + 1] - gain[i_energy]) / (photon_energies[i_energy + 1] - photon_energies[i_energy])
+                return tangent * (transition_E_meV - photon_energies[i_energy]) + gain[i_energy]
+            
+        logging.warning("get_absorption_at_transition_energy(): Gain spectrum does not cover the transition energy. Returning gain = None")
+        return None
 
