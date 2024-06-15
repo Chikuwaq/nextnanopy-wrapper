@@ -177,7 +177,6 @@ class nn3Shortcuts(CommonShortcuts):
 
         # delete quantum model keys whose probabilities do not exist in output folder
         amplitude_dict_trimmed = {model: amplitude_dict[model] for model in amplitude_dict if len(amplitude_dict[model]) > 0}
-        print(amplitude_dict_trimmed.keys())
         if len(amplitude_dict_trimmed) == 0:
             raise NextnanoInputFileError("Amplitudes are not output! Modify the input file.")
 
@@ -375,7 +374,6 @@ class nn3Shortcuts(CommonShortcuts):
                 amplitude_e[mu,:].imag = df_e.variables[f'psi_{iLowestElectron+1}_{band}_imag'].value
         else:
             amplitude_e = np.zeros(len(x), dtype=np.double)
-            print(df_e.variables)
             amplitude_e[:] = df_e.variables[f'psi_{iLowestElectron+1}'].value
         
         # extract amplitude of hole-like state
