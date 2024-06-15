@@ -140,7 +140,7 @@ class NEGFShortcuts(CommonShortcuts):
         return amplitude_dict_trimmed
 
 
-    def get_DataFile_NEGF_atBias(self, keywords, name, bias):
+    def get_DataFile_NEGF_atBias(self, keywords, name, bias, parent_folder=None):
         """
         Get single nextnanopy.DataFile of NEGF output data with the given string keyword(s) at the specified bias.
 
@@ -149,18 +149,23 @@ class NEGFShortcuts(CommonShortcuts):
         keywords : str or list of str
             Find output data file with the names containing single keyword or multiple keywords (AND search)
         name : str
-            input file name (= output subfolder name). May contain extensions and/or fullpath.
+            input file name which is used as output subfolder name for the search. Extensions and folder path are removed.
         bias : float
             voltage drop per period
+        parent_folder : str, optional
+            path to the parent folder, in which the subfolder for individual bias is expected to exist. If None, the default output folder in the nextnanopy config is prepended to 'name'.
 
         Returns
         -------
         nextnanopy.DataFile object of the simulation data
 
         """
-        output_folder = nn.config.get(self.product_name, 'outputdirectory')
-        filename_no_extension = CommonShortcuts.separate_extension(name)[0]
-        bias_subfolder = os.path.join(output_folder, filename_no_extension, str(bias) + 'mv')
+        if parent_folder is None:
+            output_folder = nn.config.get(self.product_name, 'outputdirectory')
+            filename_no_extension = CommonShortcuts.separate_extension(name)[0]
+            bias_subfolder = os.path.join(output_folder, filename_no_extension, str(bias) + 'mV')
+        else:
+            bias_subfolder = os.path.join(parent_folder, str(bias) + 'mV')
 
         return self.get_DataFile_in_folder(keywords, bias_subfolder)
 
@@ -2131,12 +2136,22 @@ class NEGFShortcuts(CommonShortcuts):
     ################ Optical absorption getters #############################################
     def get_absorption_at_transition_energy(self, output_folder, bias=0):
         """
+        Calculates the mean gain in the energy range 
+        (transition energy - 5 meV) < E < (transition energy + 5 meV)
         Unit: 1/cm
         """
-        deltaE = self.get_transition_energy(output_folder)
-        datafile = self.get_DataFile_NEGF_atBias(['SemiClassical_vs_Energy'], output_folder, bias)
-        print(type(datafile.coords['Photon Energy']).value)
-        datafile.variables['Gain']
-        i_energy = 0
-        return datafile.coords['Photon Energy'].value[i_energy]
+        transition_E_meV = self.get_transition_energy(output_folder) * CommonShortcuts.scale1ToMilli
+        datafile = self.get_DataFile_NEGF_atBias(['SemiClassical_vs_Energy'], '', bias, parent_folder=output_folder)
+        gain_sum = 0.
+        n_energy_points = 0
+        for E_meV, gain in zip(datafile.coords['Photon Energy'].value, datafile.variables['Gain'].value):
+            if abs(E_meV - transition_E_meV) < 5.:
+                gain_sum += gain
+                n_energy_points += 1
+        
+        if n_energy_points == 0:
+            logging.warning("get_absorption_at_transition_energy(): Gain spectrum does not cover the transition energy. Returning gain = None")
+            return None
+        
+        return gain_sum / n_energy_points
 
