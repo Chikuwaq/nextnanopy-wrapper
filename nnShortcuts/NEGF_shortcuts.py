@@ -140,7 +140,7 @@ class NEGFShortcuts(CommonShortcuts):
         return amplitude_dict_trimmed
 
 
-    def get_DataFile_NEGF_atBias(self, keywords, name, bias):
+    def get_DataFile_NEGF_atBias(self, keywords, name, bias, parent_folder=None):
         """
         Get single nextnanopy.DataFile of NEGF output data with the given string keyword(s) at the specified bias.
 
@@ -149,18 +149,23 @@ class NEGFShortcuts(CommonShortcuts):
         keywords : str or list of str
             Find output data file with the names containing single keyword or multiple keywords (AND search)
         name : str
-            input file name (= output subfolder name). May contain extensions and/or fullpath.
+            input file name which is used as output subfolder name for the search. Extensions and folder path are removed.
         bias : float
             voltage drop per period
+        parent_folder : str, optional
+            path to the parent folder, in which the subfolder for individual bias is expected to exist. If None, the default output folder in the nextnanopy config is prepended to 'name'.
 
         Returns
         -------
         nextnanopy.DataFile object of the simulation data
 
         """
-        output_folder = nn.config.get(self.product_name, 'outputdirectory')
-        filename_no_extension = CommonShortcuts.separate_extension(name)[0]
-        bias_subfolder = os.path.join(output_folder, filename_no_extension, str(bias) + 'mv')
+        if parent_folder is None:
+            output_folder = nn.config.get(self.product_name, 'outputdirectory')
+            filename_no_extension = CommonShortcuts.separate_extension(name)[0]
+            bias_subfolder = os.path.join(output_folder, filename_no_extension, str(bias) + 'mV')
+        else:
+            bias_subfolder = os.path.join(parent_folder, str(bias) + 'mV')
 
         return self.get_DataFile_in_folder(keywords, bias_subfolder)
 
@@ -2129,14 +2134,31 @@ class NEGFShortcuts(CommonShortcuts):
 
 
     ################ Optical absorption getters #############################################
-    def get_absorption_at_transition_energy(self, output_folder, bias=0):
+    def get_absorption_at_transition_energy(self, output_folder, bias=0, polarization='z'):
         """
+        Interpolate two energy grid points below and above the transition energy.
         Unit: 1/cm
         """
-        deltaE = self.get_transition_energy(output_folder)
-        datafile = self.get_DataFile_NEGF_atBias(['SemiClassical_vs_Energy'], output_folder, bias)
-        print(type(datafile.coords['Photon Energy']).value)
-        datafile.variables['Gain']
-        i_energy = 0
-        return datafile.coords['Photon Energy'].value[i_energy]
+        transition_E_meV = self.get_transition_energy(output_folder) * CommonShortcuts.scale1ToMilli
+
+        if polarization == 'z':
+            epsilon = '0.0,0.0,1.0'
+        elif polarization == 'x':
+            epsilon = '1.0,0.0,0.0'
+        elif polarization == 'y':
+            epsilon = '0.0,1.0,0.0'
+        else:
+            raise RuntimeError(f"Unknown light polarization '{polarization}'")
+        datafile = self.get_DataFile_NEGF_atBias(['SemiClassical_vs_Energy', epsilon], '', bias, parent_folder=output_folder)
+        
+        photon_energies = datafile.coords['Photon Energy'].value
+        gain = datafile.variables['Gain'].value
+        for i_energy in range(len(photon_energies)): # energy is ascending
+            if photon_energies[i_energy] <= transition_E_meV and transition_E_meV < photon_energies[i_energy + 1]:
+                # linear interpolation
+                tangent = (gain[i_energy + 1] - gain[i_energy]) / (photon_energies[i_energy + 1] - photon_energies[i_energy])
+                return tangent * (transition_E_meV - photon_energies[i_energy]) + gain[i_energy]
+            
+        logging.warning("get_absorption_at_transition_energy(): Gain spectrum does not cover the transition energy. Returning gain = None")
+        return None
 

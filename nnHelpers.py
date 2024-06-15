@@ -190,52 +190,24 @@ class SweepHelper:
                 if model not in self.shortcuts.model_names: raise KeyError(f"__init__(): Quantum model '{model}' is not supported")
                 if len(plot_range) != 2: raise ValueError("__init__(): argument 'eigenstate_range' must be of the form 'quantum model': [min, max]")
 
-        self.master_input_file = dict()
-        
-        # store master input file object
-        self.master_input_file['original'] = copy.copy(master_input_file)
-        outfolder = self.shortcuts.get_sweep_output_folder_path(self.master_input_file['original'].fullpath, *self.sweep_space.keys())
-        initSweepCoords = {key: arr[0] for key, arr in self.sweep_space.items()}
-        subfolder = self.shortcuts.get_sweep_output_subfolder_name(self.master_input_file['original'].fullpath, initSweepCoords)
-        outpath = os.path.join(outfolder, subfolder)
-        if len(outpath) + 100 > 260:
-            import uuid
-            logging.info(f"Because the output path is too long ({len(outpath)}), creating a temporary input file with shorter name...")
-            dir = os.path.dirname(master_input_file.fullpath)
-            ext = os.path.splitext(master_input_file.fullpath)[1]
-            id = str(uuid.uuid4())
-            filename = id[:5] + ext  # using a part of the Universally Unique Identifier
-            temp_path = os.path.join(dir, filename)
-            master_input_file.save(temp_path, overwrite=True, automkdir=True)
-        self.master_input_file['short'] = master_input_file
-
-        # store parent output folder path of sweep simulations
-        self.output_folder_path = dict()
-        self.output_folder_path['original']  = self.shortcuts.get_sweep_output_folder_path(self.master_input_file['original'].fullpath, *self.sweep_space.keys())
-        self.output_folder_path['short']     = self.shortcuts.get_sweep_output_folder_path(self.master_input_file['short'].fullpath, *self.sweep_space.keys())
-
-        self.isFilenameAbbreviated = (self.output_folder_path['short'] != self.output_folder_path['original'])
-
-        # instantiate nn.Sweep object
-        if self.isFilenameAbbreviated:
-            self.sweep_obj = nn.Sweep(self.sweep_space, self.master_input_file['short'].fullpath)
-        else:
-            self.sweep_obj = nn.Sweep(self.sweep_space, self.master_input_file['original'].fullpath)
-
         self.round_decimal = round_decimal  # used by execute_sweep()
         
+        # store master input file object with the original file name
+        self.master_input_file = dict()
+        self.master_input_file['original'] = copy.copy(master_input_file)
+
+        # store its related data
+        self.output_folder_path = dict()
+        self.output_folder_path['original']  = self.shortcuts.get_sweep_output_folder_path(self.master_input_file['original'].fullpath, *self.sweep_space.keys())
+        
         self.input_file_fullpaths = dict()
-        self.input_file_fullpaths['short'] = self.__create_input_file_fullpaths(self.master_input_file['short'])
         self.input_file_fullpaths['original'] = self.__create_input_file_fullpaths(self.master_input_file['original'])
-
-        logging.debug("\nSweep space axes:")
-        logging.debug(f"{ [ key for key in self.sweep_space.keys() ] }")
-
+        
         # instantiate pandas.DataFrame to store sweep data
         self.data = pd.DataFrame({
             'sweep_coords' : list(itertools.product(*self.sweep_space.values())),  # create cartesian coordinates in the sweep space. Consistent to nextnanopy implementation.
             'output_subfolder' : [CommonShortcuts.get_output_subfolder_path(self.output_folder_path['original'], input_path) for input_path in self.input_file_fullpaths['original']],
-            'output_subfolder_short' : [CommonShortcuts.get_output_subfolder_path(self.output_folder_path['short'], input_path) for input_path in self.input_file_fullpaths['short']],
+            'output_subfolder_short' : None,
             'overlap' : None,
             'transition_energy_eV' : None,
             'transition_energy_meV' : None,
@@ -246,10 +218,44 @@ class SweepHelper:
             'absorption_at_transition_energy' : None,
             })
         
-        # simulation outputs of this sweep might exist already. The user might want to access those outputs without executing sweep simulation.
         if self.__output_subfolders_exist_with_originalname():
+            # simulation outputs of this sweep exist already. The user might want to access those outputs without executing sweep simulation.
             self.isFilenameAbbreviated = False
+        else:
+            outfolder = self.shortcuts.get_sweep_output_folder_path(self.master_input_file['original'].fullpath, *self.sweep_space.keys())
+            initSweepCoords = {key: arr[0] for key, arr in self.sweep_space.items()}
+            subfolder = self.shortcuts.get_sweep_output_subfolder_name(self.master_input_file['original'].fullpath, initSweepCoords)
+            outpath = os.path.join(outfolder, subfolder)
+            if len(outpath) + 100 <= 260:
+                self.isFilenameAbbreviated = False
+            else:
+                self.isFilenameAbbreviated = True
 
+                # prepare short-name input file
+                import uuid
+                logging.info(f"Because the output path is too long ({len(outpath)}), creating a temporary input file with shorter name...")
+                dir = os.path.dirname(master_input_file.fullpath)
+                ext = os.path.splitext(master_input_file.fullpath)[1]
+                id = str(uuid.uuid4())
+                filename = id[:5] + ext  # using a part of the Universally Unique Identifier
+                temp_path = os.path.join(dir, filename)
+                master_input_file.save(temp_path, overwrite=True, automkdir=True)
+
+        self.master_input_file['short'] = master_input_file
+        self.output_folder_path['short'] = self.shortcuts.get_sweep_output_folder_path(self.master_input_file['short'].fullpath, *self.sweep_space.keys())
+        self.input_file_fullpaths['short'] = self.__create_input_file_fullpaths(self.master_input_file['short'])
+        self.data['output_subfolder_short'] = [CommonShortcuts.get_output_subfolder_path(self.output_folder_path['short'], input_path) for input_path in self.input_file_fullpaths['short']]
+
+        # instantiate nn.Sweep object
+        if self.isFilenameAbbreviated:
+            self.sweep_obj = nn.Sweep(self.sweep_space, self.master_input_file['short'].fullpath)
+        else:
+            self.sweep_obj = nn.Sweep(self.sweep_space, self.master_input_file['original'].fullpath)
+
+        logging.debug("\nSweep space axes:")
+        logging.debug(f"{ [ key for key in self.sweep_space.keys() ] }")
+        
+        
         # for convenience in postprocessing/visualizing CSV/Excel output
         def extract_coord(tupl, index=0):
             return tupl[index]
@@ -278,9 +284,6 @@ class SweepHelper:
 
         self.default_colors = DefaultColors()
 
-
-    # def __repr__(self):
-    #     return ""
 
     def __str__(self):
         """ this method is executed when print(SweepHelper object) is invoked """
@@ -670,9 +673,6 @@ class SweepHelper:
 
 
     def recover_original_filenames(self):
-        """
-        TODO: Implement similar method for Slurm jobs, which do not rely on nextnanopy.Sweep object
-        """
         if not self.isFilenameAbbreviated:
             return
         
@@ -698,13 +698,11 @@ class SweepHelper:
                 raise
         
         # rename folder
-        shutil.move(self.output_folder_path['short'], self.output_folder_path['original'])
+        # shutil.move(self.output_folder_path['short'], self.output_folder_path['original'])
         
         # within 'original' folder, rename subfolders
-        for short, original in zip(self.input_file_fullpaths['short'], self.input_file_fullpaths['original']):
-            current_output_subfolder = CommonShortcuts.get_output_subfolder_path(self.output_folder_path['original'], short)
-            original_output_subfolder = CommonShortcuts.get_output_subfolder_path(self.output_folder_path['original'] , original)
-            shutil.move(current_output_subfolder, original_output_subfolder)
+        for short, original in zip(self.data['output_subfolder_short'], self.data['output_subfolder']):
+            shutil.move(short, original)
 
         self.isFilenameAbbreviated = False
 
@@ -784,7 +782,7 @@ class SweepHelper:
 
         # defaults
         if exe is None:           exe, = nn.config.get(self.shortcuts.product_name, 'exe'),
-        if output_folder is None: output_folder = self.__get_output_folder_path()
+        if output_folder is None: output_folder = self.output_folder_path['short']
         if database is None:      database = nn.config.get(self.shortcuts.product_name, 'database')
         license = nn.config.get(self.shortcuts.product_name, 'license')
 
