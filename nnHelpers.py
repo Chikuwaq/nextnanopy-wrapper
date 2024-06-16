@@ -34,16 +34,18 @@ from nnShortcuts.default_colors import DefaultColors
 
 class SweepHelper:
     """
-        This class bridges the input and output of the nextnanopy.Sweep() simulations to facilitate postprocessing of multiple simulation data obtained by sweeping variable(s) in the input file.
+        This class bridges the input and output of sweep simulation by nextnanopy simulations to facilitate postprocessing of multiple simulation data obtained by sweeping variable(s) in the input file.
 
         The initialization of the class will detect the software to use and construct a table of sweep information which is useful for postprocessing.
 
         Running sweep simulation may take long time. If the output data already exists for the identical input file and sweep values, this class allows postprocessing without running simulations.
         WARNING: Plots do not always guarantee that the data is up-to-date, e.g. when you modify the input file but do not change the file name and sweep range.
 
-        Notes
-        -----
-            - You can sweep as many variables as you like in one go.
+        Advantages over nextnanopy.Sweep class
+        --------------------------------------
+            - You can sweep as many variables as you like in one go. When the temporary file name would get too long, use unique IDs until the end of simulation. Output folder names can be recovered by the recover_original_filenames() method.
+            - The output folder paths are calculated even if you do not run the simulations. Thanks to this, you do not need to keep Sweep class object alive for postprocessing of sweep results.
+            - Supports job submission to Slurm workload manager.
 
         Attributes
         ----------
@@ -66,15 +68,14 @@ class SweepHelper:
             'original'  = original file name
             'short' = abbreviated file name
 
-        sweep_obj : nextnanopy.Sweep object
-            instantiated based on self.sweep_space and self.master_input_file
+        input_files : list of nextnanopy.InputFile objects
+            Modified shallow copies of self.master_input_file
 
         input_file_fullpaths : dict of list of str
             list of fullpath of temporary input files for the sweep.
-            Paths are ordered in the same manner as self.sweep_obj.input_files.
             'original'  = original file name
             'short' = abbreviated file name
-            NOTE: We split the temporary input file paths from self.sweep_obj to avoid unnecessary save_sweep(), which costs time.
+            NOTE: We split the temporary input file paths from nextnanopy's Sweep class object to avoid unnecessary calls of save_sweep(), which costs time.
 
         data : pandas.DataFrame object
             table of sweep data with the following columns:
@@ -90,8 +91,7 @@ class SweepHelper:
                     energy difference between the highest heavy-hole and highest light-hole states
                 absorption_at_transition_energy : real
                     amplitude of optical absorption at the transition energy (1/cm)
-            Rows are ordered in the same manner as self.sweep_obj.input_files.
-
+            
         states_to_be_plotted : dict of numpy.ndarray - { 'quantum model': array of values }
             for each quantum model, array of eigenstate indices to be plotted in the figure (default: all states in the output data)
 
@@ -128,6 +128,9 @@ class SweepHelper:
             Generate sbatch files to submit the sweep simulations to cloud computers by SLURM.
 
     """
+    master_input_file = dict()
+    output_folder_path = dict()
+    input_files = list()
 
     def __init__(self, sweep_ranges, master_input_file, eigenstate_range=None, round_decimal=8, loglevel=logging.INFO):
         """
@@ -136,7 +139,14 @@ class SweepHelper:
         sweep_ranges : dict of tuple - { 'sweep variable': tuple([min, max], number of points) }
                        OR
                        dict of list  - { 'sweep variable': list(value1, value2, ...) }
-            specifies the values of each sweep variable key.
+                       OR
+                       list of tuple - [
+                                         ('sweep variable 1', 'sweep variable 2', ...),  # str specifying variable names
+                                         (value1-1, value2-1, ...),                      # individual sweep space coordinates
+                                         (value1-2, value2-2, ...),
+                                         ...
+                                        ]
+            specifies the values of each sweep variable.
 
         master_input_file : nextnanopy.InputFile object
             master input file in which one or more variables are swept
@@ -153,7 +163,6 @@ class SweepHelper:
 
         """
         # validate arguments
-        if not isinstance(sweep_ranges, dict): raise TypeError(f"__init__(): argument 'sweep_ranges' must be a dict, but is {type(sweep_ranges)}")
         # if not isinstance(master_input_file, nn.InputFile): raise TypeError(f"__init__(): argument 'master_input_file' must be a nextnanopy.InputFile object, but is {type(master_input_file)}")   # TODO: object type has been modified in nextnanopy
         
         # log setting
@@ -168,17 +177,6 @@ class SweepHelper:
             # return "%(filename)s:%(lineno)d:\n %(category.__name__)s: %(message)s"
         warnings.formatwarning = warning_on_one_line
 
-        # generate self.sweep_space
-        self.sweep_space = dict()
-        for var in sweep_ranges:
-            if isinstance(sweep_ranges[var], tuple):  # min, max, and number of points have been given
-                bounds, num_points = sweep_ranges[var]
-                if bounds[0] == bounds[1] and num_points > 1:
-                    raise RuntimeError(f"Sweep variable {var} has min = max, but more than one simulation is requested!")
-                self.sweep_space[var] = np.around(np.linspace(bounds[0], bounds[1], num_points), round_decimal)   # avoid lengthy filenames
-            elif isinstance(sweep_ranges[var], list):  # list of values has been given
-                self.sweep_space[var] = np.around(np.array(sweep_ranges[var]), round_decimal)   # avoid lengthy filenames
-
         # prepare shortcuts for the nextnano solver used
         self.shortcuts = CommonShortcuts.get_shortcut(master_input_file)
         if self.shortcuts.product_name not in ['nextnano3', 'nextnano++', 'nextnano.NEGF', 'nextnano.NEGF++']: 
@@ -192,32 +190,58 @@ class SweepHelper:
 
         self.round_decimal = round_decimal  # used by execute_sweep()
         
-        # store master input file object with the original file name
-        self.master_input_file = dict()
-        self.master_input_file['original'] = copy.copy(master_input_file)
-
+        # generate self.sweep_space
+        self.sweep_space = dict()
+        if isinstance(sweep_ranges, dict):
+            for var in sweep_ranges:
+                if isinstance(sweep_ranges[var], tuple):  # min, max, and number of points have been given
+                    bounds, num_points = sweep_ranges[var]
+                    if bounds[0] == bounds[1] and num_points > 1:
+                        raise RuntimeError(f"Sweep variable {var} has min = max, but more than one simulation is requested!")
+                    self.sweep_space[var] = np.around(np.linspace(bounds[0], bounds[1], num_points), round_decimal)   # avoid lengthy filenames
+                elif isinstance(sweep_ranges[var], list):  # list of values has been given
+                    self.sweep_space[var] = np.around(np.array(sweep_ranges[var]), round_decimal)   # avoid lengthy filenames
+            
+        elif isinstance(sweep_ranges, list):
+            for i_variable, var in enumerate(sweep_ranges[0]):
+                if not isinstance(var, str): raise TypeError("First tuple of `sweep_ranges` must be str specifying variable names!")
+                self.sweep_space[var] = [sweep_ranges[1][i_variable]]  # tentative: store only the first value
+            assert(len(self.sweep_space.keys()) > 0)
+        else:
+            raise TypeError(f"__init__(): argument 'sweep_ranges' must be a either dict or list, but is {type(sweep_ranges)}")
+            
         # store its related data
-        self.output_folder_path = dict()
-        self.output_folder_path['original']  = self.shortcuts.get_sweep_output_folder_path(self.master_input_file['original'].fullpath, *self.sweep_space.keys())
-        
-        self.input_file_fullpaths = dict()
-        self.input_file_fullpaths['original'] = self.__create_input_file_fullpaths(self.master_input_file['original'])
+        self.output_folder_path['original']  = self.shortcuts.get_sweep_output_folder_path(master_input_file.fullpath, *self.sweep_space.keys())
+
+        # store master input file object with the original file name
+        master_input_file.config.set(self.shortcuts.product_name, 'outputdirectory', self.output_folder_path['original'])
+        self.master_input_file['original'] = copy.copy(master_input_file)
         
         # instantiate pandas.DataFrame to store sweep data
-        self.data = pd.DataFrame({
-            'sweep_coords' : list(itertools.product(*self.sweep_space.values())),  # create cartesian coordinates in the sweep space. Consistent to nextnanopy implementation.
-            'output_subfolder' : [CommonShortcuts.get_output_subfolder_path(self.output_folder_path['original'], input_path) for input_path in self.input_file_fullpaths['original']],
-            'output_subfolder_short' : None,
-            'overlap' : None,
-            'transition_energy_eV' : None,
-            'transition_energy_meV' : None,
-            'transition_energy_micron' : None,
-            'transition_energy_nm' : None,
-            'HH1-LH1' : None,
-            'HH1-HH2' : None,
-            'absorption_at_transition_energy' : None,
-            })
+        self.data = pd.DataFrame(columns=[
+            'sweep_coords',  
+            'output_subfolder',
+            'output_subfolder_short',
+            'overlap',
+            'transition_energy_eV',
+            'transition_energy_meV',
+            'transition_energy_micron',
+            'transition_energy_nm',
+            'HH1-LH1',
+            'HH1-HH2',
+            'absorption_at_transition_energy',
+            ])
         
+        if isinstance(sweep_ranges, dict):
+            # create cartesian coordinates in the sweep space. Consistent to nextnanopy implementation.
+            self.data['sweep_coords'] = list(itertools.product(*self.sweep_space.values()))
+        elif isinstance(sweep_ranges, list):
+            self.data['sweep_coords'] = sweep_ranges[1:]
+
+        self.input_file_fullpaths = dict()
+        self.input_file_fullpaths['original'] = self.__create_input_file_fullpaths(self.master_input_file['original'])
+        self.data['output_subfolder'] = [CommonShortcuts.get_output_subfolder_path(self.output_folder_path['original'], input_path) for input_path in self.input_file_fullpaths['original']]
+
         if self.__output_subfolders_exist_with_originalname():
             # simulation outputs of this sweep exist already. The user might want to access those outputs without executing sweep simulation.
             self.isFilenameAbbreviated = False
@@ -242,15 +266,11 @@ class SweepHelper:
                 master_input_file.save(temp_path, overwrite=True, automkdir=True)
 
         self.master_input_file['short'] = master_input_file
-        self.output_folder_path['short'] = self.shortcuts.get_sweep_output_folder_path(self.master_input_file['short'].fullpath, *self.sweep_space.keys())
-        self.input_file_fullpaths['short'] = self.__create_input_file_fullpaths(self.master_input_file['short'])
-        self.data['output_subfolder_short'] = [CommonShortcuts.get_output_subfolder_path(self.output_folder_path['short'], input_path) for input_path in self.input_file_fullpaths['short']]
+        # self.output_folder_path['short'] = self.shortcuts.get_sweep_output_folder_path(self.master_input_file['short'].fullpath, *self.sweep_space.keys())
 
-        # instantiate nn.Sweep object
-        if self.isFilenameAbbreviated:
-            self.sweep_obj = nn.Sweep(self.sweep_space, self.master_input_file['short'].fullpath)
-        else:
-            self.sweep_obj = nn.Sweep(self.sweep_space, self.master_input_file['original'].fullpath)
+        self.input_file_fullpaths['short'] = self.__create_input_file_fullpaths(self.master_input_file['short'])
+        
+        self.data['output_subfolder_short'] = [CommonShortcuts.get_output_subfolder_path(self.output_folder_path['original'], input_path) for input_path in self.input_file_fullpaths['short']]
 
         logging.debug("\nSweep space axes:")
         logging.debug(f"{ [ key for key in self.sweep_space.keys() ] }")
@@ -309,10 +329,9 @@ class SweepHelper:
         """
         input_file_fullpaths = list()
 
-        # code extracted from nextnanopy > inputs.py > Sweep.create_input_files()
-        iteration_combinations = list(itertools.product(*self.sweep_space.values()))
+        # code following nextnanopy > inputs.py > Sweep.create_input_files()
         filename_path, filename_extension = os.path.splitext(master_input_file.fullpath)
-        for combination in iteration_combinations:
+        for combination in self.data['sweep_coords']:
             filename_end = '__'
             for var_name, var_value in zip(self.sweep_space.keys(), combination):
                 if isinstance(var_value, str):
@@ -326,13 +345,6 @@ class SweepHelper:
     
 
     ### getter and checker methods of class attributes ####################################
-    def __get_master_input_file(self):
-        if self.isFilenameAbbreviated:
-            return self.master_input_file['short']
-        else:
-            return self.master_input_file['original']
-        
-
     def __get_output_folder_path(self):
         """
         Returns
@@ -633,34 +645,30 @@ class SweepHelper:
             other parameters accepted by nextnanopy.InputFile.execute()
 
         """
-        # warn the user if many serial simulations are requested
-        num_of_simulations = self.data['sweep_coords'].size
-        if parallel_limit == 1:
-            if (num_of_simulations > 100 and self.shortcuts.product_name == 'nextnano++') or (num_of_simulations > 10 and self.shortcuts.product_name == 'nextnano.NEGF'):
-                while (True):
-                    choice = input(f"WARNING: {num_of_simulations} simulations requested without parallelization. Are you sure you want to run all of them one-by-one? [y/n]")
-                    if choice == 'y': break
-                    elif choice == 'n': raise RuntimeError('Nextnanopy terminated.')
-
-        logging.info("Saving sweep input files...")
-        self.sweep_obj.save_sweep(delete_old_files=True, round_decimal=self.round_decimal)  # ensure the same decimals for self.sweep_space and input file names
-        logging.info("Saved.")
-
-        logging.info(f"Running {num_of_simulations} simulations with max. {parallel_limit} parallelization for \n{self.master_input_file['short'].fullpath}")
-
+        import concurrent.futures
+        
+        self.save_sweep(parallel_limit)
+        
         # execute sweep simulations
         # this writes output to self.data['output_subfolder_short']
-        self.sweep_obj.execute_sweep(
-                delete_input_files = False,   # Do not delete input files so that SweepHelper.execute_sweep() can be invoked independently of __init__.
-                overwrite          = True,    # avoid enumeration of output folders for secure output data access. 
-                convergenceCheck   = convergenceCheck, 
-                show_log           = show_log, 
-                parallel_limit     = parallel_limit,
-                **kwargs
-                )   
+        # NOTE: We avoid enumeration of output folder names (see `overwrite` option of nextnanopy.inputs > Sweep.execute_sweep()) for secure output data access. 
+        # NOTE: Do not delete input files! Otherwise SweepHelper.execute_sweep() cannot be called independently of SweepHelper instantiation.
+        def run_input_file(input_file):
+            input_file.execute(show_log=show_log, convergenceCheck=convergenceCheck, **kwargs)  # TODO: add option to use multiple threads in each simulation
+            # logging.info(f"folder_output = {input_file.folder_output}")
+        
+        with concurrent.futures.ThreadPoolExecutor(max_workers=parallel_limit) as executor:
+            # submit jobs
+            futures = [executor.submit(run_input_file, input_file) for input_file in self.input_files]
+
+            # count the number of finished jobs
+            n_finished_jobs = 0
+            for future in concurrent.futures.as_completed(futures):
+                n_finished_jobs += 1
+                logging.info(f"Completed jobs: {n_finished_jobs}/{len(self.input_file_fullpaths['short'])}")
 
         # point to the new output in case old simulation outputs exist with original file name
-        self.isFilenameAbbreviated = (self.output_folder_path['short'] != self.output_folder_path['original'])
+        self.isFilenameAbbreviated = (self.master_input_file['short'].fullpath != self.master_input_file['original'].fullpath)
 
         # If not given at the class instantiation, determine how many eigenstates to plot (states_to_be_plotted attribute)
         if self.states_to_be_plotted is None:   # by default, plot all states in the output data
@@ -672,33 +680,37 @@ class SweepHelper:
                     warnings.warn("SweepHelper.execute_sweep(): Probability distribution not found")
 
 
+    def save_sweep(self, parallel_limit):
+        """
+        Create temporary input files for all sweep points.
+        """
+        # warn the user if many serial simulations are requested
+        num_of_simulations = self.data['sweep_coords'].size
+        if parallel_limit == 1:
+            if (num_of_simulations > 100 and self.shortcuts.product_name == 'nextnano++') or (num_of_simulations > 10 and self.shortcuts.product_name == 'nextnano.NEGF'):
+                while (True):
+                    choice = input(f"WARNING: {num_of_simulations} simulations requested without parallelization. Are you sure you want to run all of them one-by-one? [y/n]")
+                    if choice == 'y': break
+                    elif choice == 'n': raise RuntimeError('Nextnanopy terminated.')
+
+        logging.info(f"Preparing {num_of_simulations} simulations with max. {parallel_limit} parallelization for \n{self.master_input_file['short'].fullpath}")
+        
+        # Do not repeatedly call list.append()! Slow when n_simulations is large.
+        # Shallow copy should be enough because the only change is the input variables.
+        self.input_files = [copy.copy(self.master_input_file['short']) for _ in range(num_of_simulations)]  
+        i_input = 0
+        for input_path, coords in zip(self.input_file_fullpaths['short'], self.data['sweep_coords']):  
+            for var_name, var_value in zip(self.sweep_space.keys(), coords):
+                self.input_files[i_input].set_variable(var_name, var_value)
+            self.input_files[i_input].save(input_path, overwrite=True)
+            i_input += 1
+
+
     def recover_original_filenames(self):
         if not self.isFilenameAbbreviated:
             return
         
-        logging.info(f"Reverting output folder name from \n{self.output_folder_path['short']} to\n{self.output_folder_path['original']}")
-        
-        # move the subfolders from 'short' to 'original' root folder
-        # if os.path.isdir(self.output_folder_path['original']):
-        #     TODO: Fix: folders move to wrong places
-        #     for subfolder in os.listdir(self.output_folder_path['short']):  # os.listdir() cannot return full paths!
-        #         try:
-        #             logging.info(f"Moving {subfolder} to \n{self.output_folder_path['original']}")
-        #             shutil.move(os.path.join(self.output_folder_path['short'], subfolder), self.output_folder_path['original'])  # if the destination is an existing directory, move the source inside that directory
-        #         except:
-        #             warnings.warn(f"shutil.move() for file {subfolder} skipped.")
-        # else:
-        #     shutil.move(self.output_folder_path['short'], self.output_folder_path['original'])
-        
-        # if the output of the original folder name exists, delete because shutil.move() cannot overwrite if the destination exists
-        if os.path.isdir(self.output_folder_path['original']):
-            try: 
-                shutil.rmtree(self.output_folder_path['original'])
-            except OSError as e:
-                raise
-        
-        # rename folder
-        # shutil.move(self.output_folder_path['short'], self.output_folder_path['original'])
+        logging.info(f"Recovering original input file name in output folder names...")
         
         # within 'original' folder, rename subfolders
         for short, original in zip(self.data['output_subfolder_short'], self.data['output_subfolder']):
@@ -722,7 +734,7 @@ class SweepHelper:
                 os.remove(path)
 
         # delete the input file whose name has been abbreviated
-        if self.isFilenameAbbreviated:
+        if self.master_input_file['short'].fullpath != self.master_input_file['original'].fullpath:
             os.remove(self.master_input_file['short'].fullpath)
         logging.info("Sweep (temporary) input files deleted.")
 
@@ -764,10 +776,11 @@ class SweepHelper:
         """
         self.generate_slurm_sbatches(suffix=suffix, node=node, email=email, num_CPU=num_CPU, memory_limit=memory_limit, time_limit_hrs=time_limit_hrs, exe=exe, output_folder=output_folder, database=database)
 
-        logging.info("Saving sweep input files...")
-        self.sweep_obj.save_sweep(delete_old_files=True, round_decimal=self.round_decimal)  # creates temp input files. Ensure the same decimals for self.sweep_space and input file names
+        num_metascripts = len(self.slurm_data.metascript_paths)
+        self.save_sweep(num_metascripts)
+
         for iMetascript, metascript_path in enumerate(self.slurm_data.metascript_paths):
-            logging.info(f"Submitting jobs to Slurm (metascript {metascript_path}, {iMetascript+1} / {len(self.slurm_data.metascript_paths)})...")
+            logging.info(f"Submitting jobs to Slurm (metascript {metascript_path}, {iMetascript+1} / {num_metascripts})...")
             subprocess.run(['bash', metascript_path])
             # self.wait_slurm_jobs()
 
