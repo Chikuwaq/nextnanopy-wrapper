@@ -79,4 +79,4 @@ path_Excel = r"D:\nextnano Users\takuma.sato\nextnano\Output_temporary\nextnanop
 from pathlib import Path
 filepath = Path(path_Excel)
 filepath.parent.mkdir(parents=True, exist_ok=True)
-helper.data.to_excel(filepath)
+helper.outputs.to_excel(filepath)
