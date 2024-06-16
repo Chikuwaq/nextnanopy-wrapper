@@ -2134,13 +2134,22 @@ class NEGFShortcuts(CommonShortcuts):
 
 
     ################ Optical absorption getters #############################################
-    def get_absorption_at_transition_energy(self, output_folder, bias=0):
+    def get_absorption_at_transition_energy(self, output_folder, bias=0, polarization='z'):
         """
         Interpolate two energy grid points below and above the transition energy.
         Unit: 1/cm
         """
         transition_E_meV = self.get_transition_energy(output_folder) * CommonShortcuts.scale1ToMilli
-        datafile = self.get_DataFile_NEGF_atBias(['SemiClassical_vs_Energy'], '', bias, parent_folder=output_folder)
+
+        if polarization == 'z':
+            epsilon = '0.0,0.0,1.0'
+        elif polarization == 'x':
+            epsilon = '1.0,0.0,0.0'
+        elif polarization == 'y':
+            epsilon = '0.0,1.0,0.0'
+        else:
+            raise RuntimeError(f"Unknown light polarization '{polarization}'")
+        datafile = self.get_DataFile_NEGF_atBias(['SemiClassical_vs_Energy', epsilon], '', bias, parent_folder=output_folder)
         
         photon_energies = datafile.coords['Photon Energy'].value
         gain = datafile.variables['Gain'].value
