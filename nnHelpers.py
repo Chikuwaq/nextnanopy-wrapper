@@ -628,8 +628,8 @@ class SweepHelper:
         # NOTE: Do not delete input files! Otherwise SweepHelper.execute_sweep() cannot be called independently of SweepHelper instantiation.
         def run_input_file(input_file):
             input_file.execute(show_log=show_log, convergenceCheck=convergenceCheck, **kwargs)  # TODO: add option to use multiple threads in each simulation
-            # logging.info(f"folder_output = {input_file.folder_output}")
-        
+            
+        logging.info("Starting sweep simulations...")
         with concurrent.futures.ThreadPoolExecutor(max_workers=parallel_limit) as executor:
             # submit jobs
             futures = [executor.submit(run_input_file, input_file) for input_file in self.inputs['obj']]
