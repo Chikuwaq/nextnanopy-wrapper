@@ -816,7 +816,8 @@ class NEGFShortcuts(CommonShortcuts):
             showBias=True,
             showFermiLevel=True,
             showDensityDeviation=True,
-            lattice_temperature=None
+            lattice_temperature=None,
+            texts=None,
             ):
         """
         Overlay bandedge with energy-resolved carrier density. Loads the following output data:
@@ -828,6 +829,8 @@ class NEGFShortcuts(CommonShortcuts):
         ----------
         lattice_temperature : float
             If not None, the energy kBT is indicated inside the dispersion plot.
+        texts : list of list of str
+            Display first list on the left and the second on the right of the plot.
         """
         x, y, quantity, is_divergent = self.get_2Ddata_atBias(input_file_name, bias, 'carrier')
 
@@ -847,7 +850,16 @@ class NEGFShortcuts(CommonShortcuts):
                 E_FermiElectron, E_FermiHole = self.draw_Fermi_levels_on_2DPlot(ax2, input_file_name, bias, labelsize, is_divergent)
                 if showDensityDeviation:
                     self.draw_1D_carrier_densities_on_2DPlot(ax2, input_file_name, bias, labelsize, E_FermiElectron, E_FermiHole)
-            
+            if texts is not None:
+                hPosition = 0.5
+                for text in texts[0]:
+                    ax2.text(0.04, hPosition, text, transform=ax2.transAxes)
+                    hPosition -= 0.07
+                hPosition = 0.5
+                for text in texts[1]:
+                    ax2.text(0.55, hPosition, text, transform=ax2.transAxes)
+                    hPosition -= 0.07
+                
             # dispersion plot
             kPoints, dispersions, states_toBePlotted = self.__get_inplane_dispersion(input_file_name, 0, 0)  # TODO: implement user-defined state index range (see nnpShortcuts.plot_dispersion)
             if showBias:
@@ -865,6 +877,15 @@ class NEGFShortcuts(CommonShortcuts):
                 E_FermiElectron, E_FermiHole = self.draw_Fermi_levels_on_2DPlot(ax, input_file_name, bias, labelsize, is_divergent)
                 if showDensityDeviation:
                     self.draw_1D_carrier_densities_on_2DPlot(ax, input_file_name, bias, labelsize, E_FermiElectron, E_FermiHole)
+            if texts is not None:
+                hPosition = 0.5
+                for text in texts[0]:
+                    ax.text(0.04, hPosition, text, transform=ax.transAxes)
+                    hPosition -= 0.07
+                hPosition = 0.5
+                for text in texts[1]:
+                    ax.text(0.55, hPosition, text, transform=ax.transAxes)
+                    hPosition -= 0.07
             
         fig.tight_layout()
 
