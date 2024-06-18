@@ -94,8 +94,10 @@ class SweepHelper:
                     energy difference between the highest hole-like and lowest electron-like states
                 hole_energy_difference : real
                     energy difference between the highest heavy-hole and highest light-hole states
-                absorption_at_transition_energy : real
-                    amplitude of optical absorption at the transition energy (1/cm)
+                absorption_at_transition_energy_TE : real
+                    amplitude of optical absorption of x polarization at the transition energy (1/cm)
+                absorption_at_transition_energy_TM : real
+                    amplitude of optical absorption of z polarization at the transition energy (1/cm)
             
         states_to_be_plotted : dict of numpy.ndarray - { 'quantum model': array of values }
             for each quantum model, array of eigenstate indices to be plotted in the figure (default: all states in the output data)
@@ -217,7 +219,8 @@ class SweepHelper:
             'transition_energy_nm',
             'HH1-LH1',
             'HH1-HH2',
-            'absorption_at_transition_energy',
+            'absorption_at_transition_energy_TE',
+            'absorption_at_transition_energy_TM'
         ])
 
         if isinstance(sweep_ranges, dict):
@@ -841,7 +844,8 @@ class SweepHelper:
         if self.is_slurm_simulation():
             self.wait_slurm_jobs()
          
-        self.__calc_overlap(force_lightHole)
+        if self.shortcuts.product_name != 'nextnano.NEGF++':  # TODO: implement overlap calculation for NEGF 8kp
+            self.__calc_overlap(force_lightHole)
         self.__calc_transition_energies(force_lightHole)
         self.__calc_HH1_LH1_energy_differences()
         self.__calc_HH1_HH2_energy_differences()
@@ -852,7 +856,7 @@ class SweepHelper:
         from pathlib import Path
         filepath = Path(excel_file_path)
         filepath.parent.mkdir(parents=True, exist_ok=True)
-        self.outputs.to_excel(filepath, columns=['sweep_coords', 'overlap', 'transition_energy_meV', 'transition_energy_micron', 'HH1-LH1', 'HH1-HH2', 'absorption_at_transition_energy', *self.sweep_space.keys()])
+        self.outputs.to_excel(filepath, columns=['sweep_coords', 'overlap', 'transition_energy_meV', 'transition_energy_micron', 'HH1-LH1', 'HH1-HH2', 'absorption_at_transition_energy_TE', 'absorption_at_transition_energy_TM', *self.sweep_space.keys()])
 
 
     def export_to_csv(self, csv_file_path, force_lightHole=False, bias=0):
@@ -865,7 +869,8 @@ class SweepHelper:
             self.wait_slurm_jobs()
 
         # self.__calc_overlap(force_lightHole)
-        self.__calc_transition_energies(force_lightHole)
+        if self.shortcuts.product_name != 'nextnano.NEGF++':  # TODO: implement overlap calculation for NEGF 8kp
+            self.__calc_overlap(force_lightHole)
         self.__calc_HH1_LH1_energy_differences()
         self.__calc_HH1_HH2_energy_differences()
         if self.shortcuts.product_name == 'nextnano.NEGF++':
@@ -875,7 +880,7 @@ class SweepHelper:
         from pathlib import Path
         filepath = Path(csv_file_path)
         filepath.parent.mkdir(parents=True, exist_ok=True)
-        self.outputs.to_csv(filepath, columns=['sweep_coords', 'overlap', 'transition_energy_meV', 'transition_energy_micron', 'HH1-LH1', 'HH1-HH2', 'absorption_at_transition_energy', *self.sweep_space.keys()])
+        self.outputs.to_csv(filepath, columns=['sweep_coords', 'overlap', 'transition_energy_meV', 'transition_energy_micron', 'HH1-LH1', 'HH1-HH2', 'absorption_at_transition_energy_TE', 'absorption_at_transition_energy_TM', *self.sweep_space.keys()])
 
 
     ### Dispersion ###########################################################
@@ -996,10 +1001,12 @@ class SweepHelper:
 
 
     def __calc_absorption_at_transition_energy(self, bias):
-        if not self.outputs['absorption_at_transition_energy'].isna().any():
+        if not self.outputs['absorption_at_transition_energy_TE'].isna().any() and not self.outputs['absorption_at_transition_energy_TM'].isna().any():
             return
-        logging.info("Extracting optical absorption at transition energy...")
-        self.outputs['absorption_at_transition_energy'] = self.__get_output_subfolder_paths().apply(self.shortcuts.get_absorption_at_transition_energy, bias=bias)
+        logging.info("Extracting optical absorption at transition energy (TE polarization)...")
+        self.outputs['absorption_at_transition_energy_TE'] = self.__get_output_subfolder_paths().apply(self.shortcuts.get_absorption_at_transition_energy, 'TE', bias=bias)
+        logging.info("Extracting optical absorption at transition energy (TM polarization)...")
+        self.outputs['absorption_at_transition_energy_TM'] = self.__get_output_subfolder_paths().apply(self.shortcuts.get_absorption_at_transition_energy, 'z', bias=bias)
         
 
     def plot_overlap_squared(self, 
@@ -1047,7 +1054,7 @@ class SweepHelper:
         self.__validate_sweep_variables(x_axis)
         self.__validate_sweep_variables(y_axis)      
 
-        self.__calc_overlap(force_lightHole)
+        self.__calc_overlap(force_lightHole)  # TODO: implement overlap calculation for NEGF 8kp
 
         # x- and y-axis coordinates and 2D array-like of overlap data
         x_values, y_values, overlap = self.__slice_data_for_colormap_2D('overlap', x_axis, y_axis, datatype=np.cdouble)   # complex double = two double-precision floats
