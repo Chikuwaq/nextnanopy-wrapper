@@ -47,24 +47,50 @@ class NEGFShortcuts(CommonShortcuts):
         current = datafile.variables['Current density']
         return voltage, current
 
-    def plot_IV(self, input_file_name):
+    def plot_IV(self, 
+            input_file_names, 
+            labels,
+            title=None,
+            labelsize=CommonShortcuts.labelsize_default,
+            ticksize=CommonShortcuts.ticksize_default
+            ):
         """
         Plot the I-V curve.
         The plot is saved as an png image file.
+
+        Parameters
+        ----------
+        input_file_names : list of str
+            Specifies input files
+
+        labels : list of str
+            plot legends for each simulation. Should be in the same order as 'input_file_names'.
         """
-        voltage, current = self.get_IV(input_file_name)
+        # validate arguments
+        if len(input_file_names) != len(labels): 
+            raise NextnanopyScriptError(f"Number of input files ({len(input_file_names)}) do not match that of plot labels ({len(labels)})")
 
         fig, ax = plt.subplots()
-        ax.plot(voltage.value, current.value, 'o-')
-        ax.set_xlabel(voltage.label)
-        ax.set_ylabel("Current density ($\mathrm{A}/\mathrm{cm}^{2}$)")
-        # ax.set_title(input_file_name)
+        ax.set_ylabel("Current density ($\mathrm{kA}/\mathrm{cm}^{2}$)", fontsize=labelsize)
+        ax.set_title(title, fontsize=labelsize)
+        ax.tick_params(axis='x', labelsize=ticksize)
+        ax.tick_params(axis='y', labelsize=ticksize)
+
+        for input_file_name, label in zip(input_file_names, labels):
+            voltage, current = self.get_IV(input_file_name)
+            ax.set_xlabel(voltage.label, fontsize=labelsize)
+            current.value *= 1e-3
+            ax.plot(voltage.value, current.value, 'o-', label=label)
+
+        ax.legend()
 
         # export to an image file
         outputFolder = nn.config.get(self.product_name, 'outputdirectory')
-        filename_no_extension = CommonShortcuts.separate_extension(input_file_name)[0]
+        filename_no_extension = CommonShortcuts.separate_extension(input_file_names[0])[0]
         outputSubfolder = os.path.join(outputFolder, filename_no_extension)
         self.export_figs("IV", "png", output_folder_path=outputSubfolder, fig=fig)
+
+        return fig
 
 
 
@@ -587,7 +613,7 @@ class NEGFShortcuts(CommonShortcuts):
             is_divergent = True
         elif data == 'current':
             files = ['CurrentDensity_WithDispersion.vtr']
-            variableKey = 'Current Density'
+            variableKey = 'Current Density With In-Plane Dispersion'
             is_divergent = False
         elif data == 'current_with_dispersion':
             files = ['CurrentDensity_WithDispersion.vtr']
@@ -835,8 +861,9 @@ class NEGFShortcuts(CommonShortcuts):
         x, y, quantity, is_divergent = self.get_2Ddata_atBias(input_file_name, bias, 'carrier')
 
         logging.info("Plotting electron density...")
-        unit = r'$\mathrm{cm}^{-3} \mathrm{eV}^{-1}$'
+        unit = r'$10^{18} \mathrm{cm}^{-3} \mathrm{eV}^{-1}$'
         label = 'Electron-hole density (' + unit + ')'
+        quantity.value *= 1e-18
 
         if attachDispersion:
             # Create subplots with shared y-axis and remove spacing
@@ -851,14 +878,7 @@ class NEGFShortcuts(CommonShortcuts):
                 if showDensityDeviation:
                     self.draw_1D_carrier_densities_on_2DPlot(ax2, input_file_name, bias, labelsize, E_FermiElectron, E_FermiHole)
             if texts is not None:
-                hPosition = 0.5
-                for text in texts[0]:
-                    ax2.text(0.04, hPosition, text, transform=ax2.transAxes)
-                    hPosition -= 0.07
-                hPosition = 0.5
-                for text in texts[1]:
-                    ax2.text(0.55, hPosition, text, transform=ax2.transAxes)
-                    hPosition -= 0.07
+                CommonShortcuts.place_texts(ax2, texts)
                 
             # dispersion plot
             kPoints, dispersions, states_toBePlotted = self.__get_inplane_dispersion(input_file_name, 0, 0)  # TODO: implement user-defined state index range (see nnpShortcuts.plot_dispersion)
@@ -878,14 +898,7 @@ class NEGFShortcuts(CommonShortcuts):
                 if showDensityDeviation:
                     self.draw_1D_carrier_densities_on_2DPlot(ax, input_file_name, bias, labelsize, E_FermiElectron, E_FermiHole)
             if texts is not None:
-                hPosition = 0.5
-                for text in texts[0]:
-                    ax.text(0.04, hPosition, text, transform=ax.transAxes)
-                    hPosition -= 0.07
-                hPosition = 0.5
-                for text in texts[1]:
-                    ax.text(0.55, hPosition, text, transform=ax.transAxes)
-                    hPosition -= 0.07
+                CommonShortcuts.place_texts(ax, texts)
             
         fig.tight_layout()
 
@@ -906,23 +919,33 @@ class NEGFShortcuts(CommonShortcuts):
             zmin=None,
             zmax=None,
             shadowBandgap=False,
-            showBias=True
+            showBias=True,
+            texts=None,
             ):
         """
         Overlay bandedge with energy-resolved current density. Loads the following output data:
         CurrentDensity_WithDispersion.vtr
 
         The plot is saved as an png image file.
+
+        Parameters
+        ----------
+        texts : list of list of str
+            Display first list on the left and the second on the right of the plot.
         """
         x, y, quantity, is_divergent = self.get_2Ddata_atBias(input_file_name, bias, 'current')
 
         logging.info("Plotting current density...")
-        unit = r'$\mathrm{A}$ $\mathrm{cm}^{-2} \mathrm{eV}^{-1}$'
+        unit = r'$\mathrm{kA}$ $\mathrm{cm}^{-2} \mathrm{eV}^{-1}$'
         label = 'Current density (' + unit + ')'
+        quantity.value *= 1e-3
 
         fig, ax = plt.subplots()
         self.__draw_2D_color_plot(fig, ax, x.value, y.value, quantity.value, is_divergent, label, bias, labelsize, ticksize, zmin, zmax, showBias, True)
         self.draw_bandedges_on_2DPlot(ax, input_file_name, bias, labelsize, shadowBandgap)
+        if texts is not None:
+                CommonShortcuts.place_texts(ax, texts)
+
         fig.tight_layout()
 
         # export to an image file
@@ -942,7 +965,10 @@ class NEGFShortcuts(CommonShortcuts):
             pcolor = ax.pcolormesh(X, Y, Z.T, vmin=zmin, vmax=zmax, cmap=self.default_colors.colormap['linear'])
 
         cbar = fig.colorbar(pcolor)
-        cbar.set_label(label, fontsize=labelsize)
+        if len(label) > 35: 
+            cbar.set_label(label, fontsize=labelsize*0.8)
+        else:
+            cbar.set_label(label, fontsize=labelsize)
         cbar.ax.tick_params(labelsize=ticksize * 0.9)
 
         if set_ylabel:
