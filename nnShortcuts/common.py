@@ -1502,6 +1502,23 @@ class CommonShortcuts:
         ax.set_title(title, fontsize=labelsize)
 
 
+    @staticmethod
+    def place_texts(ax, texts):
+        """
+        Locate first list of texts on the left and second on the right of the plot specified by matplotlib.Axes.
+        """
+        hPosition = 0.5
+        for text in texts[0]:
+            ax.text(0.04, hPosition, text, transform=ax.transAxes)
+            hPosition -= 0.07
+        hPosition = 0.5
+        for text in texts[1]:
+            ax.text(0.55, hPosition, text, transform=ax.transAxes)
+            hPosition -= 0.07
+        if len(texts) > 2:
+            raise RuntimeError("Too many lists of texts requested.")
+
+
     def export_figs(self, 
             figFilename, 
             figFormat, 
