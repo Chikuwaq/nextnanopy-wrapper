@@ -139,9 +139,9 @@ class SweepHelper:
 
         """
         # initialize members
-        master_input_file = dict()
-        sweep_space = dict()
-        output_folder_path = dict()
+        self.master_input_file = dict()
+        self.sweep_space = dict()
+        self.output_folder_path = dict()
         
         # log setting
         fmt = '[%(levelname)s] %(message)s'
@@ -678,7 +678,8 @@ class SweepHelper:
                     if choice == 'y': break
                     elif choice == 'n': raise RuntimeError('Nextnanopy terminated.')
 
-        logging.info(f"Preparing {n} simulations with max. {parallel_limit} parallelization for \n{self.master_input_file['short'].fullpath}")
+        logging.info(f"Preparing {n} simulations for \n{self.master_input_file['short'].fullpath}")
+        logging.info("Max. {parallel_limit} simulations are run simultaneously.")
         
         # Do not repeatedly call list.append()! Slow when the number of simulations is large.
         # Shallow copy should be enough because the only change is the input variables.
