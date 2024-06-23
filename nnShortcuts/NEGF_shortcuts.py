@@ -2213,7 +2213,8 @@ class NEGFShortcuts(CommonShortcuts):
             if photon_energies[i_energy] <= transition_E_meV and transition_E_meV < photon_energies[i_energy + 1]:
                 # linear interpolation
                 tangent = (gain[i_energy + 1] - gain[i_energy]) / (photon_energies[i_energy + 1] - photon_energies[i_energy])
-                return tangent * (transition_E_meV - photon_energies[i_energy]) + gain[i_energy]
+                gain = tangent * (transition_E_meV - photon_energies[i_energy]) + gain[i_energy]
+                return -gain
             
         logging.warning("calc_absorption_at_transition_energy(): Gain spectrum does not cover the transition energy. Returning gain = None")
         return None
