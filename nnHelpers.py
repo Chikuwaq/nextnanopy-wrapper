@@ -682,7 +682,7 @@ class SweepHelper:
                     elif choice == 'n': raise RuntimeError('Nextnanopy terminated.')
 
         logging.info(f"Preparing {n} simulations for \n{self.master_input_file['short'].fullpath}")
-        logging.info("Max. {parallel_limit} simulations are run simultaneously.")
+        logging.info(f"Max. {parallel_limit} simulations are run simultaneously.")
         
         # Do not repeatedly call list.append()! Slow when the number of simulations is large.
         # Shallow copy should be enough because the only change is the input variables.
@@ -781,7 +781,9 @@ class SweepHelper:
             subprocess.run(['bash', metascript_path])
             # self.wait_slurm_jobs()
 
-        # self.slurm_data.delete_sbatch_scripts()
+        # point to the new output in case old simulation outputs exist with original file name
+        self.isFilenameAbbreviated = (self.master_input_file['short'].fullpath != self.master_input_file['original'].fullpath)
+
 
 
     def generate_slurm_sbatches(self, suffix='', node='microcloud', email=None, num_CPU=4, memory_limit='8G', time_limit_hrs=5, exe=None, output_folder=None, database=None):
@@ -844,13 +846,7 @@ class SweepHelper:
         if self.is_slurm_simulation():
             self.wait_slurm_jobs()
          
-        if self.shortcuts.product_name != 'nextnano.NEGF++':  # TODO: implement overlap calculation for NEGF 8kp
-            self.__calc_overlap(force_lightHole)
-        self.__calc_transition_energies(force_lightHole)
-        self.__calc_HH1_LH1_energy_differences()
-        self.__calc_HH1_HH2_energy_differences()
-        if self.shortcuts.product_name == 'nextnano.NEGF++':
-            self.__calc_absorption_at_transition_energy(bias)
+        self.__calc_output_data(force_lightHole, bias)
 
         logging.info(f"Exporting data to Excel file:\n{excel_file_path}")
         from pathlib import Path
@@ -868,19 +864,23 @@ class SweepHelper:
         if self.is_slurm_simulation():
             self.wait_slurm_jobs()
 
-        # self.__calc_overlap(force_lightHole)
-        if self.shortcuts.product_name != 'nextnano.NEGF++':  # TODO: implement overlap calculation for NEGF 8kp
-            self.__calc_overlap(force_lightHole)
-        self.__calc_HH1_LH1_energy_differences()
-        self.__calc_HH1_HH2_energy_differences()
-        if self.shortcuts.product_name == 'nextnano.NEGF++':
-            self.__calc_absorption_at_transition_energy(bias)
+        self.__calc_output_data(force_lightHole, bias)
 
         logging.info(f"Exporting data to CSV file:\n{csv_file_path}")
         from pathlib import Path
         filepath = Path(csv_file_path)
         filepath.parent.mkdir(parents=True, exist_ok=True)
         self.outputs.to_csv(filepath, columns=['sweep_coords', 'overlap', 'transition_energy_meV', 'transition_energy_micron', 'HH1-LH1', 'HH1-HH2', 'absorption_at_transition_energy_TE', 'absorption_at_transition_energy_TM', *self.sweep_space.keys()])
+
+
+    def __calc_output_data(self, force_lightHole, bias):
+        if self.shortcuts.product_name != 'nextnano.NEGF++':  # TODO: implement overlap calculation for NEGF 8kp
+            self.__calc_overlap(force_lightHole)
+        self.__calc_transition_energies(force_lightHole)
+        self.__calc_HH1_LH1_energy_differences()
+        self.__calc_HH1_HH2_energy_differences()
+        if self.shortcuts.product_name == 'nextnano.NEGF++':
+            self.__calc_absorption_at_transition_energy(bias)
 
 
     ### Dispersion ###########################################################
@@ -964,8 +964,9 @@ class SweepHelper:
         Get transition energies and store them in self.data 
         if not all transition energies have been calculated
         """
-        if not self.outputs['transition_energy_eV'].isna().any():
+        if not self.outputs['transition_energy_meV'].isna().any():
             return
+        
         logging.info("Calculating transition energies...")
         if self.shortcuts.product_name in ['nextnano3', 'nextnano++']:
             self.outputs['transition_energy_eV'] = self.__get_output_subfolder_paths().apply(self.shortcuts.get_transition_energy, force_lightHole=force_lightHole)
@@ -1004,9 +1005,9 @@ class SweepHelper:
         if not self.outputs['absorption_at_transition_energy_TE'].isna().any() and not self.outputs['absorption_at_transition_energy_TM'].isna().any():
             return
         logging.info("Extracting optical absorption at transition energy (TE polarization)...")
-        self.outputs['absorption_at_transition_energy_TE'] = self.__get_output_subfolder_paths().apply(self.shortcuts.get_absorption_at_transition_energy, 'TE', bias=bias)
+        self.outputs['absorption_at_transition_energy_TE'] = self.__get_output_subfolder_paths().apply(self.shortcuts.get_absorption_at_transition_energy, args=('TE',), bias=bias)
         logging.info("Extracting optical absorption at transition energy (TM polarization)...")
-        self.outputs['absorption_at_transition_energy_TM'] = self.__get_output_subfolder_paths().apply(self.shortcuts.get_absorption_at_transition_energy, 'z', bias=bias)
+        self.outputs['absorption_at_transition_energy_TM'] = self.__get_output_subfolder_paths().apply(self.shortcuts.get_absorption_at_transition_energy, args=('z',), bias=bias)
         
 
     def plot_overlap_squared(self, 
