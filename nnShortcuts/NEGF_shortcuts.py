@@ -2158,7 +2158,7 @@ class NEGFShortcuts(CommonShortcuts):
         """
         datafile = self.get_DataFile_in_folder(["EnergySpectrum"], output_folder, exclude_folders=["kResolved"])
         if want_second_highest:
-            iFirstHighestHH, iSecondHighestHH = self.find_highest_HH_state_atK0(output_folder, threshold=0.5, want_second_highest=want_second_highest, spin_degeneracy=2)  # TODO: generalize for 1,2,3-bands concerning spin degeneracy
+            iFirstHighestHH, iSecondHighestHH = self.find_highest_HH_state_atK0(output_folder, threshold=0.5, want_second_highest=want_second_highest, spin_degeneracy=2)  # TODO: generalize for 1,2,3-bands considering spin degeneracy
             return datafile.variables[0].value[iFirstHighestHH], datafile.variables[0].value[iSecondHighestHH]
         else:
             iHighestHH = self.find_highest_HH_state_atK0(output_folder, threshold=0.5, want_second_highest=want_second_highest, spin_degeneracy=2)

@@ -131,6 +131,8 @@ class SlurmData:
 				with open(metascript_path, 'a') as f_meta:
 					f_meta.write(f"sbatch {scriptpath}\n")
 
+		assert sbatch_file_count <= self.max_num_jobs_per_user
+		
 		# save SlurmData to file
 		with open(self.cache_path, 'w') as f_cache:
 			f_cache.write(f"Node = {self.node}\n")
