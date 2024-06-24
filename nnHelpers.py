@@ -708,7 +708,14 @@ class SweepHelper:
         logging.info(f"Recovering original input file name in output folder names...")
         
         for short, original in zip(self.outputs['output_subfolder_short'], self.outputs['output_subfolder_original']):
-            shutil.move(short, original)
+            if os.path.exists(original):
+                shutil.rmtree(original)
+            os.makedirs(original, exist_ok=False)
+
+            for item in os.listdir(short):
+                source_item = os.path.join(short, item)
+                destination_item = os.path.join(original, item)
+                shutil.move(source_item, destination_item)
 
         if os.path.exists(self.output_folder_path['short']):
             shutil.rmtree(self.output_folder_path['short'])
@@ -773,10 +780,11 @@ class SweepHelper:
         """
         self.generate_slurm_sbatches(suffix=suffix, node=node, email=email, num_CPU=num_CPU, memory_limit=memory_limit, time_limit_hrs=time_limit_hrs, exe=exe, output_folder=output_folder, database=database)
 
-        num_metascripts = len(self.slurm_data.metascript_paths)
-        self.save_sweep(num_metascripts)
+        num_sbatch_scripts = len(self.slurm_data.sbatch_script_paths)
+        self.save_sweep(num_sbatch_scripts)
 
-        for iMetascript, metascript_path in enumerate(self.slurm_data.metascript_paths):
+        num_metascripts = len(self.slurm_data.metascript_paths)
+        for iMetascript, metascript_path in enumerate(self.slurm_data.metascript_paths):  # Currently, only one metascript is generated.
             logging.info(f"Submitting jobs to Slurm (metascript {metascript_path}, {iMetascript+1} / {num_metascripts})...")
             subprocess.run(['bash', metascript_path])
             # self.wait_slurm_jobs()
