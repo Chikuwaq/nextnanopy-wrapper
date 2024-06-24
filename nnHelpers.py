@@ -249,7 +249,7 @@ class SweepHelper:
             dir = os.path.dirname(master_input_file.fullpath)
             ext = os.path.splitext(master_input_file.fullpath)[1]
             id = str(uuid.uuid4())
-            filename = id[:5] + ext  # using a part of the Universally Unique Identifier
+            filename = 'tmp' + id[:5] + ext  # using a part of the Universally Unique Identifier
             temp_path = os.path.join(dir, filename)
             master_input_file.save(temp_path, overwrite=True, automkdir=True)
 
