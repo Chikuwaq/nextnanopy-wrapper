@@ -367,7 +367,7 @@ class NEGFShortcuts(CommonShortcuts):
         datafile = self.get_DataFile_NEGF_atBias("FermiLevel.dat", input_file_name, bias=bias)
         position = datafile.coords['Position']
         try:
-            return position, datafile.variables['Fermi level'], datafile.variables['Fermi level']
+            return position, datafile.variables['Fermi level'], datafile.variables['Fermi level'], CommonShortcuts.DUMMYVALUE
         except KeyError:
             return position, datafile.variables['Electron Fermi level'], datafile.variables['Hole Fermi level'], datafile.variables['Electron-hole border']
         
@@ -687,7 +687,8 @@ class NEGFShortcuts(CommonShortcuts):
         position, FermiElectron, FermiHole, ElectronHoleBorder = self.get_Fermi_levels(input_file_name, bias)
         ax.plot(position.value, FermiElectron.value, color=color, linewidth=0.7, label=FermiElectron.label)
         ax.plot(position.value, FermiHole.value, color=color, linewidth=0.7, label=FermiHole.label)
-        ax.plot(position.value, ElectronHoleBorder.value, color=color, linewidth=0.7, linestyle='dashed')
+        if ElectronHoleBorder != CommonShortcuts.DUMMYVALUE:
+            ax.plot(position.value, ElectronHoleBorder.value, color=color, linewidth=0.7, linestyle='dashed')
 
         E_FermiElectron = FermiElectron.value[0]
         E_FermiHole = FermiHole.value[0]

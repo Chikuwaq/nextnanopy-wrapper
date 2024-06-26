@@ -62,6 +62,8 @@ class CommonShortcuts:
     vacuum_permittivity = 8.854187e-12   # [F/m] 1F = 1 kg^{-1} m^{-2} s^2 C^2 = 1 C^2 / J
     Boltzmann = 1.380649e-23   # [J/K]
 
+    DUMMYVALUE = 546578653183735435
+
     # -------------------------------------------------------
     # Output default formats
     # -------------------------------------------------------
