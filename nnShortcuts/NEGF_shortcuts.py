@@ -566,8 +566,7 @@ class NEGFShortcuts(CommonShortcuts):
         """
         EPhoton, gain = self.get_SCGain_atBias(input_file_name, bias)
         # EPhoton, gain_decomposed = self.get_SCGainDecomposed_atBias(input_file_name, bias)
-        print(gain)
-
+        
         # Store data arrays.
         # Cut off edges of the simulation region if needed.
         gain_trimmed = CommonShortcuts.cutOff_edges1D(gain.value, EPhoton.value, start_position, end_position)
@@ -611,6 +610,10 @@ class NEGFShortcuts(CommonShortcuts):
             files = ['ElectronHoleDensity_WithDispersion.vtr']
             variableKey = 'Electron-hole density'
             is_divergent = True
+        elif data == 'electron':
+            files = ['ElectronDensity_ElectronPicture_WithDispersion.vtr']
+            variableKey = 'Electron density'
+            is_divergent = False
         elif data == 'current':
             files = ['CurrentDensity_WithDispersion.vtr']
             variableKey = 'Current Density With In-Plane Dispersion'
@@ -788,17 +791,18 @@ class NEGFShortcuts(CommonShortcuts):
             If not None, the energy kBT is indicated inside the dispersion plot.
         """
         x, y, quantity, is_divergent = self.get_2Ddata_atBias(input_file_name, bias, 'LDOS')
+        colormap = self.default_colors.colormap['linear']
 
         logging.info("Plotting DOS...")
         unit = r'$\mathrm{nm}^{-1} \mathrm{eV}^{-1}$'
-        label = 'Density of states (' + unit + ')'
+        label = 'Density of states'
 
         if attachDispersion:
             # Create subplots with shared y-axis and remove spacing
             fig, (ax1, ax2) = plt.subplots(1, 2, sharey=True, gridspec_kw={'width_ratios': [1, 3]})
             plt.subplots_adjust(wspace=0)
 
-            self.__draw_2D_color_plot(fig, ax2, x.value, y.value, quantity.value, is_divergent, label, bias, labelsize, ticksize, zmin, zmax, showBias, False)
+            NEGFShortcuts.__draw_2D_color_plot(fig, ax2, x.value, y.value, quantity.value, is_divergent, colormap, label, unit, bias, labelsize, ticksize, zmin, zmax, showBias, False)
             self.draw_bandedges_on_2DPlot(ax2, input_file_name, bias, labelsize, shadowBandgap)
             if showFermiLevel:
                 E_FermiElectron, E_FermiHole = self.draw_Fermi_levels_on_2DPlot(ax2, input_file_name, bias, labelsize, is_divergent)
@@ -806,14 +810,10 @@ class NEGFShortcuts(CommonShortcuts):
                     self.draw_1D_carrier_densities_on_2DPlot(ax2, input_file_name, bias, labelsize, E_FermiElectron, E_FermiHole)
 
             kPoints, dispersions, states_toBePlotted = self.__get_inplane_dispersion(input_file_name, 0, 0)  # TODO: implement user-defined state index range (see nnpShortcuts.plot_dispersion)
-            if showBias:
-                title = 'Dispersion'
-            else:
-                title = ''
-            CommonShortcuts.draw_inplane_dispersion(ax1, kPoints, dispersions, states_toBePlotted, True, True, labelsize, title=title, lattice_temperature=lattice_temperature)  # dispersions[iState, ik]
+            CommonShortcuts.draw_inplane_dispersion(ax1, kPoints, dispersions, states_toBePlotted, True, True, labelsize, title='Dispersion', lattice_temperature=lattice_temperature)  # dispersions[iState, ik]
         else:
             fig, ax = plt.subplots()
-            self.__draw_2D_color_plot(fig, ax, x.value, y.value, quantity.value, is_divergent, label, bias, labelsize, ticksize, zmin, zmax, showBias, True)
+            NEGFShortcuts.__draw_2D_color_plot(fig, ax, x.value, y.value, quantity.value, is_divergent, colormap, label, unit, bias, labelsize, ticksize, zmin, zmax, showBias, True)
             self.draw_bandedges_on_2DPlot(ax, input_file_name, bias, labelsize, shadowBandgap)
             if showFermiLevel:
                 E_FermiElectron, E_FermiHole = self.draw_Fermi_levels_on_2DPlot(ax, input_file_name, bias, labelsize, is_divergent)
@@ -859,11 +859,13 @@ class NEGFShortcuts(CommonShortcuts):
         texts : list of list of str
             Display first list on the left and the second on the right of the plot.
         """
-        x, y, quantity, is_divergent = self.get_2Ddata_atBias(input_file_name, bias, 'carrier')
+        x, y, quantity, is_divergent = self.get_2Ddata_atBias(input_file_name, bias, 'electron')
+        colormap = self.default_colors.colormap['linear']
 
         logging.info("Plotting electron density...")
         unit = r'$10^{18} \mathrm{cm}^{-3} \mathrm{eV}^{-1}$'
-        label = 'Electron-hole density (' + unit + ')'
+        # label = 'Electron-hole density (' + unit + ')'
+        label = 'Electron density'
         quantity.value *= 1e-18
 
         if attachDispersion:
@@ -872,7 +874,7 @@ class NEGFShortcuts(CommonShortcuts):
             plt.subplots_adjust(wspace=0)
 
             # 2D color plot
-            self.__draw_2D_color_plot(fig, ax2, x.value, y.value, quantity.value, is_divergent, label, bias, labelsize, ticksize, zmin, zmax, showBias, False)
+            NEGFShortcuts.__draw_2D_color_plot(fig, ax2, x.value, y.value, quantity.value, is_divergent, colormap, label, unit, bias, labelsize, ticksize, zmin, zmax, showBias, False)
             self.draw_bandedges_on_2DPlot(ax2, input_file_name, bias, labelsize, shadowBandgap)
             if showFermiLevel:
                 E_FermiElectron, E_FermiHole = self.draw_Fermi_levels_on_2DPlot(ax2, input_file_name, bias, labelsize, is_divergent)
@@ -883,16 +885,12 @@ class NEGFShortcuts(CommonShortcuts):
                 
             # dispersion plot
             kPoints, dispersions, states_toBePlotted = self.__get_inplane_dispersion(input_file_name, 0, 0)  # TODO: implement user-defined state index range (see nnpShortcuts.plot_dispersion)
-            if showBias:
-                title = 'Dispersion'
-            else:
-                title = ''
-            CommonShortcuts.draw_inplane_dispersion(ax1, kPoints, dispersions, states_toBePlotted, True, True, labelsize, title=title, lattice_temperature=lattice_temperature)  # dispersions[iState, ik]
+            CommonShortcuts.draw_inplane_dispersion(ax1, kPoints, dispersions, states_toBePlotted, True, True, labelsize, title='Dispersion', lattice_temperature=lattice_temperature)  # dispersions[iState, ik]
         else:
             fig, ax = plt.subplots()
 
             # 2D color plot
-            self.__draw_2D_color_plot(fig, ax, x.value, y.value, quantity.value, is_divergent, label, bias, labelsize, ticksize, zmin, zmax, showBias, True)
+            NEGFShortcuts.__draw_2D_color_plot(fig, ax, x.value, y.value, quantity.value, is_divergent, colormap, label, unit, bias, labelsize, ticksize, zmin, zmax, showBias, True)
             self.draw_bandedges_on_2DPlot(ax, input_file_name, bias, labelsize, shadowBandgap)
             if showFermiLevel:
                 E_FermiElectron, E_FermiHole = self.draw_Fermi_levels_on_2DPlot(ax, input_file_name, bias, labelsize, is_divergent)
@@ -935,14 +933,15 @@ class NEGFShortcuts(CommonShortcuts):
             Display first list on the left and the second on the right of the plot.
         """
         x, y, quantity, is_divergent = self.get_2Ddata_atBias(input_file_name, bias, 'current')
+        colormap = self.default_colors.colormap['linear']
 
         logging.info("Plotting current density...")
         unit = r'$\mathrm{kA}$ $\mathrm{cm}^{-2} \mathrm{eV}^{-1}$'
-        label = 'Current density (' + unit + ')'
+        label = 'Current density'
         quantity.value *= 1e-3
 
         fig, ax = plt.subplots()
-        self.__draw_2D_color_plot(fig, ax, x.value, y.value, quantity.value, is_divergent, label, bias, labelsize, ticksize, zmin, zmax, showBias, True)
+        NEGFShortcuts.__draw_2D_color_plot(fig, ax, x.value, y.value, quantity.value, is_divergent, colormap, label, unit, bias, labelsize, ticksize, zmin, zmax, showBias, True)
         self.draw_bandedges_on_2DPlot(ax, input_file_name, bias, labelsize, shadowBandgap)
         if texts is not None:
                 CommonShortcuts.place_texts(ax, texts)
@@ -958,18 +957,24 @@ class NEGFShortcuts(CommonShortcuts):
         return fig
 
 
-    def __draw_2D_color_plot(self, fig, ax, X, Y, Z, is_divergent, label, bias, labelsize, ticksize, zmin, zmax, showBias, set_ylabel):
+    @staticmethod
+    def __draw_2D_color_plot(fig, ax, X, Y, Z, is_divergent, colormap, label, cbar_unit, bias, labelsize, ticksize, zmin, zmax, showBias, set_ylabel):
         from matplotlib import colors
         if is_divergent:
-            pcolor = ax.pcolormesh(X, Y, Z.T, cmap=self.default_colors.colormap['divergent'], norm=colors.CenteredNorm(vcenter=0, halfrange=zmax))
+            pcolor = ax.pcolormesh(X, Y, Z.T, cmap=colormap, norm=colors.CenteredNorm(vcenter=0, halfrange=zmax))
         else:
-            pcolor = ax.pcolormesh(X, Y, Z.T, vmin=zmin, vmax=zmax, cmap=self.default_colors.colormap['linear'])
+            pcolor = ax.pcolormesh(X, Y, Z.T, vmin=zmin, vmax=zmax, cmap=colormap)
 
         cbar = fig.colorbar(pcolor)
-        if len(label) > 35: 
-            cbar.set_label(label, fontsize=labelsize*0.8)
+        if showBias:
+            cbar_label = label + ' (' + cbar_unit + ')'
         else:
-            cbar.set_label(label, fontsize=labelsize)
+            cbar_label = '(' + cbar_unit + ')'
+
+        if len(cbar_label) > 35: 
+            cbar.set_label(cbar_label, fontsize=labelsize*0.8)
+        else:
+            cbar.set_label(cbar_label, fontsize=labelsize)
         cbar.ax.tick_params(labelsize=ticksize * 0.9)
 
         if set_ylabel:
@@ -979,7 +984,7 @@ class NEGFShortcuts(CommonShortcuts):
         if showBias:
             ax.set_title(f'bias={bias}mV', fontsize=labelsize)
         else:
-            ax.set_title('', fontsize=labelsize)
+            ax.set_title(label, fontsize=labelsize)
         ax.tick_params(axis='x', labelsize=ticksize)
         ax.tick_params(axis='y', labelsize=ticksize)
 
