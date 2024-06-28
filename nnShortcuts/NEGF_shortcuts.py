@@ -458,7 +458,7 @@ class NEGFShortcuts(CommonShortcuts):
         WS_states = [CommonShortcuts.mask_part_of_array(WS_state) for WS_state in WS_states]   # hide flat tails
 
         fig, ax = plt.subplots()
-        ax.set_xlabel(position.label, fontsize=labelsize)
+        ax.set_xlabel("Position $z$ (nm)", fontsize=labelsize)
         ax.set_ylabel("Energy (eV)", fontsize=labelsize)
         ax.set_title('Wannier-Stark states', fontsize=labelsize)
         ax.tick_params(axis='x', labelsize=ticksize)
@@ -658,7 +658,7 @@ class NEGFShortcuts(CommonShortcuts):
         except:
             pass
 
-        ax.set_xlabel(position.label, fontsize=labelsize)
+        ax.set_xlabel("Position $z$ (nm)", fontsize=labelsize)
         ax.plot(position.value, CB.value, color=self.default_colors.bands_dark_background['CB'], linewidth=0.7, label=CB.label)
         if LH is not None: ax.plot(position.value, LH.value, color=self.default_colors.bands_dark_background['LH'], linewidth=0.7, label=LH.label)
         if HH is not None: ax.plot(position.value, HH.value, color=self.default_colors.bands_dark_background['HH'], linewidth=0.7, label=HH.label)
@@ -695,13 +695,18 @@ class NEGFShortcuts(CommonShortcuts):
 
         E_FermiElectron = FermiElectron.value[0]
         E_FermiHole = FermiHole.value[0]
+        # if ElectronHoleBorder != CommonShortcuts.DUMMYVALUE:
+        #     E_border = ElectronHoleBorder.value[0]
+
         zmax = np.amax(position.value)
         isEquilibrium = (np.amin(FermiElectron.value) == np.amin(FermiHole.value)) and (np.amax(FermiElectron.value) == np.amax(FermiHole.value))
         if isEquilibrium:
             ax.annotate("$E_F$", color=color, fontsize=labelsize, xy=(0.9*zmax, E_FermiElectron), xytext=(0.9*zmax, E_FermiElectron + 0.05))
         else:
-            ax.annotate("$E_F^e$", color=color, fontsize=labelsize, xy=(0.9*zmax, E_FermiElectron), xytext=(0.9*zmax, E_FermiElectron + 0.05))
-            ax.annotate("$E_F^h$", color=color, fontsize=labelsize, xy=(0.9*zmax, E_FermiHole), xytext=(0.9*zmax, E_FermiHole - 0.20))
+            ax.annotate("$E_F^e$", color=color, fontsize=labelsize, xy=(0.9*zmax, E_FermiElectron), xytext=(0.9*zmax, E_FermiElectron + 0.03))
+            ax.annotate("$E_F^h$", color=color, fontsize=labelsize, xy=(0.9*zmax, E_FermiHole), xytext=(0.9*zmax, E_FermiHole + 0.03))
+            # if ElectronHoleBorder != CommonShortcuts.DUMMYVALUE:
+            #     ax.annotate("e-h border", color=color, fontsize=labelsize, xy=(0.9 * zmax, ElectronHoleBorder), xytext=(0.9 * zmax, E_border + 0.03))
         return E_FermiElectron, E_FermiHole
         
 
@@ -845,6 +850,7 @@ class NEGFShortcuts(CommonShortcuts):
             showDensityDeviation=True,
             lattice_temperature=None,
             texts=None,
+            in_electron_hole_picture=False,
             ):
         """
         Overlay bandedge with energy-resolved carrier density. Loads the following output data:
@@ -859,13 +865,23 @@ class NEGFShortcuts(CommonShortcuts):
         texts : list of list of str
             Display first list on the left and the second on the right of the plot.
         """
-        x, y, quantity, is_divergent = self.get_2Ddata_atBias(input_file_name, bias, 'electron')
-        colormap = self.default_colors.colormap['linear']
+        if in_electron_hole_picture:
+            data_name = 'carrier'
+        else:
+            data_name = 'electron'
+        x, y, quantity, is_divergent = self.get_2Ddata_atBias(input_file_name, bias, data_name)
+        if is_divergent:
+            colormap = self.default_colors.colormap['divergent']
+        else:
+            colormap = self.default_colors.colormap['linear']
 
         logging.info("Plotting electron density...")
         unit = r'$10^{18} \mathrm{cm}^{-3} \mathrm{eV}^{-1}$'
         # label = 'Electron-hole density (' + unit + ')'
-        label = 'Electron density'
+        if in_electron_hole_picture:
+            label = 'Electron-hole density'
+        else:
+            label = 'Electron density'
         quantity.value *= 1e-18
 
         if attachDispersion:
