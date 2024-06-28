@@ -458,7 +458,7 @@ class NEGFShortcuts(CommonShortcuts):
         WS_states = [CommonShortcuts.mask_part_of_array(WS_state) for WS_state in WS_states]   # hide flat tails
 
         fig, ax = plt.subplots()
-        ax.set_xlabel(position.label, fontsize=labelsize)
+        ax.set_xlabel("Position $z$ (nm)", fontsize=labelsize)
         ax.set_ylabel("Energy (eV)", fontsize=labelsize)
         ax.set_title('Wannier-Stark states', fontsize=labelsize)
         ax.tick_params(axis='x', labelsize=ticksize)
@@ -658,7 +658,7 @@ class NEGFShortcuts(CommonShortcuts):
         except:
             pass
 
-        ax.set_xlabel(position.label, fontsize=labelsize)
+        ax.set_xlabel("Position $z$ (nm)", fontsize=labelsize)
         ax.plot(position.value, CB.value, color=self.default_colors.bands_dark_background['CB'], linewidth=0.7, label=CB.label)
         if LH is not None: ax.plot(position.value, LH.value, color=self.default_colors.bands_dark_background['LH'], linewidth=0.7, label=LH.label)
         if HH is not None: ax.plot(position.value, HH.value, color=self.default_colors.bands_dark_background['HH'], linewidth=0.7, label=HH.label)
