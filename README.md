@@ -10,20 +10,21 @@ The module `nnHelpers` is an object-oriented wrapper around [nextnanopy](https:/
 ![alt text](/docs/images/NEGF_shortcuts.png)
 
 
-## How to use
+## How to use shortcuts
 After 'git pull'ing this repo, the shortcut functions are available if you import respective modules:
 ```python
 # nextnano++ shortcut functions
-import nnShortcuts.nnp_shortcuts as nnp
+from nnShortcuts.nnp_shortcuts import nnpShortcuts
 
 # nextnano3 shortcut functions
-import nnShortcuts.nn3_shortcuts as nn3
+from nnShortcuts.nn3_shortcuts import nn3Shortcuts
 
 # nextnano.NEGF shortcut functions
-import nnShortcuts.NEGF_shortcuts as negf
+from nnShortcuts.NEGF_shortcuts import NEGFShortcuts
 
 ```
 
+## How to use SweepHelper
 A SweepHelper object allows you sweep execution and its post-processing. 
 ```python
 from nnHelpers import SweepHelper
@@ -36,6 +37,19 @@ helper.plot_transition_energies(<x axis>, <y axis>, <kwargs options>)
 ...
 ```
 
+## How to use nextnano colormap
+![alt text](/docs/images/nextnano_colors.png)
+```python
+from nnShortcuts.nextnano_colors import NextnanoColor
+
+cmap1 = NextnanoColor.cmap['divergent_dark']
+cmap2 = NextnanoColor.cmap['divergent_bright']
+cmap3 = NextnanoColor.cmap['sequential']
+# Use one of these for e.g. matplotlib's colormap parameter.
+
+```
+
+
 ## Examples
 Please refer to the examples in `examples/`. 
 The following example in the [nextnanopy](https://github.com/nextnanopy/nextnanopy) repository also uses this wrapper to perform a voltage sweep and postprocessing:
@@ -46,7 +60,6 @@ The following example in the [nextnanopy](https://github.com/nextnanopy/nextnano
 
 
 ## Limitations
-Currently, the SweepHelper class only supports sweep simulation of nextnano++ and nextnano.NEGF++.
 
 
 ## Contributing

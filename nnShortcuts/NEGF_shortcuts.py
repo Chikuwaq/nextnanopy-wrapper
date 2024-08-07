@@ -711,7 +711,7 @@ class NEGFShortcuts(CommonShortcuts):
         
 
     def draw_1D_carrier_densities_on_2DPlot(self, ax, input_file_name, bias, labelsize, E_FermiElectron, E_FermiHole):
-        color = 'green'
+        color = 'tab:green'
 
         position, electron_density, hole_density = self.get_carrier_density_deviation(input_file_name, bias)
         max_density = np.amax(electron_density.value)
