@@ -44,7 +44,7 @@ from nnShortcuts.nextnano_colors import NextnanoColor
 
 cmap1 = NextnanoColor.cmap['divergent_dark']
 cmap2 = NextnanoColor.cmap['divergent_bright']
-cmap3 = NextnanoColor.cmap['sequential']
+cmap3 = NextnanoColor.cmap['linear']
 # Use one of these for e.g. matplotlib's colormap parameter.
 
 ```

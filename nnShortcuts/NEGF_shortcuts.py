@@ -659,9 +659,9 @@ class NEGFShortcuts(CommonShortcuts):
             pass
 
         ax.set_xlabel("Position $z$ (nm)", fontsize=labelsize)
-        ax.plot(position.value, CB.value, color=self.default_colors.bands_dark_background['CB'], linewidth=0.7, label=CB.label)
-        if LH is not None: ax.plot(position.value, LH.value, color=self.default_colors.bands_dark_background['LH'], linewidth=0.7, label=LH.label)
-        if HH is not None: ax.plot(position.value, HH.value, color=self.default_colors.bands_dark_background['HH'], linewidth=0.7, label=HH.label)
+        ax.plot(position.value, CB.value, color=self.default_colors.bands_dark_background['CB'], linewidth=1.0, label=CB.label)
+        if LH is not None: ax.plot(position.value, LH.value, color=self.default_colors.bands_dark_background['LH'], linewidth=1.0, label=LH.label)
+        if HH is not None: ax.plot(position.value, HH.value, color=self.default_colors.bands_dark_background['HH'], linewidth=1.0, linestyle='dotted', label=HH.label)
 
         if shadowBandgap:
             # fill the gap
@@ -670,7 +670,7 @@ class NEGFShortcuts(CommonShortcuts):
                     VBTop = np.maximum(HH.value, LH.value)
                 else:
                     VBTop = HH.value
-                ax.fill_between(position.value, VBTop, CB.value, color='grey')
+                ax.fill_between(position.value, VBTop, CB.value, color=self.default_colors.bandgap_fill)
             
 
     def draw_Fermi_levels_on_2DPlot(self, ax, input_file_name, bias, labelsize, is_divergent):
@@ -683,9 +683,9 @@ class NEGFShortcuts(CommonShortcuts):
             hole Fermi energy
         """
         if is_divergent:
-            color = self.default_colors.lines_on_colormap['divergent']
+            color = self.default_colors.lines_on_colormap['divergent_dark']
         else:
-            color = self.default_colors.lines_on_colormap['linear']
+            color = self.default_colors.lines_on_colormap['linear_dark_bg']
 
         position, FermiElectron, FermiHole, ElectronHoleBorder = self.get_Fermi_levels(input_file_name, bias)
         ax.plot(position.value, FermiElectron.value, color=color, linewidth=0.7, label=FermiElectron.label)
@@ -711,8 +711,6 @@ class NEGFShortcuts(CommonShortcuts):
         
 
     def draw_1D_carrier_densities_on_2DPlot(self, ax, input_file_name, bias, labelsize, E_FermiElectron, E_FermiHole):
-        color = 'tab:green'
-
         position, electron_density, hole_density = self.get_carrier_density_deviation(input_file_name, bias)
         max_density = np.amax(electron_density.value)
         min_density = np.amin(hole_density.value)
@@ -724,8 +722,8 @@ class NEGFShortcuts(CommonShortcuts):
         print(f"Scaling deviation by {scaling_factor}")
         electron_density_scaled = electron_density.value * scaling_factor        
         hole_density_scaled = hole_density.value * scaling_factor
-        ax.plot(position.value, E_FermiElectron + electron_density_scaled, color=color, linewidth=1.0, label=electron_density.label)
-        ax.plot(position.value, E_FermiHole + hole_density_scaled,     color=color, linewidth=1.0, label=hole_density.label)
+        ax.plot(position.value, E_FermiElectron + electron_density_scaled, color=self.default_colors.lines_on_colormap['linear_dark_bg'], linewidth=1.0, label=electron_density.label)
+        ax.plot(position.value, E_FermiHole + hole_density_scaled, color=self.default_colors.lines_on_colormap['linear_dark_bg'], linewidth=1.0, label=hole_density.label)
 
         # zmax = np.amax(position.value)
         # ax.annotate("", color=color, fontsize=labelsize, xy=(0.1*zmax, E_FermiElectron), xytext=(0.1*zmax, E_FermiElectron + 0.2))
@@ -796,7 +794,7 @@ class NEGFShortcuts(CommonShortcuts):
             If not None, the energy kBT is indicated inside the dispersion plot.
         """
         x, y, quantity, is_divergent = self.get_2Ddata_atBias(input_file_name, bias, 'LDOS')
-        colormap = self.default_colors.colormap['linear']
+        colormap = self.default_colors.colormap['linear_dark_bg']
 
         logging.info("Plotting DOS...")
         unit = r'$\mathrm{nm}^{-1} \mathrm{eV}^{-1}$'
@@ -871,9 +869,9 @@ class NEGFShortcuts(CommonShortcuts):
             data_name = 'electron'
         x, y, quantity, is_divergent = self.get_2Ddata_atBias(input_file_name, bias, data_name)
         if is_divergent:
-            colormap = self.default_colors.colormap['divergent']
+            colormap = self.default_colors.colormap['divergent_dark']
         else:
-            colormap = self.default_colors.colormap['linear']
+            colormap = self.default_colors.colormap['linear_dark_bg']
 
         logging.info("Plotting electron density...")
         unit = r'$10^{18} \mathrm{cm}^{-3} \mathrm{eV}^{-1}$'
@@ -949,7 +947,7 @@ class NEGFShortcuts(CommonShortcuts):
             Display first list on the left and the second on the right of the plot.
         """
         x, y, quantity, is_divergent = self.get_2Ddata_atBias(input_file_name, bias, 'current')
-        colormap = self.default_colors.colormap['linear']
+        colormap = self.default_colors.colormap['linear_dark_bg']
 
         logging.info("Plotting current density...")
         unit = r'$\mathrm{kA}$ $\mathrm{cm}^{-2} \mathrm{eV}^{-1}$'
@@ -994,7 +992,7 @@ class NEGFShortcuts(CommonShortcuts):
         cbar.ax.tick_params(labelsize=ticksize * 0.9)
 
         if set_ylabel:
-            ax.set_ylabel("Energy (eV)", fontsize=labelsize)
+            ax.set_ylabel("Energy (eV)", fontsize=labelsize, labelpad=10)
         ax.set_xlim(np.amin(X), np.amax(X))
         ax.set_ylim(np.amin(Y), np.amax(Y))
         if showBias:
@@ -1095,7 +1093,7 @@ class NEGFShortcuts(CommonShortcuts):
 
         # Plot colormap for the initial bias.
         # F[:-1, :-1, 0] gives the values on the x-y plane at initial bias.
-        cax = ax.pcolormesh(x.value, y.value, F[:-1, :-1, 0], vmin=-1, vmax=1, cmap=self.default_colors.colormap['linear'])
+        cax = ax.pcolormesh(x.value, y.value, F[:-1, :-1, 0], vmin=-1, vmax=1, cmap=self.default_colors.colormap['linear_dark_bg'])
         cbar = fig.colorbar(cax)
         cbar.set_label(label)
 
@@ -1106,7 +1104,7 @@ class NEGFShortcuts(CommonShortcuts):
             # update 2D color plot
             cax.set_array(F[:-1, :-1, i].flatten())
             # update conduction bandedge plot
-            ax.plot(x.value, CB.value, color=self.default_colors.lines_on_colormap['linear'], linewidth=0.7, label=CB.label)
+            ax.plot(x.value, CB.value, color=self.default_colors.lines_on_colormap['linear_dark_bg'], linewidth=0.7, label=CB.label)
 
 
         # ax.legend(loc='upper left')

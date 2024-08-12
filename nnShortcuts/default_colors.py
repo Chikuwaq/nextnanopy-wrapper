@@ -21,24 +21,41 @@ class DefaultColors:
             'kp6': 'blueviolet',
             'kp8': 'black'
         }
+        # self.bands_dark_background = {
+        #     'Gamma': 'darkgreen',
+        #     'CB': 'darkgreen',
+        #     'HH': 'lime', # 'cyan',
+        #     'LH': 'lime',
+        #     'SO': 'wheat',
+        #     'kp6': 'magenta',
+        #     'kp8': 'silver'
+        # }
         self.bands_dark_background = {
-            'Gamma': 'salmon',
-            'CB': 'salmon',
-            'HH': 'cyan',
-            'LH': 'lime',
+            'Gamma': '#999999',  # (NextnanoColor.r_in_nnblue, NextnanoColor.g_in_nnblue, NextnanoColor.b_in_nnblue),
+            'CB': '#999999',  # (NextnanoColor.r_in_nnblue, NextnanoColor.g_in_nnblue, NextnanoColor.b_in_nnblue),
+            'HH': '#999999',
+            'LH': '#999999',
             'SO': 'wheat',
             'kp6': 'magenta',
             'kp8': 'silver'
         }
+        self.bandgap_fill = '#333333'  # 'grey' in the scale from 0 to f
 
-        self.colormap['linear'] = NextnanoColor.cmap['linear']  # 'cividis'
-        self.lines_on_colormap['linear'] = 'black'  # 'white'
+        self.colormap['linear_bright_bg'] = NextnanoColor.cmap['linear']  # 'cividis'
+        self.lines_on_colormap['linear_bright_bg'] = 'black'
 
-        self.colormap['sequential'] = 'Greens'
+        self.colormap['linear_dark_bg'] = NextnanoColor.cmap['linear'].reversed()  # 'cividis'
+        self.lines_on_colormap['linear_dark_bg'] = 'white'
+
 
         # TODO: load the CSV file at root of this repo and implement 'Fast' color map, which is divergent and Color Vision Deficiency (https://www.kennethmoreland.com/color-advice/)
-        self.colormap['divergent'] = NextnanoColor.cmap['divergent_bright']  # 'bwr'  # 'seismic'
-        self.lines_on_colormap['divergent'] = 'black'
+        self.colormap['divergent_bright'] = 'bwr'  # 'seismic'
+        self.lines_on_colormap['divergent_bright'] = 'black'
+
+        self.colormap['divergent_dark'] = NextnanoColor.cmap['divergent_dark']
+        self.lines_on_colormap['divergent_dark'] = 'white'
+
+        self.colormap['sequential'] = 'Greens'
 
         self.current_voltage = 'tab:blue'
         self.light_voltage = 'tab:red'
