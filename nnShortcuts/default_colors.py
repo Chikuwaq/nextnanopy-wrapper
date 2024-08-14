@@ -10,6 +10,8 @@ class DefaultColors:
 
     current_voltage = ''
     light_voltage = ''
+    current_under_illumination = ''
+    responsivity = ''
 
     def __init__(self) -> None:
         self.bands = {
@@ -59,3 +61,5 @@ class DefaultColors:
 
         self.current_voltage = 'tab:blue'
         self.light_voltage = 'tab:red'
+        self.current_under_illumination = 'tab:orange'
+        self.responsivity = 'tab:purple'

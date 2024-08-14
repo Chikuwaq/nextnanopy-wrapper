@@ -1003,26 +1003,160 @@ class NEGFShortcuts(CommonShortcuts):
         ax.tick_params(axis='y', labelsize=ticksize)
 
 
-    # TODO: Which quantity should be overlayed to Gain?
-    # TODO: support for other xaxes, for self-consistent results
-    # def get_gain(input_file_name, xaxis='Energy'):
-    #     """
-    #     Get 2D plot of gain with specified x-axis. Loads one of the following output data:
-    #     - Gain_vs_EField*.dat (1D)
-    #     - Gain_vs_Voltage*.dat (1D)
-    #     - Gain_Map_EnergyVoltage.fld
-    #     - Gain_SelfConsistent_vs_Energy.dat (2D)
-    #     - Gain_SelfConsistent_vs_Frequency.dat (2D)
-    #     - Gain_SelfConsistent_vs_Wavelength.dat (2D)
-    #     """
-    #     # datafile = self.get_DataFile(f'Gain_SelfConsistent_vs_{xaxis}.dat', input_file_name)
-    #     datafile = self.get_DataFile('Gain_vs_Voltage', input_file_name)
-    #     voltage = datafile.variables['Potential per period']
-    #     gain = datafile.variables['Maximum gain']
-    #     return voltage, gain
+    def get_gain(self, input_file_name, xaxis='Energy'):
+        """
+        Get 2D plot of gain with specified x-axis. Loads one of the following output data:
+        - Gain_vs_EField*.dat (1D)
+        - Gain_vs_Voltage*.dat (1D)
+        - Gain_Map_EnergyVoltage.fld
+        - Gain_SelfConsistent_vs_Energy.dat (2D)
+        - Gain_SelfConsistent_vs_Frequency.dat (2D)
+        - Gain_SelfConsistent_vs_Wavelength.dat (2D)
+        """
+        # datafile = self.get_DataFile(f'Gain_SelfConsistent_vs_{xaxis}.dat', input_file_name)
+        datafile = self.get_DataFile('Gain_vs_Voltage', input_file_name)
+        voltage = datafile.variables['Potential per period']
+        gain = datafile.variables['Maximum gain']
+        return voltage, gain
 
-    # def plot_gain():
+    def plot_responsivities(self,
+                          names_dark,
+                          names_illuminated,
+                          labels,
+                          input_power,
+                          labelsize=CommonShortcuts.labelsize_default,
+                          ticksize=CommonShortcuts.ticksize_default,
+                          ):
+        """
+        Plot one or more responsivity curves [A/W] as a function of potential per drop.
 
+        Parameters
+        ----------
+        names_dark, names_illuminated : list of str
+            Specifies input files that produce dark and illuminated current densities
+
+        labels : list of str
+            plot legends for each simulation. Should be in the same order as 'names'.
+
+        labelsize : int, optional
+            font size of xlabel and ylabel
+
+        ticksize : int, optional
+            font size of xtics and ytics
+
+        Units in plot
+        -------------
+        current density [kA/cm^2]
+        photodetector responsivity [A/W]
+        potential drop per period [mV]
+
+        Returns
+        -------
+        fig : matplotlib.figure.Figure object
+        """
+        # validate arguments
+        if len(names_dark) != len(labels):
+            raise NextnanopyScriptError(
+                f"Number of input files ({len(names_dark)}) do not match that of plot labels ({len(labels)})")
+        if len(names_illuminated) != len(labels):
+            raise NextnanopyScriptError(
+                f"Number of input files ({len(names_illuminated)}) do not match that of plot labels ({len(labels)})")
+
+        # list of data for sweeping temperature
+        dark_current_densities = list()
+        potential_drops_dark = list()
+
+        for i, name in enumerate(names_dark):
+            # I-V data, units adjusted
+            datafile_IV = self.get_DataFile('Current_vs_Voltage.dat', name)
+            I = datafile_IV.variables['Current density'].value * self.scale1ToKilo
+            V = datafile_IV.coords['Potential per period'].value
+            dark_current_densities.append(I)
+            potential_drops_dark.append(V)
+
+        illuminated_current_densities = list()
+        potential_drops_illuminated = list()
+
+        for i, name in enumerate(names_illuminated):
+            # I-V data, units adjusted
+            datafile_IV = self.get_DataFile('Current_vs_Voltage.dat', name)
+            I = datafile_IV.variables['Current density'].value * self.scale1ToKilo
+            V = datafile_IV.coords['Potential per period'].value
+            illuminated_current_densities.append(I)
+            potential_drops_illuminated.append(V)
+
+        from matplotlib.ticker import MultipleLocator
+        fig, ax1 = plt.subplots()
+
+        linetypes = ['solid', 'dashed', 'dotted', 'dashdot']
+
+        # dark and illuminated current densities
+        cnt = 0
+        for current_density, p_drop in zip(dark_current_densities, potential_drops_dark):
+            ax1.plot(p_drop, current_density, color=self.default_colors.current_voltage, ls=linetypes[cnt], label=labels[cnt])
+            cnt += 1
+        cnt = 0
+        for current_density, p_drop in zip(illuminated_current_densities, potential_drops_illuminated):
+            ax1.plot(p_drop, current_density, color=self.default_colors.current_under_illumination, ls=linetypes[cnt], label=labels[cnt])
+            cnt += 1
+        ax1.set_xlabel('Potential drop per period ($\mathrm{mV}$)', fontsize=labelsize)
+        ax1.set_ylabel('Current density ($\mathrm{A}/\mathrm{cm}^2$)', color=self.default_colors.current_voltage, fontsize=labelsize)
+        ax1.set_yscale("log")
+        ax1.tick_params(axis='y', labelcolor=self.default_colors.current_voltage, labelsize=ticksize)
+        # ax1.set_xlim(Imin, Imax)
+        # ax1.set_ylim(Vmin, Vmax)
+        # plt.xticks([0.0, 0.5, 1.0, 1.5])
+        # plt.yticks([0, 5, 10, 15])
+        ax1.xaxis.set_minor_locator(MultipleLocator(0.1))
+        ax1.yaxis.set_minor_locator(MultipleLocator(1))
+        ax1.legend()
+
+        # do we need second x-axis?
+        # ax3 = ax1.secondary_xaxis('top', functions=(forward_conversion, backward_conversion))
+        # ax3.set_xlabel('Current density ($\mathrm{kA}/\mathrm{cm}^2$)', fontsize=labelsize)
+
+        # responsivity curve
+        p_drops, responsivities = self.__calc_responsivities(potential_drops_dark, dark_current_densities, potential_drops_illuminated, illuminated_current_densities, input_power)
+        ax2 = ax1.twinx()   # shared x axis
+        cnt = 0
+        for responsivity, p_drop in zip(responsivities, p_drops):
+            ax2.plot(p_drop, responsivity, '.', color=self.default_colors.responsivity, ls=linetypes[cnt], label=labels[cnt])
+            cnt += 1
+        ax2.set_ylabel('Responsivity ($\mathrm{A/W}$)', color=self.default_colors.responsivity, fontsize=labelsize)
+        ax2.tick_params(axis='y', labelcolor=self.default_colors.responsivity, labelsize=ticksize)
+        # ax2.set_ylim(Pmin, Pmax)
+        # plt.yticks([0, 50, 100, 150])
+        ax2.yaxis.set_minor_locator(MultipleLocator(10))
+
+        fig.tight_layout()
+        plt.show()
+
+        return fig
+
+    def __calc_responsivities(self,
+                            potential_drops_dark, dark_current_densities,
+                            potential_drops_illuminated, illuminated_current_densities,
+                            input_power
+                            ):
+        """
+        Calculate [(illuminated current) - (dark current)] / (input light power).
+        Returns
+        -------
+
+        """
+        # validate arguments
+        if not isinstance(dark_current_densities, list): raise TypeError(f"current densities must be a list, but is {type(dark_current_densities)}")
+        if not isinstance(illuminated_current_densities, list): raise TypeError(f"current densities must be a list, but is {type(illuminated_current_densities)}")
+
+        # TODO: Interpolate potential drop if dark and illuminated currents were simulated at different potential drops.
+        potential_drops = potential_drops_dark
+        responsivities = list()
+        input_power_Wcm2 = float(input_power) * 1e-4  # nextnano.NEGF input is in [W/m^2]
+        for dark, illuminated in zip(dark_current_densities, illuminated_current_densities):
+            photocurrent = illuminated - dark
+            responsivities.append(photocurrent / input_power_Wcm2)
+        print(responsivities)
+        return potential_drops, responsivities
 
     def get_biases(self, name):
         """
