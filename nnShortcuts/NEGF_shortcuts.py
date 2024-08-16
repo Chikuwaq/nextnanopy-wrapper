@@ -1023,9 +1023,11 @@ class NEGFShortcuts(CommonShortcuts):
                           names_dark,
                           names_illuminated,
                           labels,
-                          input_power,
+                          input_light_intensity,
                           labelsize=CommonShortcuts.labelsize_default,
                           ticksize=CommonShortcuts.ticksize_default,
+                            Imin=None, Imax=None,
+                            Rmin=None, Rmax=None,
                           ):
         """
         Plot one or more responsivity curves [A/W] as a function of potential per drop.
@@ -1038,11 +1040,20 @@ class NEGFShortcuts(CommonShortcuts):
         labels : list of str
             plot legends for each simulation. Should be in the same order as 'names'.
 
+        input_light_intensity : float
+            Input light intensity [W/m^2]
+
         labelsize : int, optional
             font size of xlabel and ylabel
 
         ticksize : int, optional
             font size of xtics and ytics
+
+        Imin, Imax : float, optional
+            minimum and maximum current values for the plot range
+
+        Rmin, Rmax : float, optional
+            minimum and maximum responsivity values for the plot range
 
         Units in plot
         -------------
@@ -1069,7 +1080,7 @@ class NEGFShortcuts(CommonShortcuts):
         for i, name in enumerate(names_dark):
             # I-V data, units adjusted
             datafile_IV = self.get_DataFile('Current_vs_Voltage.dat', name)
-            I = datafile_IV.variables['Current density'].value * self.scale1ToKilo
+            I = datafile_IV.variables[0].value
             V = datafile_IV.coords['Potential per period'].value
             dark_current_densities.append(I)
             potential_drops_dark.append(V)
@@ -1080,7 +1091,7 @@ class NEGFShortcuts(CommonShortcuts):
         for i, name in enumerate(names_illuminated):
             # I-V data, units adjusted
             datafile_IV = self.get_DataFile('Current_vs_Voltage.dat', name)
-            I = datafile_IV.variables['Current density'].value * self.scale1ToKilo
+            I = datafile_IV.variables['Current density'].value
             V = datafile_IV.coords['Potential per period'].value
             illuminated_current_densities.append(I)
             potential_drops_illuminated.append(V)
@@ -1093,22 +1104,22 @@ class NEGFShortcuts(CommonShortcuts):
         # dark and illuminated current densities
         cnt = 0
         for current_density, p_drop in zip(dark_current_densities, potential_drops_dark):
-            ax1.plot(p_drop, current_density, color=self.default_colors.current_voltage, ls=linetypes[cnt], label=labels[cnt])
+            ax1.plot(p_drop, current_density, color=self.default_colors.current_voltage, ls=linetypes[cnt], label="dark "+labels[cnt])
             cnt += 1
         cnt = 0
         for current_density, p_drop in zip(illuminated_current_densities, potential_drops_illuminated):
-            ax1.plot(p_drop, current_density, color=self.default_colors.current_under_illumination, ls=linetypes[cnt], label=labels[cnt])
+            ax1.plot(p_drop, current_density, color=self.default_colors.current_under_illumination, ls=linetypes[cnt], label="illuminated "+labels[cnt])
             cnt += 1
         ax1.set_xlabel('Potential drop per period ($\mathrm{mV}$)', fontsize=labelsize)
-        ax1.set_ylabel('Current density ($\mathrm{A}/\mathrm{cm}^2$)', color=self.default_colors.current_voltage, fontsize=labelsize)
+        ax1.set_ylabel('Current density ($\mathrm{A}/\mathrm{cm}^2$)', fontsize=labelsize)
         ax1.set_yscale("log")
-        ax1.tick_params(axis='y', labelcolor=self.default_colors.current_voltage, labelsize=ticksize)
-        # ax1.set_xlim(Imin, Imax)
-        # ax1.set_ylim(Vmin, Vmax)
+        ax1.tick_params(axis='y', labelsize=ticksize)
+        # ax1.set_xlim(Vmin, Vmax)
+        ax1.set_ylim(Imin, Imax)
         # plt.xticks([0.0, 0.5, 1.0, 1.5])
         # plt.yticks([0, 5, 10, 15])
-        ax1.xaxis.set_minor_locator(MultipleLocator(0.1))
-        ax1.yaxis.set_minor_locator(MultipleLocator(1))
+        # ax1.xaxis.set_minor_locator(MultipleLocator(0.1))
+        # ax1.yaxis.set_minor_locator(MultipleLocator(1e-3))
         ax1.legend()
 
         # do we need second x-axis?
@@ -1116,7 +1127,7 @@ class NEGFShortcuts(CommonShortcuts):
         # ax3.set_xlabel('Current density ($\mathrm{kA}/\mathrm{cm}^2$)', fontsize=labelsize)
 
         # responsivity curve
-        p_drops, responsivities = self.__calc_responsivities(potential_drops_dark, dark_current_densities, potential_drops_illuminated, illuminated_current_densities, input_power)
+        p_drops, responsivities = self.__calc_responsivities(potential_drops_dark, dark_current_densities, potential_drops_illuminated, illuminated_current_densities, input_light_intensity)
         ax2 = ax1.twinx()   # shared x axis
         cnt = 0
         for responsivity, p_drop in zip(responsivities, p_drops):
@@ -1124,7 +1135,7 @@ class NEGFShortcuts(CommonShortcuts):
             cnt += 1
         ax2.set_ylabel('Responsivity ($\mathrm{A/W}$)', color=self.default_colors.responsivity, fontsize=labelsize)
         ax2.tick_params(axis='y', labelcolor=self.default_colors.responsivity, labelsize=ticksize)
-        # ax2.set_ylim(Pmin, Pmax)
+        ax2.set_ylim(Rmin, Rmax)
         # plt.yticks([0, 50, 100, 150])
         ax2.yaxis.set_minor_locator(MultipleLocator(10))
 
@@ -1136,10 +1147,11 @@ class NEGFShortcuts(CommonShortcuts):
     def __calc_responsivities(self,
                             potential_drops_dark, dark_current_densities,
                             potential_drops_illuminated, illuminated_current_densities,
-                            input_power
+                            input_light_intensity
                             ):
         """
-        Calculate [(illuminated current) - (dark current)] / (input light power).
+        Calculate d(current) / d(input light power).
+        Currently, we calculate [(illuminated current) - (dark current)] / (input light power) as a special case
         Returns
         -------
 
@@ -1151,11 +1163,11 @@ class NEGFShortcuts(CommonShortcuts):
         # TODO: Interpolate potential drop if dark and illuminated currents were simulated at different potential drops.
         potential_drops = potential_drops_dark
         responsivities = list()
-        input_power_Wcm2 = float(input_power) * 1e-4  # nextnano.NEGF input is in [W/m^2]
+        input_light_intensity_Wcm2 = input_light_intensity * 1e-4  # nextnano.NEGF input is in [W/m^2]
         for dark, illuminated in zip(dark_current_densities, illuminated_current_densities):
             photocurrent = illuminated - dark
-            responsivities.append(photocurrent / input_power_Wcm2)
-        print(responsivities)
+            responsivities.append(photocurrent / input_light_intensity_Wcm2)
+            # responsivities.append(illuminated / input_light_intensity_Wcm2)
         return potential_drops, responsivities
 
     def get_biases(self, name):
