@@ -54,7 +54,7 @@ class DefaultColors:
         self.colormap['divergent_bright'] = 'bwr'  # 'seismic'
         self.lines_on_colormap['divergent_bright'] = 'black'
 
-        self.colormap['divergent_dark'] = NextnanoColor.cmap['divergent_dark']
+        self.colormap['divergent_dark'] = NextnanoColor.cmap['divergent_dark'].reversed()
         self.lines_on_colormap['divergent_dark'] = 'white'
 
         self.colormap['sequential'] = 'Greens'
