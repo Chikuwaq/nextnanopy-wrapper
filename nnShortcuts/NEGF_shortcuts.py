@@ -51,6 +51,8 @@ class NEGFShortcuts(CommonShortcuts):
             input_file_names, 
             labels,
             title=None,
+            Imin=None, Imax=None,
+            Vmin=None, Vmax=None,
             labelsize=CommonShortcuts.labelsize_default,
             ticksize=CommonShortcuts.ticksize_default
             ):
@@ -65,6 +67,12 @@ class NEGFShortcuts(CommonShortcuts):
 
         labels : list of str
             plot legends for each simulation. Should be in the same order as 'input_file_names'.
+
+        Imin, Imax : float, optional
+            minimum and maximum current values for the plot range
+
+        Vmin, Vmax : float, optional
+            minimum and maximum voltage values for the plot range
         """
         # validate arguments
         if len(input_file_names) != len(labels): 
@@ -72,6 +80,9 @@ class NEGFShortcuts(CommonShortcuts):
 
         fig, ax = plt.subplots()
         ax.set_ylabel("Current density ($\mathrm{kA}/\mathrm{cm}^{2}$)", fontsize=labelsize)
+        # ax.set_yscale("log")
+        ax.set_xlim(Vmin, Vmax)
+        ax.set_ylim(Imin, Imax)
         ax.set_title(title, fontsize=labelsize)
         ax.tick_params(axis='x', labelsize=ticksize)
         ax.tick_params(axis='y', labelsize=ticksize)
@@ -89,6 +100,109 @@ class NEGFShortcuts(CommonShortcuts):
         filename_no_extension = CommonShortcuts.separate_extension(input_file_names[0])[0]
         outputSubfolder = os.path.join(outputFolder, filename_no_extension)
         self.export_figs("IV", "png", output_folder_path=outputSubfolder, fig=fig)
+
+        return fig
+
+
+    def plot_dark_current_vs_T(self,
+            input_file_names,
+            biases,
+            temperatures,
+            title=None,
+            Imin=None, Imax=None,
+            Vmin=None, Vmax=None,
+            labelsize=CommonShortcuts.labelsize_default,
+            ticksize=CommonShortcuts.ticksize_default,
+            overlay=False, effective_gap=None, C=None,
+            ):
+        """
+        Plot dark current at specified bias as a function of 1000/T.
+        The plot is saved as an png image file.
+
+        Parameters
+        ----------
+        input_file_names : list of str
+            Specifies input files
+
+        biases : list of float
+            Potential drop per period [mV] from which current should be extracted.
+
+        temperatures : list of float
+            Lattice temperatures. Should be in the same order as 'input_file_names'.
+
+        Imin, Imax : float, optional
+            minimum and maximum current values for the plot range
+
+        Vmin, Vmax : float, optional
+            minimum and maximum voltage values for the plot range
+
+        overlay : bool, optional
+            If True, overlay a theoretical curve based on diffusion model. Default is False
+
+        effective_gap : float, optional
+            Value [meV] used if overlay = True
+
+        C : float, optional
+            Value used if overlay = True
+        """
+        # validate arguments
+        if len(input_file_names) != len(temperatures):
+            raise NextnanopyScriptError(f"Number of input files ({len(input_file_names)}) do not match that of plot labels ({len(temperatures)})")
+
+        fig, ax = plt.subplots()
+        ax.set_ylabel("Current density ($\mathrm{A}/\mathrm{cm}^{2}$)", fontsize=labelsize)
+        ax.set_yscale("log")
+        # ax.set_xlim(Vmin, Vmax)
+        # ax.set_ylim(Imin, Imax)
+        ax.set_title(title, fontsize=labelsize)
+        ax.tick_params(axis='x', labelsize=ticksize)
+        ax.tick_params(axis='y', labelsize=ticksize)
+
+        def forward_conversion(inverse_T):
+            return 1e3 / inverse_T
+
+        def backward_conversion(T):
+            return 1e3 / T
+
+        inv_temperatures = [backward_conversion(T) for T in temperatures]
+        ax.set_xlabel("1000 / T [K$^{-1}$]", fontsize=labelsize)
+
+        for i, bias in enumerate(biases):
+            current_densities = list()
+            for input_file_name in input_file_names:
+                voltage, current = self.get_IV(input_file_name)
+                if voltage.value.ndim == 0:
+                    if voltage.value == bias:
+                        current_densities.append(np.float64(current.value))
+                else:
+                    for V, I in zip(voltage.value, current.value):
+                        if V == bias:
+                            current_densities.append(I)
+
+            ax.plot(inv_temperatures, current_densities, 'o', label=f"simulation at {bias} mV")
+
+        if overlay:
+            import math
+            def diffusion_limited_dark_current(C, T, effective_gap):
+                effective_gap_J = effective_gap / CommonShortcuts.scale1ToMilli * CommonShortcuts.scale_eV_to_J
+                return C * T**3 * math.exp(- effective_gap_J / (CommonShortcuts.Boltzmann * T))
+            theoretical_line = [diffusion_limited_dark_current(C, T, effective_gap) for T in temperatures]
+            ax.plot(inv_temperatures, theoretical_line, '--', color='grey', label="diffusion limited behavior")
+
+        ax3 = ax.secondary_xaxis('top', functions=(forward_conversion, backward_conversion))
+        ax3.set_xlabel('Temperature [K]', fontsize=labelsize)
+        ax3.set_xticks([40,50,65,80,100,150,250])
+        ax3.tick_params(axis='x', labelsize=ticksize)
+
+        # export to an image file
+        outputFolder = nn.config.get(self.product_name, 'outputdirectory')
+        filename_no_extension = CommonShortcuts.separate_extension(input_file_names[0])[0]
+        outputSubfolder = os.path.join(outputFolder, filename_no_extension)
+        self.export_figs("dark_current_vs_T", "png", output_folder_path=outputSubfolder, fig=fig)
+
+        ax.legend(fontsize=labelsize*0.9)
+        fig.tight_layout()
+        plt.show()
 
         return fig
 
@@ -835,9 +949,9 @@ class NEGFShortcuts(CommonShortcuts):
 
 
     def plot_carrier_density(self,
-            input_file_name, 
-            bias, 
-            labelsize=CommonShortcuts.labelsize_default, 
+            input_file_name,
+            bias,
+            labelsize=CommonShortcuts.labelsize_default,
             ticksize=CommonShortcuts.ticksize_default,
             zmin=None,
             zmax=None,
@@ -950,13 +1064,14 @@ class NEGFShortcuts(CommonShortcuts):
         colormap = self.default_colors.colormap['linear_dark_bg']
 
         logging.info("Plotting current density...")
-        unit = r'$\mathrm{kA}$ $\mathrm{cm}^{-2} \mathrm{eV}^{-1}$'
+        unit = r'$\mathrm{A}$ $\mathrm{cm}^{-2} \mathrm{eV}^{-1}$'
         label = 'Current density'
-        quantity.value *= 1e-3
+        quantity.value *= 1  #1e-3
 
         fig, ax = plt.subplots()
+        self.draw_bandedges_on_2DPlot(ax, input_file_name, bias, labelsize, shadowBandgap) # needs to be before drawing the current density not to mask tunneling currents
         NEGFShortcuts.__draw_2D_color_plot(fig, ax, x.value, y.value, quantity.value, is_divergent, colormap, label, unit, bias, labelsize, ticksize, zmin, zmax, showBias, True)
-        self.draw_bandedges_on_2DPlot(ax, input_file_name, bias, labelsize, shadowBandgap)
+
         if texts is not None:
                 CommonShortcuts.place_texts(ax, texts)
 
@@ -1028,6 +1143,7 @@ class NEGFShortcuts(CommonShortcuts):
                           ticksize=CommonShortcuts.ticksize_default,
                             Imin=None, Imax=None,
                             Rmin=None, Rmax=None,
+                            Vmin=None, Vmax=None,
                           ):
         """
         Plot one or more responsivity curves [A/W] as a function of potential per drop.
@@ -1054,6 +1170,9 @@ class NEGFShortcuts(CommonShortcuts):
 
         Rmin, Rmax : float, optional
             minimum and maximum responsivity values for the plot range
+
+        Vmin, Vmax : float, optional
+            minimum and maximum voltage values for the plot range
 
         Units in plot
         -------------
@@ -1091,13 +1210,14 @@ class NEGFShortcuts(CommonShortcuts):
         for i, name in enumerate(names_illuminated):
             # I-V data, units adjusted
             datafile_IV = self.get_DataFile('Current_vs_Voltage.dat', name)
-            I = datafile_IV.variables['Current density'].value
+            I = datafile_IV.variables[0].value
             V = datafile_IV.coords['Potential per period'].value
             illuminated_current_densities.append(I)
             potential_drops_illuminated.append(V)
 
         from matplotlib.ticker import MultipleLocator
         fig, ax1 = plt.subplots()
+        ax1.set_xlim(Vmin, Vmax)
 
         linetypes = ['solid', 'dashed', 'dotted', 'dashdot']
 
@@ -1127,13 +1247,15 @@ class NEGFShortcuts(CommonShortcuts):
         # ax3.set_xlabel('Current density ($\mathrm{kA}/\mathrm{cm}^2$)', fontsize=labelsize)
 
         # responsivity curve
-        p_drops, responsivities = self.__calc_responsivities(potential_drops_dark, dark_current_densities, potential_drops_illuminated, illuminated_current_densities, input_light_intensity)
+
         ax2 = ax1.twinx()   # shared x axis
-        cnt = 0
-        for responsivity, p_drop in zip(responsivities, p_drops):
-            ax2.plot(p_drop, responsivity, '.', color=self.default_colors.responsivity, ls=linetypes[cnt], label=labels[cnt])
-            cnt += 1
+        for i, p_drop_dark in enumerate(potential_drops_dark):
+            p_drop, responsivity = self.__calc_responsivities(potential_drops_dark[i], dark_current_densities[i], potential_drops_illuminated[i], illuminated_current_densities[i], input_light_intensity)
+            print(f"pdrop: {p_drop}, responsivity: {responsivity}")
+            ax2.plot(p_drop, responsivity, '.', color=self.default_colors.responsivity, ls=linetypes[i], label=labels[i])
+
         ax2.set_ylabel('Responsivity ($\mathrm{A/W}$)', color=self.default_colors.responsivity, fontsize=labelsize)
+        ax2.tick_params(axis='x', labelsize=ticksize)
         ax2.tick_params(axis='y', labelcolor=self.default_colors.responsivity, labelsize=ticksize)
         ax2.set_ylim(Rmin, Rmax)
         # plt.yticks([0, 50, 100, 150])
@@ -1144,31 +1266,154 @@ class NEGFShortcuts(CommonShortcuts):
 
         return fig
 
+
+    def plot_responsivity_vs_T(self,
+                          names_dark,
+                          names_illuminated,
+                          bias,
+                          temperatures,
+                          input_light_intensity,
+                          labelsize=CommonShortcuts.labelsize_default,
+                          ticksize=CommonShortcuts.ticksize_default,
+                          Rmin=None, Rmax=None,
+                          ):
+        """
+        Plot one or more responsivity curves [A/W] as a function of potential per drop.
+
+        Parameters
+        ----------
+        names_dark, names_illuminated : list of str
+            Specifies input files that produce dark and illuminated current densities
+
+        bias : float
+            Potential drop per period [mV] at which responsivity is calculated
+
+        temperatures : list of float
+            Temperature points to plot.
+
+        input_light_intensity : float
+            Input light intensity [W/m^2]
+
+        labelsize : int, optional
+            font size of xlabel and ylabel
+
+        ticksize : int, optional
+            font size of xtics and ytics
+
+        Imin, Imax : float, optional
+            minimum and maximum current values for the plot range
+
+        Rmin, Rmax : float, optional
+            minimum and maximum responsivity values for the plot range
+
+        Vmin, Vmax : float, optional
+            minimum and maximum voltage values for the plot range
+
+        Units in plot
+        -------------
+        current density [kA/cm^2]
+        photodetector responsivity [A/W]
+        potential drop per period [mV]
+
+        Returns
+        -------
+        fig : matplotlib.figure.Figure object
+        """
+        # validate arguments
+        if len(names_dark) != len(temperatures):
+            raise NextnanopyScriptError(
+                f"Number of input files ({len(names_dark)}) do not match that of plot labels ({len(temperatures)})")
+        if len(names_illuminated) != len(temperatures):
+            raise NextnanopyScriptError(
+                f"Number of input files ({len(names_illuminated)}) do not match that of plot labels ({len(temperatures)})")
+
+        # list of data for sweeping temperature
+        def extract_current_densities(filename, bias, current_densities):
+            voltage, current = self.get_IV(filename)
+            if voltage.value.ndim == 0:
+                if voltage.value == bias:
+                    current_densities.append(np.float64(current.value))
+            else:
+                for I, V in zip(current.value, voltage.value):
+                    if V == bias:
+                        current_densities.append(I)
+                        break
+
+        dark_current_densities = list()
+
+        for name in names_dark:
+            extract_current_densities(name, bias, dark_current_densities)
+
+        illuminated_current_densities = list()
+
+        for name in names_illuminated:
+            extract_current_densities(name, bias, illuminated_current_densities)
+
+        from matplotlib.ticker import MultipleLocator
+
+        linetypes = ['solid', 'dashed', 'dotted', 'dashdot']
+
+        # responsivity curve
+        input_light_intensity_Wcm2 = input_light_intensity * 1e-4  # nextnano.NEGF input is in [W/m^2]
+        responsivity = [(illuminated - dark) / input_light_intensity_Wcm2 for dark, illuminated in zip(dark_current_densities, illuminated_current_densities)]
+
+        fig, ax = plt.subplots()
+        ax.plot(temperatures, responsivity, 'o-', color=self.default_colors.responsivity)
+        ax.set_xlabel('Temperature (K)', fontsize=labelsize)
+        ax.set_ylabel('Responsivity ($\mathrm{A/W}$)', color=self.default_colors.responsivity, fontsize=labelsize)
+        ax.tick_params(axis='x', labelsize=ticksize)
+        ax.tick_params(axis='y', labelcolor=self.default_colors.responsivity, labelsize=ticksize)
+        # ax.set_xlim()
+        ax.set_ylim(Rmin, Rmax)
+        ax.yaxis.set_minor_locator(MultipleLocator(10))
+
+        fig.tight_layout()
+        plt.show()
+
+        return fig
+
+
     def __calc_responsivities(self,
-                            potential_drops_dark, dark_current_densities,
-                            potential_drops_illuminated, illuminated_current_densities,
+                            potential_drops_dark, dark_current_dens,
+                            potential_drops_illuminated, illuminated_current_dens,
                             input_light_intensity
                             ):
         """
-        Calculate d(current) / d(input light power).
-        Currently, we calculate [(illuminated current) - (dark current)] / (input light power) as a special case
+        Calculate d(current) / d(input light power) at the common bias points between dark and illuminated currents.
+        Currently, we calculate [(illuminated current) - (dark current)] / (input light power) as a special case.
+
         Returns
         -------
 
         """
         # validate arguments
-        if not isinstance(dark_current_densities, list): raise TypeError(f"current densities must be a list, but is {type(dark_current_densities)}")
-        if not isinstance(illuminated_current_densities, list): raise TypeError(f"current densities must be a list, but is {type(illuminated_current_densities)}")
+        if len(potential_drops_dark) != len(dark_current_dens): raise RuntimeError(f"Number of pdrop ({len(potential_drops_dark)}) and dark current densities ({len(dark_current_dens)}) are inconsistent")
+        if len(potential_drops_illuminated) != len(illuminated_current_dens): raise RuntimeError(f"Number of pdrop ({len(potential_drops_illuminated)}) and illuminated current densities ({len(illuminated_current_dens)}) are inconsistent")
 
         # TODO: Interpolate potential drop if dark and illuminated currents were simulated at different potential drops.
-        potential_drops = potential_drops_dark
-        responsivities = list()
+        common_potential_drops = list(set(potential_drops_dark) & set(potential_drops_illuminated))
+        all_potential_drops = set(list(potential_drops_dark) + list(potential_drops_illuminated))
+        dark_current_densities_exerpt = list()
+        for pdrop, dark in zip(potential_drops_dark, dark_current_dens):
+            if pdrop in common_potential_drops:
+                dark_current_densities_exerpt.append(dark)
+        illuminated_current_densities_exerpt = list()
+        for pdrop, illuminated in zip(potential_drops_illuminated, illuminated_current_dens):
+            if pdrop in common_potential_drops:
+                illuminated_current_densities_exerpt.append(illuminated)
+
+        responsivities = np.zeros(len(all_potential_drops))
         input_light_intensity_Wcm2 = input_light_intensity * 1e-4  # nextnano.NEGF input is in [W/m^2]
-        for dark, illuminated in zip(dark_current_densities, illuminated_current_densities):
-            photocurrent = illuminated - dark
-            responsivities.append(photocurrent / input_light_intensity_Wcm2)
-            # responsivities.append(illuminated / input_light_intensity_Wcm2)
-        return potential_drops, responsivities
+        num_skipped_pdrop = 0
+        for i_bias, pdrop in enumerate(all_potential_drops):
+            if pdrop in common_potential_drops:
+                photocurrent = illuminated_current_densities_exerpt[i_bias - num_skipped_pdrop] - dark_current_densities_exerpt[i_bias - num_skipped_pdrop]
+                responsivities[i_bias] = photocurrent / input_light_intensity_Wcm2
+            else:
+                responsivities[i_bias] = np.nan  # do not plot the responsivity at this bias point
+                num_skipped_pdrop += 1
+
+        return list(all_potential_drops), responsivities
 
     def get_biases(self, name):
         """
