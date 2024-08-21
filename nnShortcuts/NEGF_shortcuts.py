@@ -47,6 +47,23 @@ class NEGFShortcuts(CommonShortcuts):
         current = datafile.variables['Current density']
         return voltage, current
 
+
+    def extract_current_density_at_bias(self, input_file_name, bias):
+        voltage, current = self.get_IV(input_file_name)
+        current_density_at_bias = None
+        if voltage.value.ndim == 0:
+            if voltage.value == bias:
+                current_density_at_bias = np.float64(current.value)
+        else:
+            for I, V in zip(current.value, voltage.value):
+                if V == bias:
+                    current_density_at_bias = I
+                    break
+        if current_density_at_bias is None:
+            raise RuntimeError(f"Desired bias {bias} wasn't found for {input_file_name}")
+        return current_density_at_bias
+
+
     def plot_IV(self, 
             input_file_names, 
             labels,
@@ -79,7 +96,7 @@ class NEGFShortcuts(CommonShortcuts):
             raise NextnanopyScriptError(f"Number of input files ({len(input_file_names)}) do not match that of plot labels ({len(labels)})")
 
         fig, ax = plt.subplots()
-        ax.set_ylabel("Current density ($\mathrm{kA}/\mathrm{cm}^{2}$)", fontsize=labelsize)
+        ax.set_ylabel("Current density [$\mathrm{kA}/\mathrm{cm}^{2}$]", fontsize=labelsize)
         # ax.set_yscale("log")
         ax.set_xlim(Vmin, Vmax)
         ax.set_ylim(Imin, Imax)
@@ -150,7 +167,7 @@ class NEGFShortcuts(CommonShortcuts):
             raise NextnanopyScriptError(f"Number of input files ({len(input_file_names)}) do not match that of plot labels ({len(temperatures)})")
 
         fig, ax = plt.subplots()
-        ax.set_ylabel("Current density ($\mathrm{A}/\mathrm{cm}^{2}$)", fontsize=labelsize)
+        ax.set_ylabel("Current density [$\mathrm{A}/\mathrm{cm}^{2}$]", fontsize=labelsize)
         ax.set_yscale("log")
         # ax.set_xlim(Vmin, Vmax)
         # ax.set_ylim(Imin, Imax)
@@ -167,19 +184,10 @@ class NEGFShortcuts(CommonShortcuts):
         inv_temperatures = [backward_conversion(T) for T in temperatures]
         ax.set_xlabel("1000 / T [K$^{-1}$]", fontsize=labelsize)
 
-        for i, bias in enumerate(biases):
-            current_densities = list()
-            for input_file_name in input_file_names:
-                voltage, current = self.get_IV(input_file_name)
-                if voltage.value.ndim == 0:
-                    if voltage.value == bias:
-                        current_densities.append(np.float64(current.value))
-                else:
-                    for V, I in zip(voltage.value, current.value):
-                        if V == bias:
-                            current_densities.append(I)
-
-            ax.plot(inv_temperatures, current_densities, 'o', label=f"simulation at {bias} mV")
+        for bias in biases:
+            # list of data for sweeping temperature
+            current_densities_at_bias = [self.extract_current_density_at_bias(input_file_name, bias) for input_file_name in input_file_names]
+            ax.plot(inv_temperatures, current_densities_at_bias, 'o', label=f"simulation at {bias} mV")
 
         if overlay:
             import math
@@ -572,8 +580,8 @@ class NEGFShortcuts(CommonShortcuts):
         WS_states = [CommonShortcuts.mask_part_of_array(WS_state) for WS_state in WS_states]   # hide flat tails
 
         fig, ax = plt.subplots()
-        ax.set_xlabel("Position $z$ (nm)", fontsize=labelsize)
-        ax.set_ylabel("Energy (eV)", fontsize=labelsize)
+        ax.set_xlabel("Position $z$ [nm]", fontsize=labelsize)
+        ax.set_ylabel("Energy [eV]", fontsize=labelsize)
         ax.set_title('Wannier-Stark states', fontsize=labelsize)
         ax.tick_params(axis='x', labelsize=ticksize)
         ax.tick_params(axis='y', labelsize=ticksize)
@@ -642,7 +650,7 @@ class NEGFShortcuts(CommonShortcuts):
 
         fig, ax = plt.subplots()
         ax.set_xlabel(EPhoton.label, fontsize=labelsize)
-        ax.set_ylabel("Gain (1/cm)", fontsize=labelsize)
+        ax.set_ylabel("Gain [1/cm]", fontsize=labelsize)
         ax.set_title(title, fontsize=labelsize)
         ax.tick_params(axis='x', labelsize=ticksize)
         ax.tick_params(axis='y', labelsize=ticksize)
@@ -693,7 +701,7 @@ class NEGFShortcuts(CommonShortcuts):
             
         fig, ax = plt.subplots()
         ax.set_xlabel(EPhoton.label, fontsize=labelsize)
-        ax.set_ylabel("Gain (1/cm)", fontsize=labelsize)
+        ax.set_ylabel("Gain [1/cm]", fontsize=labelsize)
         ax.set_title(title, fontsize=labelsize)
         ax.tick_params(axis='x', labelsize=ticksize)
         ax.tick_params(axis='y', labelsize=ticksize)
@@ -772,7 +780,7 @@ class NEGFShortcuts(CommonShortcuts):
         except:
             pass
 
-        ax.set_xlabel("Position $z$ (nm)", fontsize=labelsize)
+        ax.set_xlabel("Position $z$ [nm]", fontsize=labelsize)
         ax.plot(position.value, CB.value, color=self.default_colors.bands_dark_background['CB'], linewidth=1.0, label=CB.label)
         if LH is not None: ax.plot(position.value, LH.value, color=self.default_colors.bands_dark_background['LH'], linewidth=1.0, label=LH.label)
         if HH is not None: ax.plot(position.value, HH.value, color=self.default_colors.bands_dark_background['HH'], linewidth=1.0, linestyle='dotted', label=HH.label)
@@ -989,7 +997,7 @@ class NEGFShortcuts(CommonShortcuts):
 
         logging.info("Plotting electron density...")
         unit = r'$10^{18} \mathrm{cm}^{-3} \mathrm{eV}^{-1}$'
-        # label = 'Electron-hole density (' + unit + ')'
+        # label = 'Electron-hole density [' + unit + ']'
         if in_electron_hole_picture:
             label = 'Electron-hole density'
         else:
@@ -1096,9 +1104,9 @@ class NEGFShortcuts(CommonShortcuts):
 
         cbar = fig.colorbar(pcolor)
         if showBias:
-            cbar_label = label + ' (' + cbar_unit + ')'
+            cbar_label = label + ' [' + cbar_unit + ']'
         else:
-            cbar_label = '(' + cbar_unit + ')'
+            cbar_label = '[' + cbar_unit + ']'
 
         if len(cbar_label) > 35: 
             cbar.set_label(cbar_label, fontsize=labelsize*0.8)
@@ -1107,7 +1115,7 @@ class NEGFShortcuts(CommonShortcuts):
         cbar.ax.tick_params(labelsize=ticksize * 0.9)
 
         if set_ylabel:
-            ax.set_ylabel("Energy (eV)", fontsize=labelsize, labelpad=10)
+            ax.set_ylabel("Energy [eV]", fontsize=labelsize, labelpad=10)
         ax.set_xlim(np.amin(X), np.amax(X))
         ax.set_ylim(np.amin(Y), np.amax(Y))
         if showBias:
@@ -1197,23 +1205,17 @@ class NEGFShortcuts(CommonShortcuts):
         potential_drops_dark = list()
 
         for i, name in enumerate(names_dark):
-            # I-V data, units adjusted
-            datafile_IV = self.get_DataFile('Current_vs_Voltage.dat', name)
-            I = datafile_IV.variables[0].value
-            V = datafile_IV.coords['Potential per period'].value
-            dark_current_densities.append(I)
-            potential_drops_dark.append(V)
+            voltage, current = self.get_IV(name)
+            dark_current_densities.append(current)
+            potential_drops_dark.append(voltage)
 
         illuminated_current_densities = list()
         potential_drops_illuminated = list()
 
         for i, name in enumerate(names_illuminated):
-            # I-V data, units adjusted
-            datafile_IV = self.get_DataFile('Current_vs_Voltage.dat', name)
-            I = datafile_IV.variables[0].value
-            V = datafile_IV.coords['Potential per period'].value
-            illuminated_current_densities.append(I)
-            potential_drops_illuminated.append(V)
+            voltage, current = self.get_IV(name)
+            illuminated_current_densities.append(current)
+            potential_drops_illuminated.append(voltage)
 
         from matplotlib.ticker import MultipleLocator
         fig, ax1 = plt.subplots()
@@ -1230,8 +1232,8 @@ class NEGFShortcuts(CommonShortcuts):
         for current_density, p_drop in zip(illuminated_current_densities, potential_drops_illuminated):
             ax1.plot(p_drop, current_density, color=self.default_colors.current_under_illumination, ls=linetypes[cnt], label="illuminated "+labels[cnt])
             cnt += 1
-        ax1.set_xlabel('Potential drop per period ($\mathrm{mV}$)', fontsize=labelsize)
-        ax1.set_ylabel('Current density ($\mathrm{A}/\mathrm{cm}^2$)', fontsize=labelsize)
+        ax1.set_xlabel('Potential drop per period [$\mathrm{mV}$]', fontsize=labelsize)
+        ax1.set_ylabel('Current density [$\mathrm{A}/\mathrm{cm}^2$]', fontsize=labelsize)
         ax1.set_yscale("log")
         ax1.tick_params(axis='y', labelsize=ticksize)
         # ax1.set_xlim(Vmin, Vmax)
@@ -1244,7 +1246,7 @@ class NEGFShortcuts(CommonShortcuts):
 
         # do we need second x-axis?
         # ax3 = ax1.secondary_xaxis('top', functions=(forward_conversion, backward_conversion))
-        # ax3.set_xlabel('Current density ($\mathrm{kA}/\mathrm{cm}^2$)', fontsize=labelsize)
+        # ax3.set_xlabel('Current density [$\mathrm{kA}/\mathrm{cm}^2$]', fontsize=labelsize)
 
         # responsivity curve
 
@@ -1254,7 +1256,7 @@ class NEGFShortcuts(CommonShortcuts):
             print(f"pdrop: {p_drop}, responsivity: {responsivity}")
             ax2.plot(p_drop, responsivity, '.', color=self.default_colors.responsivity, ls=linetypes[i], label=labels[i])
 
-        ax2.set_ylabel('Responsivity ($\mathrm{A/W}$)', color=self.default_colors.responsivity, fontsize=labelsize)
+        ax2.set_ylabel("Responsivity [$\mathrm{A/W}$]", color=self.default_colors.responsivity, fontsize=labelsize)
         ax2.tick_params(axis='x', labelsize=ticksize)
         ax2.tick_params(axis='y', labelcolor=self.default_colors.responsivity, labelsize=ticksize)
         ax2.set_ylim(Rmin, Rmax)
@@ -1328,26 +1330,8 @@ class NEGFShortcuts(CommonShortcuts):
                 f"Number of input files ({len(names_illuminated)}) do not match that of plot labels ({len(temperatures)})")
 
         # list of data for sweeping temperature
-        def extract_current_densities(filename, bias, current_densities):
-            voltage, current = self.get_IV(filename)
-            if voltage.value.ndim == 0:
-                if voltage.value == bias:
-                    current_densities.append(np.float64(current.value))
-            else:
-                for I, V in zip(current.value, voltage.value):
-                    if V == bias:
-                        current_densities.append(I)
-                        break
-
-        dark_current_densities = list()
-
-        for name in names_dark:
-            extract_current_densities(name, bias, dark_current_densities)
-
-        illuminated_current_densities = list()
-
-        for name in names_illuminated:
-            extract_current_densities(name, bias, illuminated_current_densities)
+        dark_current_densities = [self.extract_current_density_at_bias(name, bias) for name in names_dark]
+        illuminated_current_densities = [self.extract_current_density_at_bias(name, bias) for name in names_illuminated]
 
         from matplotlib.ticker import MultipleLocator
 
@@ -1359,8 +1343,8 @@ class NEGFShortcuts(CommonShortcuts):
 
         fig, ax = plt.subplots()
         ax.plot(temperatures, responsivity, 'o-', color=self.default_colors.responsivity)
-        ax.set_xlabel('Temperature (K)', fontsize=labelsize)
-        ax.set_ylabel('Responsivity ($\mathrm{A/W}$)', color=self.default_colors.responsivity, fontsize=labelsize)
+        ax.set_xlabel('Temperature [K]', fontsize=labelsize)
+        ax.set_ylabel('Responsivity [$\mathrm{A/W}$]', color=self.default_colors.responsivity, fontsize=labelsize)
         ax.tick_params(axis='x', labelsize=ticksize)
         ax.tick_params(axis='y', labelcolor=self.default_colors.responsivity, labelsize=ticksize)
         # ax.set_xlim()
@@ -1452,7 +1436,7 @@ class NEGFShortcuts(CommonShortcuts):
         """
         quantity_names = ['DOS', 'carrier', 'current', 'power']   # TODO: should be global variables in this file
         unit = r'$\mathrm{nm}^{-1} \mathrm{eV}^{-1}$'   # TODO: make a list of units for 2D data
-        label = 'Density of states (' + unit + ')'   # TODO: make a list of labels for 2D data
+        label = 'Density of states [' + unit + ']'   # TODO: make a list of labels for 2D data
 
         if leftFig not in quantity_names:
             raise KeyError(f"Entry must be {quantity_names}!")
@@ -1634,11 +1618,11 @@ class NEGFShortcuts(CommonShortcuts):
         volume = (period_length / self.scale1ToNano * self.scale1ToCenti) * num_periods * area_in_cm2
 
         def forward_conversion(I):
-            """ convert current (A) to current density (kA/cm^2) """
+            """ convert current [A] to current density [kA/cm^2] """
             return I / area_in_cm2 * self.scale1ToKilo
 
         def backward_conversion(density):
-            """ convert current density (kA/cm^2) to current (A) """
+            """ convert current density [kA/cm^2] to current [A] """
             return density * area_in_cm2 / self.scale1ToKilo
 
 
@@ -1678,8 +1662,8 @@ class NEGFShortcuts(CommonShortcuts):
             I = backward_conversion(current_density)
             ax1.plot(I, V, color=color, ls=linetypes[cnt], label=labels[cnt])
             cnt += 1
-        ax1.set_xlabel('Current ($\mathrm{A}$)', fontsize=labelsize)
-        ax1.set_ylabel('Voltage ($\mathrm{V}$)', color=color, fontsize=labelsize)
+        ax1.set_xlabel('Current [$\mathrm{A}$]', fontsize=labelsize)
+        ax1.set_ylabel('Voltage [$\mathrm{V}$]', color=color, fontsize=labelsize)
         ax1.tick_params(axis='y', labelcolor=color, labelsize=ticksize)
         ax1.set_xlim(Imin, Imax)
         ax1.set_ylim(Vmin, Vmax)
@@ -1690,7 +1674,7 @@ class NEGFShortcuts(CommonShortcuts):
         ax1.legend()
 
         ax3 = ax1.secondary_xaxis('top', functions=(forward_conversion, backward_conversion))
-        ax3.set_xlabel('Current density ($\mathrm{kA}/\mathrm{cm}^2$)', fontsize=labelsize)
+        ax3.set_xlabel('Current density [$\mathrm{kA}/\mathrm{cm}^2$]', fontsize=labelsize)
 
 
         # Optical power - voltage curves
@@ -1701,7 +1685,7 @@ class NEGFShortcuts(CommonShortcuts):
             I = backward_conversion(density)
             ax2.plot(I, P, '.', color=color, ls=linetypes[cnt], label=labels[cnt])
             cnt += 1
-        ax2.set_ylabel('Optical power ($\mathrm{mW}$)', color=color, fontsize=labelsize)
+        ax2.set_ylabel('Optical power [$\mathrm{mW}$]', color=color, fontsize=labelsize)
         ax2.tick_params(axis='y', labelcolor=color, labelsize=ticksize)
         ax2.set_ylim(Pmin, Pmax)
         plt.yticks([0, 50, 100, 150])
@@ -1877,7 +1861,7 @@ class NEGFShortcuts(CommonShortcuts):
                     psiSquared[model][cnt][kIndex] = CommonShortcuts.cutOff_edges1D(psiSquared[model][cnt][kIndex], x, start_position, end_position)   # chop off edges of the simulation region
 
         x = CommonShortcuts.cutOff_edges1D(x, x, start_position, end_position)
-        # simLength = x[-1]-x[0]   # (nm)
+        # simLength = x[-1]-x[0]   # [nm]
 
 
         # mask psiSquared data where it is flat
@@ -1922,7 +1906,7 @@ class NEGFShortcuts(CommonShortcuts):
         title = CommonShortcuts.get_plot_title(plot_title)
 
         def draw_bandedges(ax, model, want_valence_band):
-            self.set_plot_labels(ax, 'Position (nm)', 'Energy (eV)', title)
+            self.set_plot_labels(ax, 'Position [nm]', 'Energy [eV]', title)
             if model == 'Gamma' or model == 'kp8':
                 ax.plot(x, CBBandedge, label='conduction band', linewidth=0.6, color=self.default_colors.bands['CB'])
             if want_valence_band:
@@ -2148,7 +2132,7 @@ class NEGFShortcuts(CommonShortcuts):
             psiSquared[stateIndex] = CommonShortcuts.cutOff_edges1D(psiSquared[stateIndex], x, start_position, end_position)   # chop off edges of the simulation region
 
         x = CommonShortcuts.cutOff_edges1D(x, x, start_position, end_position)
-        # simLength = x[-1]-x[0]   # (nm)
+        # simLength = x[-1]-x[0]   # [nm]
 
 
         # mask psiSquared data where it is flat
@@ -2160,7 +2144,7 @@ class NEGFShortcuts(CommonShortcuts):
         title = CommonShortcuts.get_plot_title(plot_title)
 
         def draw_bandedges(ax, model, want_valence_band):
-            self.set_plot_labels(ax, 'Position (nm)', 'Energy (eV)', title)
+            self.set_plot_labels(ax, 'Position [nm]', 'Energy [eV]', title)
             if model == 'Gamma' or model == 'kp8':
                 ax.plot(x, CBBandedge, label='conduction band', linewidth=0.6, color=self.default_colors.bands['CB'])
             if want_valence_band:

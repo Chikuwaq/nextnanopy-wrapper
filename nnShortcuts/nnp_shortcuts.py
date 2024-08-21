@@ -333,8 +333,8 @@ class nnpShortcuts(CommonShortcuts):
 
         # instantiate matplotlib subplot object
         fig, ax = plt.subplots()
-        ax.set_xlabel('In-plane $k$ ($\mathrm{nm}^{-1}$)', fontsize=labelsize)  # TODO: Ideally, it should detect the in-plane k-direction from input file. Note that multiple dispersions can be output.
-        ax.set_ylabel('Energy (eV)', fontsize=labelsize)
+        ax.set_xlabel('In-plane $k$ [$\mathrm{nm}^{-1}$]', fontsize=labelsize)  # TODO: Ideally, it should detect the in-plane k-direction from input file. Note that multiple dispersions can be output.
+        ax.set_ylabel('Energy [eV]', fontsize=labelsize)
         ax.set_title(f'{title}', fontsize=labelsize)
         ax.tick_params(axis='x', labelsize=ticksize)
         ax.tick_params(axis='y', labelsize=ticksize)
@@ -483,9 +483,9 @@ class nnpShortcuts(CommonShortcuts):
 
         # instantiate matplotlib subplot objects
         fig, ax = plt.subplots()
-        # ax.set_xlabel(f'$k^{(left_k_label)}$' + '($\mathrm{nm}^{-1}$)' + '\t\t' + f'$k^{(right_k_label)}$' + '($\mathrm{nm}^{-1}$)')  # TODO: I cannot put multiple letters in the superscript in a math expression for label! fr"{variable}" seems to eliminate the brackets {} necessary for latex superscript.
-        ax.set_xlabel(r'$k^{100}$' + '($\mathrm{nm}^{-1}$)' + '\t\t\t' + r'$k^{110}$' + '($\mathrm{nm}^{-1}$)', fontsize=labelsize)  # r with superscript works
-        ax.set_ylabel('energy (eV)', fontsize=labelsize)
+        # ax.set_xlabel(f'$k^{(left_k_label)}$' + '[$\mathrm{nm}^{-1}$]' + '\t\t' + f'$k^{(right_k_label)}$' + '[$\mathrm{nm}^{-1}$]')  # TODO: I cannot put multiple letters in the superscript in a math expression for label! fr"{variable}" seems to eliminate the brackets {} necessary for latex superscript.
+        ax.set_xlabel(r'$k^{100}$' + '[$\mathrm{nm}^{-1}$]' + '\t\t\t' + r'$k^{110}$' + '[$\mathrm{nm}^{-1}$]', fontsize=labelsize)  # r with superscript works
+        ax.set_ylabel('energy [eV]', fontsize=labelsize)
         ax.set_title(f'{title}', fontsize=labelsize)
         ax.tick_params(axis='x', labelsize=ticksize)
         ax.tick_params(axis='y', labelsize=ticksize)
@@ -784,7 +784,7 @@ class nnpShortcuts(CommonShortcuts):
                     psiSquared[model][cnt][kIndex] = CommonShortcuts.cutOff_edges1D(psiSquared[model][cnt][kIndex], x, start_position, end_position)   # chop off edges of the simulation region
 
         x = CommonShortcuts.cutOff_edges1D(x, x, start_position, end_position)
-        # simLength = x[-1]-x[0]   # (nm)
+        # simLength = x[-1]-x[0]   # [nm]
 
 
         # mask psiSquared data where it is flat
@@ -838,7 +838,7 @@ class nnpShortcuts(CommonShortcuts):
         title = CommonShortcuts.get_plot_title(plot_title)
 
         def draw_bandedges(ax, model):
-            self.set_plot_labels(ax, 'Position (nm)', 'Energy (eV)', title)
+            self.set_plot_labels(ax, 'Position [nm]', 'Energy [eV]', title)
             if model == 'Gamma' or model == 'kp8':
                 ax.plot(x, CBBandedge, label='CB', linewidth=0.6, color=self.default_colors.bands['CB'])
             if model == 'HH' or model == 'kp6' or model == 'kp8':
@@ -1058,8 +1058,8 @@ class nnpShortcuts(CommonShortcuts):
         ylabel_unit_str = "{:.0e}".format(1e18 / scale_factor)
         ax.plot(x, scale_factor * densityEl, 'r', label='electron')
         ax.plot(x, -scale_factor * densityHl, 'b', label='hole')
-        ax.set_xlabel("Position (nm)", fontsize=labelsize)
-        ax.set_ylabel('Carrier density (' + ylabel_unit_str + ' $\mathrm{cm}^{-3}$)', fontsize=labelsize)
+        ax.set_xlabel("Position [nm]", fontsize=labelsize)
+        ax.set_ylabel('Carrier density [' + ylabel_unit_str + ' $\mathrm{cm}^{-3}$]', fontsize=labelsize)
         ax.tick_params(axis='x', labelsize=ticksize)
         ax.tick_params(axis='y', labelsize=ticksize)
         fig.tight_layout()
@@ -1268,8 +1268,8 @@ class nnpShortcuts(CommonShortcuts):
                 # plot probabilities with labels
                 fig, ax = plt.subplots()
                 ax.set_xlabel(f"{datafile_bandedge.coords['x'].label}")
-                ax.set_ylabel('energy (eV)')
-                # simLength = x[-1]-x[0]   # (nm)
+                ax.set_ylabel('energy [eV]')
+                # simLength = x[-1]-x[0]   # [nm]
 
                 ax.plot(x, CBBandedge, label='CB', linewidth=0.6)
                 ax.plot(x, HHBandedge, label='HH', linewidth=0.6)
@@ -1401,7 +1401,7 @@ class nnpShortcuts(CommonShortcuts):
         #         psiSquared[model][stateIndex][kIndex] = CommonShortcuts.cutOff_edges1D(psiSquared[model][stateIndex][kIndex], x, start_position, end_position)   # chop off edges of the simulation region
         # x = CommonShortcuts.cutOff_edges1D(x, x, start_position, end_position)
 
-    #     simLength = x[-1]-x[0]   # (nm)
+    #     simLength = x[-1]-x[0]   # [nm]
 
 
     #     # mask psiSquared data where it is flat
