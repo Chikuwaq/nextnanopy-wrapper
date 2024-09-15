@@ -1230,16 +1230,7 @@ class SweepHelper:
         self.__setup_2D_color_plot(ax, x_axis, y_axis, x_label, y_label, plot_title, x_values, y_values)
 
         # color setting
-        if colormap is None:  
-            # default colors
-            if set_center_to_zero: 
-                colormap = self.colormap['divergent']
-            else:
-                colormap = self.default_colors.colormap['linear']
-        if colormap == self.colormap['divergent']:
-            contour_color = 'black'
-        elif colormap == 'viridis' or colormap == self.default_colors.colormap['linear']:
-            contour_color = self.default_colors.lines_on_colormap['linear']
+        colormap, contour_color = self.__determine_contour_color(colormap, set_center_to_zero)
 
         if set_center_to_zero:
             from matplotlib import colors
@@ -1264,6 +1255,31 @@ class SweepHelper:
         plt.show()
 
         return fig
+
+
+    def __determine_contour_color(self, colormap, set_center_to_zero):
+        """
+        Decide on the color for contour line depending on the colormap of the 2D plot.
+        If colormap is None, set it to default.
+
+        Returns
+        -------
+        colormap : Colormap
+            Colormap for the 2D plot
+        contour_color : str
+            Name of color for contour line
+        """
+        if colormap is None:
+            # default colors
+            if set_center_to_zero:
+                colormap = self.default_colors.colormap['divergent_bright']
+            else:
+                colormap = self.default_colors.colormap['linear_bright_bg']
+
+        if colormap == self.default_colors.colormap['divergent_bright']:
+            return colormap, 'black'
+        elif colormap == 'viridis' or colormap == self.default_colors.colormap['linear_bright_bg']:
+            return colormap, self.default_colors.lines_on_colormap['linear_bright_bg']
 
 
     def __plot_transition_energies_1D(self, x_axis, x_label, x_values, plot_title, unit, transition_energies_scaled):
@@ -1349,16 +1365,7 @@ class SweepHelper:
         self.__setup_2D_color_plot(ax, x_axis, y_axis, x_label, y_label, plot_title, x_values, y_values)
 
         # color setting
-        if colormap is None:  
-            # default colors
-            if set_center_to_zero: 
-                colormap = self.colormap['divergent']
-            else:
-                colormap = self.default_colors.colormap['linear']
-        if colormap == self.colormap['divergent']:
-            contour_color = 'black'
-        elif colormap == 'viridis' or colormap == self.default_colors.colormap['linear']:
-            contour_color = self.default_colors.lines_on_colormap['linear']
+        colormap, contour_color = self.__determine_contour_color(colormap, set_center_to_zero)
 
         if set_center_to_zero:
             from matplotlib import colors
@@ -1445,16 +1452,7 @@ class SweepHelper:
         self.__setup_2D_color_plot(ax, x_axis, y_axis, x_label, y_label, plot_title, x_values, y_values)
 
         # color setting
-        if colormap is None:  
-            # default colors
-            if set_center_to_zero: 
-                colormap = self.colormap['divergent']
-            else:
-                colormap = self.default_colors.colormap['linear']
-        if colormap == self.colormap['divergent']:
-            contour_color = 'black'
-        elif colormap == 'viridis' or colormap == self.default_colors.colormap['linear']:
-            contour_color = self.default_colors.lines_on_colormap['linear']
+        colormap, contour_color = self.__determine_contour_color(colormap, set_center_to_zero)
 
         if set_center_to_zero:
             from matplotlib import colors
