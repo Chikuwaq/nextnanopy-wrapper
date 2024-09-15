@@ -1,2 +1,4 @@
 pandas
+pandas[performance]
+pandas[excel]
 nextnanopy
