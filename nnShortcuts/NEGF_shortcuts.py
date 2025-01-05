@@ -2634,3 +2634,9 @@ class NEGFShortcuts(CommonShortcuts):
         logging.warning("calc_absorption_at_transition_energy(): Gain spectrum does not cover the transition energy. Returning gain = None")
         return None
 
+    ################ Transport result getters #############################################
+    def calculate_average_current(self, output_folder, bias=0):
+        datafile = self.get_DataFile_in_folder(["CurrentDensity.dat"], output_folder, exclude_folders=[])
+        current = datafile.variables[0].value
+        # return current.average(axis=0)  # numpy 2.2
+        return current.mean(axis=0)

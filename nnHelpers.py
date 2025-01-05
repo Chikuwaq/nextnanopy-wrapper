@@ -220,7 +220,8 @@ class SweepHelper:
             'HH1-LH1',
             'HH1-HH2',
             'absorption_at_transition_energy_TE',
-            'absorption_at_transition_energy_TM'
+            'absorption_at_transition_energy_TM',
+            'ave_current'
         ])
 
         if isinstance(sweep_ranges, dict):
@@ -958,7 +959,7 @@ class SweepHelper:
     def __calc_overlap(self, force_lightHole):
         """
         Compute overlaps and store them in self.data 
-        if not all overlaps have been calculated
+        if not all overlaps have been calculated.
         """
         if not self.outputs['overlap'].isna().any():
             return
@@ -1477,6 +1478,91 @@ class SweepHelper:
         self.shortcuts.export_figs(figFilename, "png", output_folder_path=self.__get_output_folder_path(), fig=fig)
 
         return fig
+
+
+    ### Transport analysis ####################################################
+    def __calc_average_current(self):
+        """
+        Compute spatial average of current density [A/cm^2] (1D structure) and store them in self.outputs
+        if not all currents have been calculated.
+        """
+        if not self.outputs['ave_current'].isna().any():
+            return
+        logging.info("Calculating current...")
+        self.outputs['ave_current'] = self.__get_output_subfolder_paths().apply(self.shortcuts.calculate_average_current)
+
+    def plot_average_current(self,
+                               x_axis,
+                               y_axis,
+                               x_label=None,
+                               y_label=None,
+                               plot_title='',
+                               figFilename=None,
+                               colormap=None
+                               ):
+        """
+        Plot the colormap of the spatial average of current density as a function of two selected sweep axes.
+        Note that, in steady states of periodic structures, the current density should be constant over the simulation region to conserve charge.
+
+        Parameters
+        ----------
+        x_axis : str
+            sweep variable for x-axis
+        y_axis : str
+            sweep variable for y-axis
+        x_label : str, optional
+            custom x-axis label
+        y_label : str, optional
+            custom y-axis label
+        plot_title : str, optional
+            title of the plot
+        figFilename : str, optional
+            output file name
+        colormap : str, optional
+            colormap used for the color bar
+
+        Returns
+        -------
+        fig : matplotlib.figure.Figure object
+
+        """
+        if not self.__output_subfolders_exist():
+            raise RuntimeError("Simulation output does not exist for this sweep!")
+
+        # validate input
+        self.__validate_sweep_variables(x_axis)
+        self.__validate_sweep_variables(y_axis)
+
+        self.__calc_average_current()
+
+        # x- and y-axis coordinates and 2D array-like of overlap data
+        x_values, y_values, ave_current = self.__slice_data_for_colormap_2D('ave_current', x_axis, y_axis, datatype=np.double)
+
+        # instantiate 2D color plot
+        fig, ax = plt.subplots()
+        if not plot_title: plot_title = "Spatial average of current density"
+        self.__setup_2D_color_plot(ax, x_axis, y_axis, x_label, y_label, plot_title, x_values, y_values)
+
+        # color setting
+        colormap, contour_color = self.__determine_contour_color(colormap, False)
+
+        from matplotlib import colors
+        divnorm = colors.Normalize(vmin=0.)  # set the colorscale minimum to 0
+        pcolor = ax.pcolormesh(x_values, y_values, ave_current, cmap=colormap, norm=divnorm, shading='auto')
+
+        cbar = fig.colorbar(pcolor, ax=ax)
+        cbar.set_label("Current density ($\mathrm{A}/\mathrm{cm}^2$)")
+
+        fig.tight_layout()
+        plt.show()
+
+        if figFilename is None or figFilename == "":
+            name = os.path.split(self.__get_output_folder_path())[1]
+            figFilename = name + "_average_current"
+        self.shortcuts.export_figs(figFilename, "png", output_folder_path=self.__get_output_folder_path(), fig=fig)
+
+        return fig
+
 
     ### in-plane k ###########################################################
     def plot_inplaneK(self):
