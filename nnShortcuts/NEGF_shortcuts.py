@@ -130,11 +130,11 @@ class NEGFShortcuts(CommonShortcuts):
             Vmin=None, Vmax=None,
             labelsize=CommonShortcuts.labelsize_default,
             ticksize=CommonShortcuts.ticksize_default,
-            overlay=False, effective_gap=None, C=None,
+            overlay=False, effective_gaps=None, coeffs=None,
             ):
         """
         Plot dark current at specified bias as a function of 1000/T.
-        The plot is saved as an png image file.
+        The plot is saved as a png image file.
 
         Parameters
         ----------
@@ -191,16 +191,35 @@ class NEGFShortcuts(CommonShortcuts):
 
         if overlay:
             import math
+
             def diffusion_limited_dark_current(C, T, effective_gap):
                 effective_gap_J = effective_gap / CommonShortcuts.scale1ToMilli * CommonShortcuts.scale_eV_to_J
-                return C * T**3 * math.exp(- effective_gap_J / (CommonShortcuts.Boltzmann * T))
-            theoretical_line = [diffusion_limited_dark_current(C, T, effective_gap) for T in temperatures]
-            ax.plot(inv_temperatures, theoretical_line, '--', color='grey', label="diffusion limited behavior")
+                # return C * T**3 * math.exp(- effective_gap_J / (CommonShortcuts.Boltzmann * T))  # "diffusion limited behavior" of []
+                return C * math.exp(- effective_gap_J / (CommonShortcuts.Boltzmann * T))  # "diffusion limited behavior" of [Vurgaftman book]
+            def coherent_dark_current(C, T, effective_gap):
+                effective_gap_J = effective_gap / CommonShortcuts.scale1ToMilli * CommonShortcuts.scale_eV_to_J
+                return C * T ** (5./4.) * math.exp(- effective_gap_J / (2 * CommonShortcuts.Boltzmann * T))  # "coherent transport" of [Glennon2023] and PRB 89, 075305 (2014)
+            def LOPhonon_induced_diffusive_dark_current(C, T, effective_gap):
+                effective_gap_J = effective_gap / CommonShortcuts.scale1ToMilli * CommonShortcuts.scale_eV_to_J
+                return C * T ** (-7./2.) * math.exp(- effective_gap_J / (2 * CommonShortcuts.Boltzmann * T))  # "LO-phonon-induced diffusive transport" of [Glennon2023]
+
+            colors = ['red', 'lime', 'blue']
+            index = 0
+            for coeff, Eg in zip(coeffs, effective_gaps):
+                diffusion_limited_dark_currents = [diffusion_limited_dark_current(coeff, T, Eg) for T in temperatures]
+                # ax.plot(inv_temperatures, diffusion_limited_dark_currents, '--', color='grey', label="$T^3\mathrm{exp}(-\Delta / k_\mathrm{B}T)$")
+                ax.plot(inv_temperatures, diffusion_limited_dark_currents, '--', color=colors[index], label="$C \mathrm{exp}(-\Delta / k_\mathrm{B}T)$, " + f"$C$ = {coeff:.1e}, $\Delta$ = {Eg:.0f} meV")
+                index += 1
+
+            # coherent_dark_currents = [coherent_dark_current(C, T, effective_gap) for T in temperatures]
+            # ax.plot(inv_temperatures, coherent_dark_currents, '--', color='grey', label="coherent transport")
+            # LOPhonon_induced_diffusive_dark_currents = [LOPhonon_induced_diffusive_dark_current(C, T, effective_gap) for T in temperatures]
+            # ax.plot(inv_temperatures, LOPhonon_induced_diffusive_dark_currents, '--', color='grey', label="LO-phonon diffusive transport")
 
         ax3 = ax.secondary_xaxis('top', functions=(forward_conversion, backward_conversion))
         ax3.set_xlabel('Temperature [K]', fontsize=labelsize)
-        ax3.set_xticks([40,50,65,80,100,150,250])
-        ax3.tick_params(axis='x', labelsize=ticksize)
+        ax3.set_xticks(temperatures)
+        ax3.tick_params(axis='x', labelsize=ticksize*0.85) # avoid overlapping
 
         # export to an image file
         outputFolder = nn.config.get(self.product_name, 'outputdirectory')
@@ -208,7 +227,7 @@ class NEGFShortcuts(CommonShortcuts):
         outputSubfolder = os.path.join(outputFolder, filename_no_extension)
         self.export_figs("dark_current_vs_T", "png", output_folder_path=outputSubfolder, fig=fig)
 
-        ax.legend(fontsize=labelsize*0.9)
+        ax.legend(fontsize=labelsize*0.7)
         fig.tight_layout()
         plt.show()
 
@@ -1206,16 +1225,16 @@ class NEGFShortcuts(CommonShortcuts):
 
         for i, name in enumerate(names_dark):
             voltage, current = self.get_IV(name)
-            dark_current_densities.append(current)
-            potential_drops_dark.append(voltage)
+            dark_current_densities.append(current.value)
+            potential_drops_dark.append(voltage.value)
 
         illuminated_current_densities = list()
         potential_drops_illuminated = list()
 
         for i, name in enumerate(names_illuminated):
             voltage, current = self.get_IV(name)
-            illuminated_current_densities.append(current)
-            potential_drops_illuminated.append(voltage)
+            illuminated_current_densities.append(current.value)
+            potential_drops_illuminated.append(voltage.value)
 
         from matplotlib.ticker import MultipleLocator
         fig, ax1 = plt.subplots()
@@ -1385,7 +1404,7 @@ class NEGFShortcuts(CommonShortcuts):
         for pdrop, illuminated in zip(potential_drops_illuminated, illuminated_current_dens):
             if pdrop in common_potential_drops:
                 illuminated_current_densities_exerpt.append(illuminated)
-
+        logging.info(f"illuminated current: {illuminated_current_densities_exerpt}")
         responsivities = np.zeros(len(all_potential_drops))
         input_light_intensity_Wcm2 = input_light_intensity * 1e-4  # nextnano.NEGF input is in [W/m^2]
         num_skipped_pdrop = 0
