@@ -983,7 +983,7 @@ class NEGFShortcuts(CommonShortcuts):
             zmin=None,
             zmax=None,
             attachDispersion=False,
-            shadowBandgap=True,
+            shadowBandgap=False,
             showBias=True,
             showFermiLevel=True,
             showDensityDeviation=True,
@@ -1010,7 +1010,8 @@ class NEGFShortcuts(CommonShortcuts):
             data_name = 'electron'
         x, y, quantity, is_divergent = self.get_2Ddata_atBias(input_file_name, bias, data_name)
         if is_divergent:
-            colormap = self.default_colors.colormap['divergent_dark']
+            # colormap = self.default_colors.colormap['divergent_dark']
+            colormap = self.default_colors.colormap['divergent_bright']
         else:
             colormap = self.default_colors.colormap['linear_dark_bg']
 
