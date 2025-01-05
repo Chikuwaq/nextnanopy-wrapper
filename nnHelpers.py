@@ -275,7 +275,7 @@ class SweepHelper:
         for i, coord_key in enumerate(self.sweep_space.keys()):
             self.outputs[coord_key] = self.outputs['sweep_coords'].apply(extract_coord, index=i)
 
-        logging.info(f"Initialized data table:\n{self.outputs}")
+        logging.info(f"Initialized output data table:\n{self.outputs}")
         assert len(self.outputs) == self.inputs['fullpaths_short'].size
 
 
@@ -308,6 +308,44 @@ class SweepHelper:
         print("\tOutput data exists: ", self.__output_subfolders_exist())
         return ""
 
+    @staticmethod
+    def __count_nonzero_digits(number):
+        num_str = str(abs(number)).replace('.', '')
+        integers = [int(digit) for digit in num_str]
+        return np.count_nonzero(integers)
+
+    @staticmethod
+    def __format_number(number, round_decimal) -> str:
+        """
+        Return concise string expression of a sweep value.
+        Avoids lengthy file name (Windows cannot handle deeply-nested output files if nextnano input file name is too long).
+        """
+        if isinstance(number, str):
+            number = float(number)
+
+        if isinstance(number, int) or isinstance(number, float):
+            n_digits = SweepHelper.__count_nonzero_digits(number)
+            if isinstance(number, int) or number.is_integer():  # e.g. 1000.0
+                n_decimals = 0
+            else:
+                n_decimals = max(round_decimal, n_digits - 1)
+            scientific = f"{number:.{n_decimals}e}"
+            use_scientific = (len(scientific) < len(str(number)))  # do not use scientific format if the string gets longer
+
+            if use_scientific:
+                base, exponent = scientific.split('e')
+                base = base.rstrip('0')  # remove trailing zeros
+                exponent = exponent.lstrip('+')  # remove leading plus sign
+                exponent = exponent.lstrip('0')  # remove leading zeros
+                return f"{base}e{exponent}"
+            else:
+                number_str = str(number)
+                number_str = number_str.rstrip('0')  # remove trailing zeros
+                number_str = number_str.rstrip('.')  # remove trailing decimal point
+                return number_str
+        else:
+            TypeError(f"'number' must be str, int, or float, but is {type(number)}!")
+
 
     def __create_input_file_fullpaths(self, master_input_file):
         """
@@ -325,10 +363,7 @@ class SweepHelper:
         for i, combination in enumerate(self.outputs['sweep_coords']):
             filename_end = '__'
             for var_name, var_value in zip(self.sweep_space.keys(), combination):
-                if isinstance(var_value, str):
-                    var_value_string = var_value
-                else:
-                    var_value_string = round(var_value, self.round_decimal)
+                var_value_string = SweepHelper.__format_number(var_value, self.round_decimal)
                 filename_end += '{}_{}_'.format(var_name, var_value_string)
             input_file_fullpaths[i] = filename_path + filename_end + filename_extension
         return pd.Series(input_file_fullpaths)
@@ -509,7 +544,8 @@ class SweepHelper:
             print("\nRemaining sweep dimension: ", var)
             print("Simulation has been performed at: ")
             for i, val in enumerate(array):
-                print(f"index {i}: {val}")
+                beautiful_val = SweepHelper.__format_number(val, self.round_decimal)
+                print(f"index {i}: {beautiful_val}")
             if len(array) == 1:
                 iChoice = 0
             else:
@@ -544,7 +580,8 @@ class SweepHelper:
             print("\nRemaining sweep dimension: ", var)
             print("Simulation has been performed at: ")
             for i, val in enumerate(array):
-                print(f"index {i}: {val}")
+                beautiful_val = SweepHelper.__format_number(val, self.round_decimal)
+                print(f"index {i}: {beautiful_val}")
             if len(array) == 1:
                 iChoice = 0
             else:
