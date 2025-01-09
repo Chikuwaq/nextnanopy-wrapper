@@ -323,9 +323,10 @@ class SweepHelper:
         if isinstance(number, str):
             number = float(number)
 
-        if isinstance(number, int) or isinstance(number, float):
+        is_integer_type = isinstance(number, (int, np.integer))
+        if is_integer_type or isinstance(number, (float, np.floating)):
             n_digits = SweepHelper.__count_nonzero_digits(number)
-            if isinstance(number, int) or number.is_integer():  # e.g. 1000.0
+            if is_integer_type or number.is_integer():  # e.g. 1000.0
                 n_decimals = 0
             else:
                 n_decimals = max(round_decimal, n_digits - 1)
@@ -340,11 +341,12 @@ class SweepHelper:
                 return f"{base}e{exponent}"
             else:
                 number_str = str(number)
-                number_str = number_str.rstrip('0')  # remove trailing zeros
-                number_str = number_str.rstrip('.')  # remove trailing decimal point
+                if '.' in number_str:
+                    number_str = number_str.rstrip('0')  # remove trailing zeros
+                    number_str = number_str.rstrip('.')  # remove trailing decimal point
                 return number_str
         else:
-            TypeError(f"'number' must be str, int, or float, but is {type(number)}!")
+            raise TypeError(f"'number' must be str, int, or float, but is {type(number)}!")
 
 
     def __create_input_file_fullpaths(self, master_input_file):
@@ -1518,7 +1520,7 @@ class SweepHelper:
 
 
     ### Transport analysis ####################################################
-    def __calc_average_current(self):
+    def __calc_average_current(self, bias):
         """
         Compute spatial average of current density [A/cm^2] (1D structure) and store them in self.outputs
         if not all currents have been calculated.
@@ -1526,11 +1528,12 @@ class SweepHelper:
         if not self.outputs['ave_current'].isna().any():
             return
         logging.info("Calculating current...")
-        self.outputs['ave_current'] = self.__get_output_subfolder_paths().apply(self.shortcuts.calculate_average_current)
+        self.outputs['ave_current'] = self.__get_output_subfolder_paths().apply(self.shortcuts.calculate_average_current, bias=bias, is_fullpath=True)
 
     def plot_average_current(self,
                                x_axis,
                                y_axis,
+                               bias,
                                x_label=None,
                                y_label=None,
                                plot_title='',
@@ -1547,6 +1550,8 @@ class SweepHelper:
             sweep variable for x-axis
         y_axis : str
             sweep variable for y-axis
+        bias : float
+            potential drop per period at which the current data should be extracted
         x_label : str, optional
             custom x-axis label
         y_label : str, optional
@@ -1570,7 +1575,7 @@ class SweepHelper:
         self.__validate_sweep_variables(x_axis)
         self.__validate_sweep_variables(y_axis)
 
-        self.__calc_average_current()
+        self.__calc_average_current(bias)
 
         # x- and y-axis coordinates and 2D array-like of overlap data
         x_values, y_values, ave_current = self.__slice_data_for_colormap_2D('ave_current', x_axis, y_axis, datatype=np.double)
