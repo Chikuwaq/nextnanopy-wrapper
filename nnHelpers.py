@@ -605,18 +605,26 @@ class SweepHelper:
         return sweep_space_reduced
 
 
-    def __setup_2D_color_plot(self, ax, x_axis, y_axis, x_label, y_label, plot_title, x_values, y_values):
+    def __setup_2D_color_plot(self, ax, x_axis, y_axis, x_label, y_label, plot_title, x_values, y_values, logscale):
         """ 
         Set labels, ticks and titles of a 2D colormap plot 
         """
         if x_label is None: x_label = x_axis
         if y_label is None: y_label = y_axis
 
+        if logscale:
+            ax.set_xscale('log')
+            ax.set_yscale('log')
+
         ax.set_xlabel(x_label)
         ax.set_ylabel(y_label)
         ax.set_title(plot_title)
-        plt.xticks(x_values)
-        plt.yticks(y_values)
+        if logscale:
+            ax.set_xlim(x_values[0], x_values[-1])
+            ax.set_ylim(y_values[0], y_values[-1])
+        else:
+            plt.xticks(x_values)
+            plt.yticks(y_values)
 
         # trim x- and y-axis tick labels, while keeping all the ticks present
         nSimulations_x = len(self.sweep_space[x_axis])
@@ -1115,7 +1123,7 @@ class SweepHelper:
         # instantiate 2D color plot
         fig, ax = plt.subplots()
         if not plot_title: plot_title = "Envelope overlap"
-        self.__setup_2D_color_plot(ax, x_axis, y_axis, x_label, y_label, plot_title, x_values, y_values)
+        self.__setup_2D_color_plot(ax, x_axis, y_axis, x_label, y_label, plot_title, x_values, y_values, False)
 
         # color setting
         contour_color = 'white'
@@ -1267,7 +1275,7 @@ class SweepHelper:
         # instantiate 2D color plot
         fig, ax = plt.subplots()
         if not plot_title: plot_title = "Transition energies"
-        self.__setup_2D_color_plot(ax, x_axis, y_axis, x_label, y_label, plot_title, x_values, y_values)
+        self.__setup_2D_color_plot(ax, x_axis, y_axis, x_label, y_label, plot_title, x_values, y_values, False)
 
         # color setting
         colormap, contour_color = self.__determine_contour_color(colormap, set_center_to_zero)
@@ -1402,7 +1410,7 @@ class SweepHelper:
         # instantiate 2D color plot
         fig, ax = plt.subplots()
         if not plot_title: plot_title = "Energy difference HH1 - LH1"
-        self.__setup_2D_color_plot(ax, x_axis, y_axis, x_label, y_label, plot_title, x_values, y_values)
+        self.__setup_2D_color_plot(ax, x_axis, y_axis, x_label, y_label, plot_title, x_values, y_values, False)
 
         # color setting
         colormap, contour_color = self.__determine_contour_color(colormap, set_center_to_zero)
@@ -1489,7 +1497,7 @@ class SweepHelper:
         # instantiate 2D color plot
         fig, ax = plt.subplots()
         if not plot_title: plot_title = "Energy difference HH1 - HH2"
-        self.__setup_2D_color_plot(ax, x_axis, y_axis, x_label, y_label, plot_title, x_values, y_values)
+        self.__setup_2D_color_plot(ax, x_axis, y_axis, x_label, y_label, plot_title, x_values, y_values, False)
 
         # color setting
         colormap, contour_color = self.__determine_contour_color(colormap, set_center_to_zero)
@@ -1538,7 +1546,8 @@ class SweepHelper:
                                y_label=None,
                                plot_title='',
                                figFilename=None,
-                               colormap=None
+                               colormap=None,
+                               logscale=False
                                ):
         """
         Plot the colormap of the spatial average of current density as a function of two selected sweep axes.
@@ -1562,7 +1571,9 @@ class SweepHelper:
             output file name
         colormap : str, optional
             colormap used for the color bar
-
+        logscale : bool, optional
+            If True, x, y, and z-axes are set to logscale. 
+            
         Returns
         -------
         fig : matplotlib.figure.Figure object
@@ -1583,17 +1594,24 @@ class SweepHelper:
         # instantiate 2D color plot
         fig, ax = plt.subplots()
         if not plot_title: plot_title = "Spatial average of current density"
-        self.__setup_2D_color_plot(ax, x_axis, y_axis, x_label, y_label, plot_title, x_values, y_values)
+        self.__setup_2D_color_plot(ax, x_axis, y_axis, x_label, y_label, plot_title, x_values, y_values, logscale)
 
         # color setting
         colormap, contour_color = self.__determine_contour_color(colormap, False)
 
         from matplotlib import colors
-        divnorm = colors.Normalize(vmin=0.)  # set the colorscale minimum to 0
-        pcolor = ax.pcolormesh(x_values, y_values, ave_current, cmap=colormap, norm=divnorm, shading='auto')
+        if logscale:
+            norm = colors.LogNorm()
+        else:
+            norm = colors.Normalize(vmin=0.)  # set the colorscale minimum to 0
+        pcolor = ax.pcolormesh(x_values, y_values, ave_current, cmap=colormap, norm=norm, shading='auto')
 
-        cbar = fig.colorbar(pcolor, ax=ax)
-        cbar.set_label("Current density ($\mathrm{A}/\mathrm{cm}^2$)")
+        if logscale:
+            format_str = '%.0e'
+        else:
+            format_str = None
+        cbar = fig.colorbar(pcolor, ax=ax, format=format_str)
+        cbar.set_label("Current density [$\mathrm{A}/\mathrm{cm}^2$]")
 
         fig.tight_layout()
         plt.show()
