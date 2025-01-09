@@ -307,7 +307,7 @@ class NEGFShortcuts(CommonShortcuts):
         return amplitude_dict_trimmed
 
 
-    def get_DataFile_NEGF_atBias(self, keywords, name, bias, parent_folder=None):
+    def get_DataFile_NEGF_atBias(self, keywords, name, bias, is_fullpath=False):
         """
         Get single nextnanopy.DataFile of NEGF output data with the given string keyword(s) at the specified bias.
 
@@ -319,6 +319,9 @@ class NEGFShortcuts(CommonShortcuts):
             input file name which is used as output subfolder name for the search. Extensions and folder path are removed.
         bias : float
             voltage drop per period
+        is_fullpath : bool, optional
+            If True, 'name' is directly used as the parent folder.
+            If False, see parent_folder for the behaviour.
         parent_folder : str, optional
             path to the parent folder, in which the subfolder for individual bias is expected to exist. If None, the default output folder in the nextnanopy config is prepended to 'name'.
 
@@ -327,12 +330,12 @@ class NEGFShortcuts(CommonShortcuts):
         nextnanopy.DataFile object of the simulation data
 
         """
-        if parent_folder is None:
+        if is_fullpath:
+            bias_subfolder = os.path.join(name, str(bias) + 'mV')
+        else:
             output_folder = nn.config.get(self.product_name, 'outputdirectory')
             filename_no_extension = CommonShortcuts.separate_extension(name)[0]
             bias_subfolder = os.path.join(output_folder, filename_no_extension, str(bias) + 'mV')
-        else:
-            bias_subfolder = os.path.join(parent_folder, str(bias) + 'mV')
 
         return self.get_DataFile_in_folder(keywords, bias_subfolder)
 
@@ -2266,7 +2269,7 @@ class NEGFShortcuts(CommonShortcuts):
             probability_dict = {'kp8': list(datafiles)}  # TODO: generalize to cover 1,2,3-band cases
         else:
             # search for biased output
-            datafile = self.get_DataFile_NEGF_atBias("EigenStates.dat", folder_path, bias=bias)
+            datafile = self.get_DataFile_NEGF_atBias("EigenStates.dat", folder_path, bias=bias, is_fullpath=True)
             logging.info("Taking EigenStates from biased folder")
             assert(isinstance(datafile, nn.DataFile))
             probability_dict = {'kp8': datafile}  # TODO: generalize to cover 1,2,3-band cases
@@ -2620,7 +2623,7 @@ class NEGFShortcuts(CommonShortcuts):
         """
         transition_E_meV = self.get_transition_energy(output_folder) * CommonShortcuts.scale1ToMilli
         
-        datafile = self.get_DataFile_NEGF_atBias(['SemiClassical_vs_Energy', polarization_vector], '', bias, parent_folder=output_folder)
+        datafile = self.get_DataFile_NEGF_atBias(['SemiClassical_vs_Energy', polarization_vector], output_folder, bias, is_fullpath=True)
         photon_energies = datafile.coords['Photon Energy'].value
         gain = datafile.variables['Gain'].value
         
@@ -2635,8 +2638,16 @@ class NEGFShortcuts(CommonShortcuts):
         return None
 
     ################ Transport result getters #############################################
-    def calculate_average_current(self, output_folder, bias=0):
-        datafile = self.get_DataFile_in_folder(["CurrentDensity.dat"], output_folder, exclude_folders=[])
+    def calculate_average_current(self, name, bias, is_fullpath):
+        """
+        name : str
+            name of the input file (is_fullpath = True) or full path to the folder that contains bias subfolders (is_fullpath = False)
+        bias : float
+            data from this bias subfolder is extracted
+        is_fullpath : bool
+            specifies the nature of 'name', see its description
+        """
+        datafile = self.get_DataFile_NEGF_atBias(["CurrentDensity.dat"], name, bias, is_fullpath=is_fullpath)
         current = datafile.variables[0].value
         # return current.average(axis=0)  # numpy 2.2
-        return current.mean(axis=0)
+        return current.mean(axis=0)  # numpy 2.1
