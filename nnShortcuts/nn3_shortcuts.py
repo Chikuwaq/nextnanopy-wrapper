@@ -95,7 +95,8 @@ class nn3Shortcuts(CommonShortcuts):
         if len(list(inplaneK_dict.values())[0]) == 2: return   # if only zone-center has been calculated
 
         for model, k_vectors in inplaneK_dict.items():
-            if np.ndim(k_vectors) == 1: continue    # skip if only the zone-center is calculated
+            if np.ndim(k_vectors) == 1: 
+                continue    # skip if only the zone-center is calculated
 
             fig, ax = plt.subplots()
             ax.set_xlabel('$k_y$ [$\mathrm{nm}^{-1}$]')
@@ -172,11 +173,13 @@ class nn3Shortcuts(CommonShortcuts):
             quantum_model = self.detect_quantum_model(filename)
 
             if quantum_model == 'kp8' or quantum_model == 'kp6':
-                if '_001_' not in filename: continue   # exclude non k|| = 0 amplitudes   # TODO: check if it's working
+                if '_001_' not in filename: 
+                    continue   # exclude non k|| = 0 amplitudes   # TODO: check if it's working
             amplitude_dict[quantum_model].append(df)
 
         # delete quantum model keys whose probabilities do not exist in output folder
         amplitude_dict_trimmed = {model: amplitude_dict[model] for model in amplitude_dict if len(amplitude_dict[model]) > 0}
+
         if len(amplitude_dict_trimmed) == 0:
             raise NextnanoInputFileError("Amplitudes are not output! Modify the input file.")
 

@@ -295,7 +295,8 @@ class NEGFShortcuts(CommonShortcuts):
             quantum_model = 'kp8'  # currently, NEGF has amplitude output on in kp8
 
             if quantum_model == 'kp8' or quantum_model == 'kp6':
-                if '_k0' not in filename: continue   # exclude non k|| = 0 amplitudes
+                if '_k0' not in filename: 
+                    continue   # exclude non k|| = 0 amplitudes
             amplitude_dict[quantum_model].append(df)
 
         # delete quantum model keys whose probabilities do not exist in output folder
@@ -1806,7 +1807,8 @@ class NEGFShortcuts(CommonShortcuts):
 
         for model, datafiles in datafiles_probability_dict.items():
             if isinstance(datafiles, list):
-                if len(datafiles) == 0: continue
+                if len(datafiles) == 0: 
+                    continue
                 datafile_probability = datafiles[0]
                 # print(type(datafile_probability))
             elif isinstance(datafiles, nn.DataFile):
@@ -1856,7 +1858,8 @@ class NEGFShortcuts(CommonShortcuts):
                 dfs = list()
                 dfs.append(datafile)
                 
-            if len(dfs) == 0: continue
+            if len(dfs) == 0: 
+                continue
             
             for cnt, stateIndex in enumerate(states_toBePlotted[model]):
                 for kIndex in range(num_kPoints[model]):
@@ -1911,7 +1914,8 @@ class NEGFShortcuts(CommonShortcuts):
             compositions = dict()
 
             for model, state_indices in states_toBePlotted.items():
-                if model not in ['kp6', 'kp8']: continue
+                if model not in ['kp6', 'kp8']: 
+                    continue
 
                 compositions[model] = np.zeros((num_evs[model], num_kPoints[model], 4))   # compositions[quantum model][eigenvalue index][k index][spinor index]
                 print(datafiles_spinor[model][0])  # TODO: nextnanopy negf parser or InputFile class has a bug, or, my output from NEGF++ is not optimal
@@ -1926,7 +1930,7 @@ class NEGFShortcuts(CommonShortcuts):
                         compositions[model][stateIndex, kIndex, 3] = datafiles_spinor[model][kIndex].variables[3].value[stateIndex] + datafiles_spinor[model][kIndex].variables[7].value[stateIndex]
 
         # define plot title
-        title = CommonShortcuts.get_plot_title(plot_title)
+        title = CommonShortcuts.adjust_plot_title(plot_title)
 
         def draw_bandedges(ax, model, want_valence_band):
             self.set_plot_labels(ax, 'Position [nm]', 'Energy [eV]', title)
@@ -2164,7 +2168,7 @@ class NEGFShortcuts(CommonShortcuts):
                 psiSquared[stateIndex] = CommonShortcuts.mask_part_of_array(psiSquared[stateIndex], method='flat', tolerance=1e-2)
 
         # define plot title
-        title = CommonShortcuts.get_plot_title(plot_title)
+        title = CommonShortcuts.adjust_plot_title(plot_title)
 
         def draw_bandedges(ax, model, want_valence_band):
             self.set_plot_labels(ax, 'Position [nm]', 'Energy [eV]', title)

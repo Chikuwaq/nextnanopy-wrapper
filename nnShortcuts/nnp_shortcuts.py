@@ -129,7 +129,8 @@ class nnpShortcuts(CommonShortcuts):
         if len(list(inplaneK_dict.values())[0]) == 2: return   # if only zone-center has been calculated
 
         for model, k_vectors in inplaneK_dict.items():
-            if np.ndim(k_vectors) == 1: continue    # skip if only the zone-center is calculated
+            if np.ndim(k_vectors) == 1: 
+                continue    # skip if only the zone-center is calculated
 
             fig, ax = plt.subplots()
             ax.set_xlabel('$k_y$ [$\mathrm{nm}^{-1}$]')
@@ -220,7 +221,8 @@ class nnpShortcuts(CommonShortcuts):
             quantum_model = self.detect_quantum_model(filename)
 
             if quantum_model == 'kp8' or quantum_model == 'kp6':
-                if '_00000_' not in filename: continue   # exclude non k|| = 0 amplitudes
+                if '_00000_' not in filename: 
+                    continue   # exclude non k|| = 0 amplitudes
             amplitude_dict[quantum_model].append(df)
 
         # delete quantum model keys whose probabilities do not exist in output folder
@@ -327,7 +329,7 @@ class nnpShortcuts(CommonShortcuts):
 
         # define plot title
         if plot_title:
-            title = CommonShortcuts.get_plot_title(plot_title)
+            title = CommonShortcuts.adjust_plot_title(plot_title)
         else:
             title = ''
 
@@ -479,7 +481,7 @@ class nnpShortcuts(CommonShortcuts):
             for kIndex in range(num_kPoints1):
                 dispersions[index, ] = np.append( np.flip(dispersions1[index,:]), dispersions2[index,:])
 
-        title = CommonShortcuts.get_plot_title(name)
+        title = CommonShortcuts.adjust_plot_title(name)
 
         # instantiate matplotlib subplot objects
         fig, ax = plt.subplots()
@@ -526,11 +528,11 @@ class nnpShortcuts(CommonShortcuts):
 
         """
         inputfile_name = CommonShortcuts.separate_extension(master_input_file.fullpath)[0]
-        output_folder_path = self.get_sweep_output_folder_path(inputfile_name, sweep_variable)
+        output_folder_path = self.compose_sweep_output_folder_path(inputfile_name, sweep_variable)
         logging.info(f'output folder path: {output_folder_path}')
 
         for value in list_of_values:
-            output_subfolderName = self.get_sweep_output_subfolder_name(inputfile_name, {sweep_variable: value})
+            output_subfolderName = self.compose_sweep_output_subfolder_name(inputfile_name, {sweep_variable: value})
             output_folder = os.path.join(output_folder_path, output_subfolderName)
 
             # load output data files
@@ -576,10 +578,10 @@ class nnpShortcuts(CommonShortcuts):
 
         """
         inputfile_name = CommonShortcuts.separate_extension(master_input_file.fullpath)[0]
-        output_folder_path = self.get_sweep_output_folder_path(inputfile_name, sweep_variable)
+        output_folder_path = self.compose_sweep_output_folder_path(inputfile_name, sweep_variable)
 
         # determine optimal plot range - x-axis
-        output_subfolderName = self.get_sweep_output_subfolder_name(inputfile_name, {sweep_variable: list_of_values[0]})
+        output_subfolderName = self.compose_sweep_output_subfolder_name(inputfile_name, {sweep_variable: list_of_values[0]})
         output_folder        = os.path.join(output_folder_path, output_subfolderName)
         datafile_dispersion  = self.get_DataFile_in_folder('dispersion_', output_folder)
         kPoints              = datafile_dispersion.coords['|k|'].value
@@ -602,7 +604,7 @@ class nnpShortcuts(CommonShortcuts):
         num_kPoints = len(kPoints)
 
         def plotDispersions(iSweep):
-            output_subfolderName = self.get_sweep_output_subfolder_name(inputfile_name, {sweep_variable: list_of_values[iSweep]})
+            output_subfolderName = self.compose_sweep_output_subfolder_name(inputfile_name, {sweep_variable: list_of_values[iSweep]})
             output_folder = os.path.join(output_folder_path, output_subfolderName)
 
             # load output data files
@@ -728,7 +730,8 @@ class nnpShortcuts(CommonShortcuts):
         datafiles_probability_dict = self.get_DataFile_probabilities_with_name(input_file.fullpath)
 
         for model, datafiles in datafiles_probability_dict.items():
-            if len(datafiles) == 0: continue
+            if len(datafiles) == 0: 
+                continue
 
             datafile_probability = datafiles[0]
             x_probability  = datafile_probability.coords['x'].value
@@ -763,7 +766,8 @@ class nnpShortcuts(CommonShortcuts):
             psiSquared[model] = [ [ 0 for kIndex in range(num_kPoints[model]) ] for stateIndex in range(num_evs[model]) ]  # stateIndex in states_toBePlotted[model] would give a list of the same size
 
         for model, dfs in datafiles_probability_dict.items():
-            if len(dfs) == 0: continue
+            if len(dfs) == 0: 
+                continue
 
             for cnt, stateIndex in enumerate(states_toBePlotted[model]):
                 for kIndex in range(num_kPoints[model]):
@@ -818,7 +822,8 @@ class nnpShortcuts(CommonShortcuts):
             compositions = dict()
 
             for model, state_indices in states_toBePlotted.items():
-                if model not in ['kp6', 'kp8']: continue
+                if model not in ['kp6', 'kp8']: 
+                    continue
 
                 compositions[model] = np.zeros((num_evs[model], num_kPoints[model], 4))   # compositions[quantum model][eigenvalue index][k index][spinor index]
 
@@ -835,7 +840,7 @@ class nnpShortcuts(CommonShortcuts):
                         compositions[model][stateIndex, kIndex, 3] = datafiles_spinor[model][kIndex].variables['so1'].value[stateIndex] + datafiles_spinor[model][kIndex].variables['so2'].value[stateIndex]
 
         # define plot title
-        title = CommonShortcuts.get_plot_title(plot_title)
+        title = CommonShortcuts.adjust_plot_title(plot_title)
 
         def draw_bandedges(ax, model):
             self.set_plot_labels(ax, 'Position [nm]', 'Energy [eV]', title)
@@ -1066,7 +1071,7 @@ class nnpShortcuts(CommonShortcuts):
 
         # define plot title
         if plot_title:
-            title = CommonShortcuts.get_plot_title(plot_title)
+            title = CommonShortcuts.adjust_plot_title(plot_title)
         else:
             title = ''
         ax.set_title(title)
@@ -1410,7 +1415,7 @@ class nnpShortcuts(CommonShortcuts):
     #             for kIndex in range(num_kPoints[model]):
     #                 psiSquared[model][stateIndex][kIndex] = CommonShortcuts.mask_part_of_array(psiSquared[model][stateIndex][kIndex], 'flat', 1e-3)
 
-    #     title = CommonShortcuts.get_plot_title(input_file.fullpath)
+    #     title = CommonShortcuts.adjust_plot_title(input_file.fullpath)
 
     #     # instantiate matplotlib subplot objects
     #     for model in datafiles_probability_dict:
