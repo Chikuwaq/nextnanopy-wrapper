@@ -1,7 +1,7 @@
 """
 Created on 2022/05/21
 
-The SweepHelper class facilitates postprocessing of nextnano simulations 
+The SweepManager class facilitates postprocessing of nextnano simulations 
 when single or multiple input variables are swept.
 
 This object-oriented user interface internally & automatically invokes nnShortcuts.
@@ -28,33 +28,30 @@ import nextnanopy as nn
 
 # my includes
 from nnShortcuts.common import CommonShortcuts
-from slurmData import SlurmData
-from nnShortcuts.default_colors import DefaultColors
+from slurm_data import SlurmData
+from sweep_space import SweepSpace
 
 
-class SweepHelper:
+
+class SweepManager:
     """
-        This class bridges the input and output of sweep simulation by nextnanopy simulations to facilitate postprocessing of multiple simulation data obtained by sweeping variable(s) in the input file.
+        This class bridges the input and output of the nextnanopy.Sweep() simulations to facilitate postprocessing of multiple simulation data obtained by sweeping variable(s) in the input file.
 
         The initialization of the class will detect the software to use and construct a table of sweep information which is useful for postprocessing.
 
         Running sweep simulation may take long time. If the output data already exists for the identical input file and sweep values, this class allows postprocessing without running simulations.
         WARNING: Plots do not always guarantee that the data is up-to-date, e.g. when you modify the input file but do not change the file name and sweep range.
 
-        Advantages over nextnanopy.Sweep class
-        --------------------------------------
-            - You can sweep more variables you like in one go. When the temporary file name would get too long, use unique IDs until the end of simulation. Output folder names can be recovered by the recover_original_filenames() method.
-            - The output folder paths are calculated even if you do not run the simulations. Because of this, you do not need to keep Sweep class object alive for postprocessing of sweep results.
-            - Supports job submission to Slurm workload manager. See submit_sweep_to_slurm().
+        Notes
+        -----
+            - You can sweep as many variables as you like in one go.
 
         Attributes
         ----------
-        sweep_space : dict of numpy.ndarray - { 'sweep variable': array of values }
-            Axes and coordinates of the sweep parameter space.
-            Used for 1D/2D slicing of the whole sweep outputs. 
-            NOTE: When the SweepHelper object has been instantiated with a list of individual sweep coords, sweep_space.values() may not be useful.
+        sweep_space : SweepSpace object
+            axes and coordinates of the sweep parameter space
 
-        shortcuts : nextnanopy-wrapper shortcut object
+        shortcuts : shortcut object
             shortcut object for the nextnano solver used for the master_input_file (automatically detected)
 
         master_input_file : dict of nextnanopy.InputFile object
@@ -70,20 +67,18 @@ class SweepHelper:
             'original'  = original file name
             'short' = abbreviated file name
 
-        inputs : pandas.DataFrame object
-            table of input data for each sweep coordinates with the following columns:
-                sweep_coords : tuple
-                    sweep space coordinates of each simulation. (value of 1st sweep variable, value of 2nd sweep variable, ...)
-                obj : nextnanopy.InputFile object
-                    Shallow copies of self.master_input_file with modified variable values
-                fullpaths_original : str
-                    fullpath to temporary input files with original file name
-                fullpaths_short : str
-                    fullpath to temporary input files with abbreviated file name
-            NOTE: We split the temporary input file paths from nextnanopy's Sweep class object to avoid unnecessary calls of save_sweep(), which costs time.
+        sweep_obj : nextnanopy.Sweep object
+            instantiated based on self.sweep_space and self.master_input_file
 
-        outputs : pandas.DataFrame object
-            table of output data for each sweep coordinates with the following columns:
+        input_file_fullpaths : dict of list of str
+            list of fullpath of temporary input files for the sweep.
+            Paths are ordered in the same manner as self.sweep_obj.input_files.
+            'original'  = original file name
+            'short' = abbreviated file name
+            NOTE: We split the temporary input file paths from self.sweep_obj to avoid unnecessary save_sweep(), which costs time.
+
+        data : pandas.DataFrame object
+            table of sweep data with the following columns:
                 sweep_coords : tuple
                     sweep space coordinates of each simulation. (value of 1st sweep variable, value of 2nd sweep variable, ...)
                 output_subfolder : str
@@ -94,21 +89,42 @@ class SweepHelper:
                     energy difference between the highest hole-like and lowest electron-like states
                 hole_energy_difference : real
                     energy difference between the highest heavy-hole and highest light-hole states
-                absorption_at_transition_energy_TE : real
-                    amplitude of optical absorption of x polarization at the transition energy (1/cm)
-                absorption_at_transition_energy_TM : real
-                    amplitude of optical absorption of z polarization at the transition energy (1/cm)
-            
+            Rows are ordered in the same manner as self.sweep_obj.input_files.
+
         states_to_be_plotted : dict of numpy.ndarray - { 'quantum model': array of values }
             for each quantum model, array of eigenstate indices to be plotted in the figure (default: all states in the output data)
 
         slurm_data : SlurmData object
             information used for Slurm jobs
 
-        default_colors : DefaultColors object
-    """
-    default_colors = DefaultColors()
 
+        Methods
+        -------
+        execute_sweep(self, convergenceCheck=True, show_log=False)
+            Run nextnano simulations.
+
+        delete_input_files(self)
+            Delete the input files generated by the current sweep session.
+
+        plot_dispersions(self, sweep_variable)
+            Plot multiple dispersions from sweep output.
+
+        generate_gif(self, sweep_variable)
+            Generate GIF animation from multiple dispersions obtained from sweep.
+
+        plot_overlap_squared(self, x_axis, y_axis, x_label='', y_label='', plot_title='', figFilename=None)
+            Plot the overlap colormap as a function of two selected sweep axes.
+
+        plot_transition_energies(self, x_axis, y_axis, x_label='', y_label='', plot_title='', figFilename=None)
+            Plot the transition energies as a function of two selected sweep axes.
+
+        plot_inplaneK()
+            Plot the in-plane k points at which the Schroedinger equation has been solved.
+
+        create_sbatch_scripts()
+            Generate sbatch files to submit the sweep simulations to cloud computers by SLURM.
+
+    """
 
     def __init__(self, sweep_ranges, master_input_file, eigenstate_range=None, round_decimal=8, loglevel=logging.INFO):
         """
@@ -117,14 +133,7 @@ class SweepHelper:
         sweep_ranges : dict of tuple - { 'sweep variable': tuple([min, max], number of points) }
                        OR
                        dict of list  - { 'sweep variable': list(value1, value2, ...) }
-                       OR
-                       list of tuple - [
-                                         ('sweep variable 1', 'sweep variable 2', ...),  # str specifying variable names
-                                         (value1-1, value2-1, ...),                      # individual sweep space coordinates
-                                         (value1-2, value2-2, ...),
-                                         ...
-                                        ]
-            specifies the values of each sweep variable.
+            specifies the values of each sweep variable key.
 
         master_input_file : nextnanopy.InputFile object
             master input file in which one or more variables are swept
@@ -140,10 +149,9 @@ class SweepHelper:
             Available options are DEBUG/INFO/WARNING/ERROR/CRITICAL. See logging module for details.
 
         """
-        # initialize members
-        self.master_input_file = dict()
-        self.sweep_space = dict()
-        self.output_folder_path = dict()
+        # validate arguments
+        if not isinstance(sweep_ranges, dict): raise TypeError(f"__init__(): argument 'sweep_ranges' must be a dict, but is {type(sweep_ranges)}")
+        # if not isinstance(master_input_file, nn.InputFile): raise TypeError(f"__init__(): argument 'master_input_file' must be a nextnanopy.InputFile object, but is {type(master_input_file)}")   # TODO: object type has been modified in nextnanopy
         
         # log setting
         fmt = '[%(levelname)s] %(message)s'
@@ -157,10 +165,13 @@ class SweepHelper:
             # return "%(filename)s:%(lineno)d:\n %(category.__name__)s: %(message)s"
         warnings.formatwarning = warning_on_one_line
 
+        # generate self.sweep_space
+        self.sweep_space = SweepSpace.create_from_sweep_ranges(sweep_ranges, round_decimal)
+
         # prepare shortcuts for the nextnano solver used
         self.shortcuts = CommonShortcuts.get_shortcut(master_input_file)
-        if self.shortcuts.product_name not in ['nextnano3', 'nextnano++', 'nextnano.NEGF', 'nextnano.NEGF++']: 
-            raise NotImplementedError("class SweepHelper currently supports only nextnano++ and nextnano.NEGF++ simulations.")
+        if self.shortcuts.product_name not in ['nextnano++', 'nextnano.NEGF', 'nextnano.NEGF++']: 
+            raise NotImplementedError("class SweepManager currently supports only nextnano++ and nextnano.NEGF++ simulations.")
 
         if eigenstate_range is not None:
             if not isinstance(eigenstate_range, dict): raise TypeError(f"__init__(): argument 'eigenstate_range' must be a dict, but is {type(eigenstate_range)}")
@@ -168,115 +179,73 @@ class SweepHelper:
                 if model not in self.shortcuts.model_names: raise KeyError(f"__init__(): Quantum model '{model}' is not supported")
                 if len(plot_range) != 2: raise ValueError("__init__(): argument 'eigenstate_range' must be of the form 'quantum model': [min, max]")
 
-        self.round_decimal = round_decimal  # used by execute_sweep()
+        self.master_input_file = dict()
         
-        # generate self.sweep_space
-        if isinstance(sweep_ranges, dict):
-            for var in sweep_ranges:
-                if isinstance(sweep_ranges[var], tuple):  # min, max, and number of points have been given
-                    bounds, num_points = sweep_ranges[var]
-                    if bounds[0] == bounds[1] and num_points > 1:
-                        raise RuntimeError(f"Sweep variable {var} has min = max, but more than one simulation is requested!")
-                    self.sweep_space[var] = np.around(np.linspace(bounds[0], bounds[1], num_points), round_decimal)   # avoid lengthy filenames
-                elif isinstance(sweep_ranges[var], list):  # list of values has been given
-                    self.sweep_space[var] = np.around(np.array(sweep_ranges[var]), round_decimal)   # avoid lengthy filenames
-            
-        elif isinstance(sweep_ranges, list):
-            for i_variable, var in enumerate(sweep_ranges[0]):
-                if not isinstance(var, str): raise TypeError("First tuple of `sweep_ranges` must be str specifying variable names!")
-                self.sweep_space[var] = [sweep_ranges[1][i_variable]]  # tentative: store only the first value
-            assert(len(self.sweep_space.keys()) > 0)
-        else:
-            raise TypeError(f"__init__(): argument 'sweep_ranges' must be a either dict or list, but is {type(sweep_ranges)}")
-            
-        logging.debug("\nSweep space axes:")
-        logging.debug(f"{ [ key for key in self.sweep_space.keys() ] }")
-        
-        
-        # store its related data
-        self.output_folder_path['original']  = self.shortcuts.get_sweep_output_folder_path(master_input_file.fullpath, *self.sweep_space.keys())
-
-        # store master input file object with the original file name
-        master_input_file.config.set(self.shortcuts.product_name, 'outputdirectory', self.output_folder_path['original'])
-        self.master_input_file['original'] = copy.deepcopy(master_input_file)
-        
-
-        # fill sweep input and output data tables
-        self.inputs = pd.DataFrame(columns=[
-            'sweep_coords',
-            'obj',
-            'fullpaths_original',
-            'fullpaths_short'
-        ])
-        self.outputs = pd.DataFrame(columns=[
-            'sweep_coords',  
-            'output_subfolder_original',
-            'output_subfolder_short',
-            'overlap',
-            'transition_energy_eV',
-            'transition_energy_meV',
-            'transition_energy_micron',
-            'transition_energy_nm',
-            'HH1-LH1',
-            'HH1-HH2',
-            'absorption_at_transition_energy_TE',
-            'absorption_at_transition_energy_TM',
-            'ave_current'
-        ])
-
-        if isinstance(sweep_ranges, dict):
-            # create cartesian coordinates in the sweep space. Consistent to nextnanopy implementation.
-            self.inputs['sweep_coords'] = list(itertools.product(*self.sweep_space.values()))
-        elif isinstance(sweep_ranges, list):
-            self.inputs['sweep_coords'] = sweep_ranges[1:]
-
-        self.outputs['sweep_coords'] = self.inputs['sweep_coords']
-        self.inputs['fullpaths_original'] = self.__create_input_file_fullpaths(self.master_input_file['original'])
-        self.outputs['output_subfolder_original'] = [CommonShortcuts.get_output_subfolder_path(self.output_folder_path['original'], input_path) for input_path in self.inputs['fullpaths_original']]
-        
-
-        # prepare files and folders with abbreviated names if needed
-        outfolder = self.shortcuts.get_sweep_output_folder_path(self.master_input_file['original'].fullpath, *self.sweep_space.keys())
-        initSweepCoords = {key: arr[0] for key, arr in self.sweep_space.items()}
-        subfolder = self.shortcuts.get_sweep_output_subfolder_name(self.master_input_file['original'].fullpath, initSweepCoords)
+        # store master input file object
+        self.master_input_file['original'] = copy.copy(master_input_file)
+        outfolder = self.shortcuts.compose_sweep_output_folder_path(self.master_input_file['original'].fullpath, *self.sweep_space.get_variable_names())
+        initSweepCoords = {key: arr[0] for key, arr in self.sweep_space.get_items()}
+        subfolder = self.shortcuts.compose_sweep_output_subfolder_name(self.master_input_file['original'].fullpath, initSweepCoords)
         outpath = os.path.join(outfolder, subfolder)
-        if len(outpath) + 160 <= 260:
-            self.isFilenameAbbreviated = False
-        else:
-            self.isFilenameAbbreviated = True
-
+        if len(outpath) + 100 > 260:
             import uuid
             logging.info(f"Because the output path is too long ({len(outpath)}), creating a temporary input file with shorter name...")
             dir = os.path.dirname(master_input_file.fullpath)
             ext = os.path.splitext(master_input_file.fullpath)[1]
             id = str(uuid.uuid4())
-            filename = 'tmp' + id[:5] + ext  # using a part of the Universally Unique Identifier
+            filename = id[:5] + ext  # using a part of the Universally Unique Identifier
             temp_path = os.path.join(dir, filename)
             master_input_file.save(temp_path, overwrite=True, automkdir=True)
-
-        self.output_folder_path['short']  = self.shortcuts.get_sweep_output_folder_path(master_input_file.fullpath, *self.sweep_space.keys())
-
-        master_input_file.config.set(self.shortcuts.product_name, 'outputdirectory', self.output_folder_path['short'])
         self.master_input_file['short'] = master_input_file
-        
-        self.inputs['fullpaths_short'] = self.__create_input_file_fullpaths(self.master_input_file['short'])
-        
-        self.outputs['output_subfolder_short'] = [CommonShortcuts.get_output_subfolder_path(self.output_folder_path['short'], input_path) for input_path in self.inputs['fullpaths_short']]
 
+        # store parent output folder path of sweep simulations
+        self.output_folder_path = dict()
+        self.output_folder_path['original']  = self.shortcuts.compose_sweep_output_folder_path(self.master_input_file['original'].fullpath, *self.sweep_space.keys())
+        self.output_folder_path['short']     = self.shortcuts.compose_sweep_output_folder_path(self.master_input_file['short'].fullpath, *self.sweep_space.keys())
 
+        self.isFilenameAbbreviated = (self.output_folder_path['short'] != self.output_folder_path['original'])
+
+        # instantiate nn.Sweep object
+        if self.isFilenameAbbreviated:
+            self.sweep_obj = nn.Sweep(self.sweep_space.get_dict(), self.master_input_file['short'].fullpath)
+        else:
+            self.sweep_obj = nn.Sweep(self.sweep_space.get_dict(), self.master_input_file['original'].fullpath)
+
+        self.round_decimal = round_decimal  # used by execute_sweep()
+        
+        self.input_file_fullpaths = dict()
+        self.input_file_fullpaths['short'] = self.__create_input_file_fullpaths(self.master_input_file['short'])
+        self.input_file_fullpaths['original'] = self.__create_input_file_fullpaths(self.master_input_file['original'])
+
+        logging.debug("\nSweep space axes:")
+        logging.debug(f"{ [ key for key in self.sweep_space.get_variable_names() ] }")
+
+        # instantiate pandas.DataFrame to store sweep data
+        self.data = pd.DataFrame({
+            'sweep_coords' : list(itertools.product(*self.sweep_space.get_values())),  # create cartesian coordinates in the sweep space. Consistent to nextnanopy implementation.
+            'output_subfolder' : [CommonShortcuts.get_output_subfolder_path(self.output_folder_path['original'], input_path) for input_path in self.input_file_fullpaths['original']],
+            'output_subfolder_short' : [CommonShortcuts.get_output_subfolder_path(self.output_folder_path['short'], input_path) for input_path in self.input_file_fullpaths['short']],
+            'overlap' : None,
+            'transition_energy_eV' : None,
+            'transition_energy_meV' : None,
+            'transition_energy_micron' : None,
+            'transition_energy_nm' : None,
+            'HH1-LH1' : None,
+            'HH1-HH2' : None
+            })
+        
+        # simulation outputs of this sweep might exist already. The user might want to access those outputs without executing sweep simulation.
         if self.__output_subfolders_exist_with_originalname():
-            # simulation outputs of this sweep exist already. The user might want to access those outputs without executing sweep simulation.
             self.isFilenameAbbreviated = False
-        
-        
+
         # for convenience in postprocessing/visualizing CSV/Excel output
         def extract_coord(tupl, index=0):
             return tupl[index]
-        for i, coord_key in enumerate(self.sweep_space.keys()):
-            self.outputs[coord_key] = self.outputs['sweep_coords'].apply(extract_coord, index=i)
+        for i, coord_key in enumerate(self.sweep_space.get_variable_names()):
+            self.data[coord_key] = self.data['sweep_coords'].apply(extract_coord, index=i)
 
-        logging.info(f"Initialized output data table:\n{self.outputs}")
-        assert len(self.outputs) == self.inputs['fullpaths_short'].size
+        logging.info(f"Initialized data table:\n{self.data}")
+        assert len(self.data) == len(self.input_file_fullpaths['original'])
 
 
         # initialize eigenstate indices to be plotted
@@ -288,65 +257,28 @@ class SweepHelper:
             self.states_to_be_plotted = None   # if this remains None, it will be set up after sweep execution. See execute_sweep().
             # if self.__output_subfolders_exist():   # if output data exists, set to all states in the output data   # TODO: output subfolder not found when input file is NEGF...?
             #     try:
-            #         datafiles_probability = self.shortcuts.get_DataFile_probabilities_in_folder(self.data.loc[0, 'output_subfolder_original'])
+            #         datafiles_probability = self.shortcuts.get_DataFile_probabilities_in_folder(self.data.loc[0, 'output_subfolder'])
             #         self.states_to_be_plotted, num_evs = self.shortcuts.get_states_to_be_plotted(datafiles_probability)   # states_range_dict=None -> all states are plotted
             #     except FileNotFoundError as e:
             #         pass
 
-        self.slurm_data = SlurmData(self.output_folder_path['short'])
+        self.slurm_data = SlurmData()
 
+
+    # def __repr__(self):
+    #     return ""
 
     def __str__(self):
-        """ this method is executed when print(SweepHelper object) is invoked """
-        print("\n[SweepHelper]")
+        """ this method is executed when print(SweepManager object) is invoked """
+        print("\n[SweepManager]")
         print("\tMaster input file: ", self.master_input_file['original'].fullpath)
         print("\tSolver: ", self.shortcuts.product_name)
         print("\tSweep space grids: ")
-        for var, values in self.sweep_space.items():
+        for var, values in self.sweep_space.get_items():
             print(f"\t\t{var} = ", values)
-        print("\tOutput folder: ", self.output_folder_path['short'])
+        print("\tOutput folder: ", self.__get_output_folder_path())
         print("\tOutput data exists: ", self.__output_subfolders_exist())
         return ""
-
-    @staticmethod
-    def __count_nonzero_digits(number):
-        num_str = str(abs(number)).replace('.', '')
-        integers = [int(digit) for digit in num_str]
-        return np.count_nonzero(integers)
-
-    @staticmethod
-    def __format_number(number, round_decimal) -> str:
-        """
-        Return concise string expression of a sweep value.
-        Avoids lengthy file name (Windows cannot handle deeply-nested output files if nextnano input file name is too long).
-        """
-        if isinstance(number, str):
-            number = float(number)
-
-        is_integer_type = isinstance(number, (int, np.integer))
-        if is_integer_type or isinstance(number, (float, np.floating)):
-            n_digits = SweepHelper.__count_nonzero_digits(number)
-            if is_integer_type or number.is_integer():  # e.g. 1000.0
-                n_decimals = 0
-            else:
-                n_decimals = max(round_decimal, n_digits - 1)
-            scientific = f"{number:.{n_decimals}e}"
-            use_scientific = (len(scientific) < len(str(number)))  # do not use scientific format if the string gets longer
-
-            if use_scientific:
-                base, exponent = scientific.split('e')
-                base = base.rstrip('0')  # remove trailing zeros
-                exponent = exponent.lstrip('+')  # remove leading plus sign
-                exponent = exponent.lstrip('0')  # remove leading zeros
-                return f"{base}e{exponent}"
-            else:
-                number_str = str(number)
-                if '.' in number_str:
-                    number_str = number_str.rstrip('0')  # remove trailing zeros
-                    number_str = number_str.rstrip('.')  # remove trailing decimal point
-                return number_str
-        else:
-            raise TypeError(f"'number' must be str, int, or float, but is {type(number)}!")
 
 
     def __create_input_file_fullpaths(self, master_input_file):
@@ -356,23 +288,40 @@ class SweepHelper:
 
         Returns
         -------
-        input file fullpaths : pandas.Series object
+        input file fullpaths : list
         """
-        input_file_fullpaths = ['' for _ in range(self.get_num_simulations())]
+        input_file_fullpaths = list()
 
-        # code following nextnanopy > inputs.py > Sweep.create_input_files()
+        # code extracted from nextnanopy > inputs.py > Sweep.create_input_files()
+        iteration_combinations = list(itertools.product(*self.sweep_space.values()))
         filename_path, filename_extension = os.path.splitext(master_input_file.fullpath)
-        for i, combination in enumerate(self.outputs['sweep_coords']):
+        for combination in iteration_combinations:
             filename_end = '__'
             for var_name, var_value in zip(self.sweep_space.keys(), combination):
-                var_value_string = SweepHelper.__format_number(var_value, self.round_decimal)
+                if isinstance(var_value, str):
+                    var_value_string = var_value
+                else:
+                    var_value_string = round(var_value, self.round_decimal)
                 filename_end += '{}_{}_'.format(var_name, var_value_string)
-            input_file_fullpaths[i] = filename_path + filename_end + filename_extension
-        return pd.Series(input_file_fullpaths)
+            input_file_fullpaths.append(filename_path + filename_end + filename_extension)
+
+        return input_file_fullpaths
     
 
     ### getter and checker methods of class attributes ####################################
+    def __get_master_input_file(self):
+        if self.isFilenameAbbreviated:
+            return self.master_input_file['short']
+        else:
+            return self.master_input_file['original']
+        
+
     def __get_output_folder_path(self):
+        """
+        Returns
+        -------
+        path to simulation output folder
+        """
         if self.isFilenameAbbreviated:
             return self.output_folder_path['short']
         else:
@@ -386,9 +335,9 @@ class SweepHelper:
         list of paths to simulation output subfolders
         """
         if self.isFilenameAbbreviated: 
-            return self.outputs['output_subfolder_short']
+            return self.data['output_subfolder_short']
         else:
-            return self.outputs['output_subfolder_original']
+            return self.data['output_subfolder']
 
 
     def __output_subfolders_exist(self):
@@ -405,20 +354,16 @@ class SweepHelper:
 
 
     def __output_subfolders_exist_with_originalname(self):
-        return all(os.path.isdir(path) for path in self.outputs['output_subfolder_original'])
+        return all(os.path.isdir(path) for path in self.data['output_subfolder'])
 
 
     def __validate_sweep_variables(self, sweep_var):
-        if sweep_var not in self.sweep_space:
+        if not self.sweep_space.has_sweep_variable(sweep_var):
             if sweep_var not in self.master_input_file['original'].variables:
                 raise KeyError(f"Variable {sweep_var} is not in the input file!")
             else:
                 raise KeyError(f"Variable {sweep_var} has not been swept.")
         return
-    
-
-    def get_num_simulations(self):
-        return self.inputs['sweep_coords'].size
     
 
     ### auxillary postprocessing methods ####################################
@@ -448,32 +393,29 @@ class SweepHelper:
 
         """
         # validate arguments
-        if key not in self.outputs.keys():
+        if key not in self.data.keys():
             raise ValueError(f"{key} is not calculated in this sweep!")
         self.__validate_sweep_variables(x_axis)
         self.__validate_sweep_variables(y_axis)
 
-        x_values = self.sweep_space[x_axis]
-        y_values = self.sweep_space[y_axis]
+        x_values = self.sweep_space.get_values_by_variable_name(x_axis)
+        y_values = self.sweep_space.get_values_by_variable_name(y_axis)
 
         # identify index of plot axes
-        for i, var in enumerate(self.sweep_space.keys()):
+        for i, var in enumerate(self.sweep_space.get_variable_names()):
             if var == x_axis:
                 x_axis_variable_index = i
             if var == y_axis:
                 y_axis_variable_index = i
 
-        sweep_space_reduced = self.__extract_2D_plane_from_sweep_space(x_axis, y_axis)
-
-        # returns bool whether the point in the sweep space belongs to the plot region
-        def isIn(coords):
-            return all(coords[i] in sweep_space_reduced[var] for i, var in enumerate(self.sweep_space.keys()))
+        sweep_space_reduced = self.sweep_space.extract_2D_plane(x_axis, y_axis)
 
         # pick up sub-array of overlap data accordingly
         # res = [[0 for i in range(len(y_values))] for i in range(len(x_values))]
         res = np.zeros((len(y_values), len(x_values)), dtype=datatype)  # matplotlib pcolormesh assumes (num of y values)=(num of rows) and (num of x values)=(num of columns) for C axis data
-        for coords, quantity in zip(self.outputs['sweep_coords'], self.outputs[key]):
-            if not isIn(coords): continue
+        for coords, quantity in zip(self.data['sweep_coords'], self.data[key]):
+            if not sweep_space_reduced.has_sweep_point(coords): 
+                continue
 
             xIndex = np.where(x_values == coords[x_axis_variable_index])   # find index for which arr == value
             yIndex = np.where(y_values == coords[y_axis_variable_index])
@@ -504,27 +446,24 @@ class SweepHelper:
 
         """
         # validate arguments
-        if key not in self.outputs.keys():
+        if key not in self.data.keys():
             raise ValueError(f"{key} is not calculated in this sweep!")
         self.__validate_sweep_variables(x_axis)
         
-        x_values = self.sweep_space[x_axis]
+        x_values = self.sweep_space.get_values_by_variable_name(x_axis)
         
         # identify index of plot axes
-        for i, var in enumerate(self.sweep_space.keys()):
+        for i, var in enumerate(self.sweep_space.get_variable_names()):
             if var == x_axis:
                 x_axis_variable_index = i
         
-        sweep_space_reduced = self.__extract_1D_line_from_sweep_space(x_axis)
-
-        # returns bool whether the point in the sweep space belongs to the plot region
-        def isIn(coords):
-            return all(coords[i] in sweep_space_reduced[var] for i, var in enumerate(self.sweep_space.keys()))
+        sweep_space_reduced = self.sweep_space.extract_1D_line(x_axis)
 
         # pick up sub-array of overlap data accordingly
         res = np.zeros(len(x_values), dtype=datatype)
-        for coords, quantity in zip(self.outputs['sweep_coords'], self.outputs[key]):
-            if not isIn(coords): continue
+        for coords, quantity in zip(self.data['sweep_coords'], self.data[key]):
+            if not sweep_space_reduced.has_sweep_point(coords): 
+                continue
 
             xIndex = np.where(x_values == coords[x_axis_variable_index])   # find index for which arr == value
             res[xIndex] = quantity
@@ -532,103 +471,22 @@ class SweepHelper:
         return x_values, res
 
 
-    def __extract_1D_line_from_sweep_space(self, sweep_var):
-        """
-        Extract 1D line from multidimensional (d >= 1) sweep space.
-        """
-        sweep_space_reduced = copy.deepcopy(self.sweep_space)
-
-        # ask the values for other axes
-        logging.info(f"Taking '{sweep_var}' for plot axis.")
-        for var, array in self.sweep_space.items():
-            if var == sweep_var: continue
-
-            print("\nRemaining sweep dimension: ", var)
-            print("Simulation has been performed at: ")
-            for i, val in enumerate(array):
-                beautiful_val = SweepHelper.__format_number(val, self.round_decimal)
-                print(f"index {i}: {beautiful_val}")
-            if len(array) == 1:
-                iChoice = 0
-            else:
-                while True:
-                    choice = input("Specify value for the plot by index: ")
-                    if choice == 'q':
-                        raise RuntimeError('Nextnanopy terminated.') from None
-                    try:
-                        iChoice = int(choice)
-                    except ValueError:
-                        print("Invalid input. (Type 'q' to quit)")
-                        continue
-                    if iChoice not in range(len(array)):
-                        print("Invalid input. (Type 'q' to quit)")
-                    else:
-                        break
-            sweep_space_reduced[var] = [array[iChoice]]   # only one element, but has to be an Iterable for the later use
-        return sweep_space_reduced
-
-
-    def __extract_2D_plane_from_sweep_space(self, sweep_var1, sweep_var2):
-        """
-        Extract 2D plane from multidimensional (d >= 2) sweep space.
-        """
-        sweep_space_reduced = copy.deepcopy(self.sweep_space)
-
-        # ask the values for other axes
-        logging.info(f"Taking '{sweep_var1}' and '{sweep_var2}' for plot axes.")
-        for var, array in self.sweep_space.items():
-            if var == sweep_var1 or var == sweep_var2: continue
-
-            print("\nRemaining sweep dimension: ", var)
-            print("Simulation has been performed at: ")
-            for i, val in enumerate(array):
-                beautiful_val = SweepHelper.__format_number(val, self.round_decimal)
-                print(f"index {i}: {beautiful_val}")
-            if len(array) == 1:
-                iChoice = 0
-            else:
-                while True:
-                    choice = input("Specify value for the plot by index: ")
-                    if choice == 'q':
-                        raise RuntimeError('Nextnanopy terminated.') from None
-                    try:
-                        iChoice = int(choice)
-                    except ValueError:
-                        print("Invalid input. (Type 'q' to quit)")
-                        continue
-                    if iChoice not in range(len(array)):
-                        print("Invalid input. (Type 'q' to quit)")
-                    else:
-                        break
-            sweep_space_reduced[var] = [array[iChoice]]   # only one element, but has to be an Iterable for the later use
-        logging.debug("Extracted sweep_space", sweep_space_reduced)
-        return sweep_space_reduced
-
-
-    def __setup_2D_color_plot(self, ax, x_axis, y_axis, x_label, y_label, plot_title, x_values, y_values, logscale):
+    def __setup_2D_color_plot(self, ax, x_axis, y_axis, x_label, y_label, plot_title, x_values, y_values):
         """ 
         Set labels, ticks and titles of a 2D colormap plot 
         """
         if x_label is None: x_label = x_axis
         if y_label is None: y_label = y_axis
 
-        if logscale:
-            ax.set_xscale('log')
-            ax.set_yscale('log')
-
         ax.set_xlabel(x_label)
         ax.set_ylabel(y_label)
         ax.set_title(plot_title)
-        if logscale:
-            ax.set_xlim(x_values[0], x_values[-1])
-            ax.set_ylim(y_values[0], y_values[-1])
-        else:
-            plt.xticks(x_values)
-            plt.yticks(y_values)
+        plt.xticks(x_values)
+        plt.yticks(y_values)
 
         # trim x- and y-axis tick labels, while keeping all the ticks present
-        nSimulations_x = len(self.sweep_space[x_axis])
-        nSimulations_y = len(self.sweep_space[y_axis])
+        nSimulations_x = self.sweep_space.get_nPoints_by_variable_name(x_axis)
+        nSimulations_y = self.sweep_space.get_nPoints_by_variable_name(y_axis)
         max_num_xticks = 6   # TBD
         max_num_yticks = 20  # TBD
         if nSimulations_x > max_num_xticks:
@@ -652,7 +510,7 @@ class SweepHelper:
         plt.xticks(x_values)
         
         # trim x- and y-axis tick labels, while keeping all the ticks present
-        nSimulations_x = len(self.sweep_space[x_axis])
+        nSimulations_x = self.sweep_space.get_nPoints_by_variable_name(x_axis)
         max_num_xticks = 6   # TBD
         if nSimulations_x > max_num_xticks:
             xticklabel_interval = int(nSimulations_x / max_num_xticks)
@@ -681,92 +539,81 @@ class SweepHelper:
             other parameters accepted by nextnanopy.InputFile.execute()
 
         """
-        import concurrent.futures
-        
-        self.save_sweep(parallel_limit)
-        
-        # execute sweep simulations
-        # this writes output to self.data['output_subfolder_short']
-        # NOTE: We avoid enumeration of output folder names (see `overwrite` option of nextnanopy.inputs > Sweep.execute_sweep()) for secure output data access. 
-        # NOTE: Do not delete input files! Otherwise SweepHelper.execute_sweep() cannot be called independently of SweepHelper instantiation.
-        def run_input_file(input_file):
-            input_file.execute(show_log=show_log, convergenceCheck=convergenceCheck, **kwargs)  # TODO: add option to use multiple threads in each simulation
-            
-        logging.info(f"Starting {self.get_num_simulations()} sweep simulations...")
-        with concurrent.futures.ThreadPoolExecutor(max_workers=parallel_limit) as executor:
-            # submit jobs
-            futures = [executor.submit(run_input_file, input_file) for input_file in self.inputs['obj']]
-
-            # count the number of finished jobs
-            n_finished_jobs = 0
-            for future in concurrent.futures.as_completed(futures):
-                n_finished_jobs += 1
-                logging.info(f"Completed jobs: {n_finished_jobs}/{self.get_num_simulations()}")
-
-        # point to the new output in case old simulation outputs exist with original file name
-        self.isFilenameAbbreviated = (self.master_input_file['short'].fullpath != self.master_input_file['original'].fullpath)
-
-        # If not given at the class instantiation, determine how many eigenstates to plot (states_to_be_plotted attribute)
-        if self.states_to_be_plotted is None:   # by default, plot all states in the output data
-            if os.path.exists(self.outputs.loc[0, 'output_subfolder_short']):
-                try: 
-                    datafiles_probability = self.shortcuts.get_DataFile_probabilities_in_folder(self.outputs.loc[0, 'output_subfolder_short'])
-                    self.states_to_be_plotted, num_evs = self.shortcuts.get_states_to_be_plotted(datafiles_probability)   # states_range_dict=None -> all states are plotted
-                except FileNotFoundError:  # 1,2,3-band NEGF doesn't have probability output
-                    warnings.warn("SweepHelper.execute_sweep(): Probability distribution not found")
-
-
-    def save_sweep(self, parallel_limit):
-        """
-        Create temporary input files for all sweep points.
-        """
         # warn the user if many serial simulations are requested
-        n = self.get_num_simulations()
+        num_of_simulations = self.data['sweep_coords'].size
         if parallel_limit == 1:
-            if (n > 100 and self.shortcuts.product_name == 'nextnano++') or (n > 10 and self.shortcuts.product_name == 'nextnano.NEGF'):
+            if (num_of_simulations > 100 and self.shortcuts.product_name == 'nextnano++') or (num_of_simulations > 10 and self.shortcuts.product_name == 'nextnano.NEGF'):
                 while (True):
-                    choice = input(f"WARNING: {n} simulations requested without parallelization. Are you sure you want to run all of them one-by-one? [y/n]")
+                    choice = input(f"WARNING: {num_of_simulations} simulations requested without parallelization. Are you sure you want to run all of them one-by-one? [y/n]")
                     if choice == 'y': break
                     elif choice == 'n': raise RuntimeError('Nextnanopy terminated.')
 
-        logging.info(f"Preparing {n} simulations for \n{self.master_input_file['short'].fullpath}")
-        logging.info(f"Max. {parallel_limit} simulations are run simultaneously.")
-        
-        # Do not repeatedly call list.append()! Slow when the number of simulations is large.
-        # Shallow copy should be enough because the only change is the input variables.
-        self.inputs['obj'] = [copy.copy(self.master_input_file['short']) for _ in range(n)]  
+        logging.info("Saving sweep input files...")
+        self.sweep_obj.save_sweep(delete_old_files=True, round_decimal=self.round_decimal)  # ensure the same decimals for self.sweep_space and input file names
+        logging.info("Saved.")
 
-        for i, row in self.inputs.iterrows():
-            for var_name, var_value in zip(self.sweep_space.keys(), row['sweep_coords']):
-                row['obj'].set_variable(var_name, var_value)
-            row['obj'].save(row['fullpaths_short'], overwrite=True)
+        logging.info(f"Running {num_of_simulations} simulations with max. {parallel_limit} parallelization for \n{self.master_input_file['short'].fullpath}")
 
-        # i_input = 0
-        # for input_path, coords in zip(self.inputs['fullpaths_short'], self.inputs['sweep_coords']):  
-        #     for var_name, var_value in zip(self.sweep_space.keys(), coords):
-        #         self.inputs['obj'][i_input].set_variable(var_name, var_value)
-        #     self.inputs['obj'][i_input].save(input_path, overwrite=True)
-        #     i_input += 1
+        # execute sweep simulations
+        # this writes output to self.data['output_subfolder_short']
+        self.sweep_obj.execute_sweep(
+                delete_input_files = False,   # Do not delete input files so that SweepManager.execute_sweep() can be invoked independently of __init__.
+                overwrite          = True,    # avoid enumeration of output folders for secure output data access. 
+                convergenceCheck   = convergenceCheck, 
+                show_log           = show_log, 
+                parallel_limit     = parallel_limit,
+                **kwargs
+                )   
+
+        # point to the new output in case old simulation outputs exist with original file name
+        self.isFilenameAbbreviated = (self.output_folder_path['short'] != self.output_folder_path['original'])
+
+        # If not given at the class instantiation, determine how many eigenstates to plot (states_to_be_plotted attribute)
+        if self.states_to_be_plotted is None:   # by default, plot all states in the output data
+            if os.path.exists(self.data.loc[0, 'output_subfolder']):
+                try: 
+                    datafiles_probability = self.shortcuts.get_DataFile_probabilities_in_folder(self.data.loc[0, 'output_subfolder'])
+                    self.states_to_be_plotted, num_evs = self.shortcuts.get_states_to_be_plotted(datafiles_probability)   # states_range_dict=None -> all states are plotted
+                except FileNotFoundError:  # 1,2,3-band NEGF doesn't have probability output
+                    warnings.warn("SweepManager.execute_sweep(): Probability distribution not found")
 
 
     def recover_original_filenames(self):
+        """
+        TODO: Implement similar method for Slurm jobs, which do not rely on nextnanopy.Sweep object
+        """
         if not self.isFilenameAbbreviated:
             return
         
-        logging.info(f"Recovering original input file name in output folder names...")
+        logging.info(f"Reverting output folder name from \n{self.output_folder_path['short']} to\n{self.output_folder_path['original']}")
         
-        for short, original in zip(self.outputs['output_subfolder_short'], self.outputs['output_subfolder_original']):
-            if os.path.exists(original):
-                shutil.rmtree(original)
-            os.makedirs(original, exist_ok=False)
-
-            for item in os.listdir(short):
-                source_item = os.path.join(short, item)
-                destination_item = os.path.join(original, item)
-                shutil.move(source_item, destination_item)
-
-        if os.path.exists(self.output_folder_path['short']):
-            shutil.rmtree(self.output_folder_path['short'])
+        # move the subfolders from 'short' to 'original' root folder
+        # if os.path.isdir(self.output_folder_path['original']):
+        #     TODO: Fix: folders move to wrong places
+        #     for subfolder in os.listdir(self.output_folder_path['short']):  # os.listdir() cannot return full paths!
+        #         try:
+        #             logging.info(f"Moving {subfolder} to \n{self.output_folder_path['original']}")
+        #             shutil.move(os.path.join(self.output_folder_path['short'], subfolder), self.output_folder_path['original'])  # if the destination is an existing directory, move the source inside that directory
+        #         except:
+        #             warnings.warn(f"shutil.move() for file {subfolder} skipped.")
+        # else:
+        #     shutil.move(self.output_folder_path['short'], self.output_folder_path['original'])
+        
+        # if the output of the original folder name exists, delete because shutil.move() cannot overwrite if the destination exists
+        if os.path.isdir(self.output_folder_path['original']):
+            try: 
+                shutil.rmtree(self.output_folder_path['original'])
+            except OSError as e:
+                raise
+        
+        # rename folder
+        shutil.move(self.output_folder_path['short'], self.output_folder_path['original'])
+        
+        # within 'original' folder, rename subfolders
+        for short, original in zip(self.input_file_fullpaths['short'], self.input_file_fullpaths['original']):
+            current_output_subfolder = CommonShortcuts.get_output_subfolder_path(self.output_folder_path['original'], short)
+            original_output_subfolder = CommonShortcuts.get_output_subfolder_path(self.output_folder_path['original'] , original)
+            shutil.move(current_output_subfolder, original_output_subfolder)
 
         self.isFilenameAbbreviated = False
 
@@ -779,14 +626,14 @@ class SweepHelper:
         -----
         Convenient to have a separate method so that self.execute_sweep() can be invoked independently of __init__().
         """
-        input_file_fullpaths = self.inputs['fullpaths_original'] + self.inputs['fullpaths_short']
+        input_file_fullpaths = self.input_file_fullpaths['original'] + self.input_file_fullpaths['short']
         paths = set(input_file_fullpaths)  # avoid duplicates (NOTE: set object does not preserve the order of elements!)
         for path in paths:
             if os.path.exists(path):
                 os.remove(path)
 
         # delete the input file whose name has been abbreviated
-        if self.master_input_file['short'].fullpath != self.master_input_file['original'].fullpath:
+        if self.isFilenameAbbreviated:
             os.remove(self.master_input_file['short'].fullpath)
         logging.info("Sweep (temporary) input files deleted.")
 
@@ -805,11 +652,6 @@ class SweepHelper:
             raise
 
 
-    ### Slurm methods #######################################################
-    def is_slurm_simulation(self):
-        return self.slurm_data.node is not None
-    
-
     def submit_sweep_to_slurm(self, suffix='', node='microcloud', email=None, num_CPU=4, memory_limit='8G', time_limit_hrs=5, exe=None, output_folder=None, database=None):
         """
         Submit sweep simulations to Slurm workload manager.
@@ -826,55 +668,47 @@ class SweepHelper:
                 Number of threads when hyperthreading = 2 * num_CPU
                 Optimal number of threads for omp parallelism <= (2 * num_CPU) / 2 = num_CPU
         """
-        self.generate_slurm_sbatches(suffix=suffix, node=node, email=email, num_CPU=num_CPU, memory_limit=memory_limit, time_limit_hrs=time_limit_hrs, exe=exe, output_folder=output_folder, database=database)
-
-        num_sbatch_scripts = len(self.slurm_data.sbatch_script_paths)
-        self.save_sweep(num_sbatch_scripts)
-
-        num_metascripts = len(self.slurm_data.metascript_paths)
-        for iMetascript, metascript_path in enumerate(self.slurm_data.metascript_paths):  # Currently, only one metascript is generated.
-            logging.info(f"Submitting jobs to Slurm (metascript {metascript_path}, {iMetascript+1} / {num_metascripts})...")
-            subprocess.run(['bash', metascript_path])
-            # self.wait_slurm_jobs()
-
-        # point to the new output in case old simulation outputs exist with original file name
-        self.isFilenameAbbreviated = (self.master_input_file['short'].fullpath != self.master_input_file['original'].fullpath)
-
-
-
-    def generate_slurm_sbatches(self, suffix='', node='microcloud', email=None, num_CPU=4, memory_limit='8G', time_limit_hrs=5, exe=None, output_folder=None, database=None):
-        """
-        Generate sbatch files to be submitted to Slurm workload manager.
-        """
         self.slurm_data.set(node, suffix, email, num_CPU, memory_limit, time_limit_hrs)
 
         # defaults
         if exe is None:           exe, = nn.config.get(self.shortcuts.product_name, 'exe'),
-        if output_folder is None: output_folder = self.output_folder_path['short']
+        if output_folder is None: output_folder = self.__get_output_folder_path()
         if database is None:      database = nn.config.get(self.shortcuts.product_name, 'database')
         license = nn.config.get(self.shortcuts.product_name, 'license')
 
-        input_fullpaths = list(set(self.inputs['fullpaths_short']))  # avoid duplicates. For some reason, input file paths are duplicated (NOTE: set object does not preserve the order of elements!)
+        input_fullpaths = list(set(self.input_file_fullpaths['original']))  # avoid duplicates. For some reason, input file paths are duplicated (NOTE: set object does not preserve the order of elements!)
         self.slurm_data.create_sbatch_scripts(input_fullpaths, exe, output_folder, database, license, self.shortcuts.product_name)
 
+        logging.info("Saving sweep input files...")
+        self.sweep_obj.save_sweep(delete_old_files=True, round_decimal=self.round_decimal)  # creates temp input files. Ensure the same decimals for self.sweep_space and input file names
+        
+        for iMetascript, metascript_path in enumerate(self.slurm_data.metascript_paths):
+            logging.info(f"Submitting jobs to Slurm (metascript {iMetascript+1} / {len(self.slurm_data.metascript_paths)})...")
+            subprocess.run(['bash', metascript_path])
+            self.wait_slurm_jobs()
 
-    def clean_slurm(self):
-        self.wait_slurm_jobs()
-        self.delete_input_files()
         self.slurm_data.delete_sbatch_scripts()
-    
+
 
     def wait_slurm_jobs(self):
         """
         Wait until all jobs with the name `SlurmData.jobname` complete or fail.
         """
+        time.sleep(5)
         stopwatch = 0
 
-        while self.slurm_data.slurm_is_running():
+        def isRunning():
+            # get the job status
+            # TODO: maybe `squeue` command is better since jobs aren't deleted from the list at midnight everyday.
+            commands = ['sacct', '|', 'grep', SlurmData.jobname, 'grep', self.slurm_data.node]
+            result = subprocess.run(commands, capture_output=True, text=True)
+            return ('RUNNING' in result.stdout)
+        
+        while isRunning():
             time.sleep(10)
             stopwatch += 10
             logging.info(f"Slurm job(s) running... ({stopwatch} sec)")
-
+            
 
     ### Import methods #######################################################
     def import_from_excel(self, excel_file_path):
@@ -885,7 +719,7 @@ class SweepHelper:
         if not os.path.exists(excel_file_path):
             raise ValueError(f"Excel file {excel_file_path} does not exist!")
         try:
-            self.outputs = pd.read_excel(excel_file_path)
+            self.data = pd.read_excel(excel_file_path)
         except:
             raise
         logging.info("Imported data from Excel file.")
@@ -893,50 +727,40 @@ class SweepHelper:
 
                 
     ### Export methods #######################################################
-    def export_to_excel(self, excel_file_path, force_lightHole=False, bias=0):
+    def export_to_excel(self, excel_file_path, force_lightHole=False):
         """
         The sweep data can be exported to an Excel file by:
-            SweepHelper.data.to_excel()
+            SweepManager.data.to_excel()
         For the available options, see pandas.DataFrame.
         """
-        if self.is_slurm_simulation():
-            self.wait_slurm_jobs()
-         
-        self.__calc_output_data(force_lightHole, bias)
+        self.__calc_overlap(force_lightHole)
+        self.__calc_transition_energies(force_lightHole)
+        self.__calc_HH1_LH1_energy_differences()
+        self.__calc_HH1_HH2_energy_differences()
 
         logging.info(f"Exporting data to Excel file:\n{excel_file_path}")
         from pathlib import Path
         filepath = Path(excel_file_path)
         filepath.parent.mkdir(parents=True, exist_ok=True)
-        self.outputs.to_excel(filepath, columns=['sweep_coords', 'overlap', 'transition_energy_meV', 'transition_energy_micron', 'HH1-LH1', 'HH1-HH2', 'absorption_at_transition_energy_TE', 'absorption_at_transition_energy_TM', *self.sweep_space.keys()])
+        self.data.to_excel(filepath)
 
 
-    def export_to_csv(self, csv_file_path, force_lightHole=False, bias=0):
+    def export_to_csv(self, csv_file_path, force_lightHole=False):
         """
         The sweep data can be exported to a CSV file by:
-            SweepHelper.data.to_csv()
+            SweepManager.data.to_csv()
         For the available options, see pandas.DataFrame.
         """
-        if self.is_slurm_simulation():
-            self.wait_slurm_jobs()
-
-        self.__calc_output_data(force_lightHole, bias)
+        self.__calc_overlap(force_lightHole)
+        self.__calc_transition_energies(force_lightHole)
+        self.__calc_HH1_LH1_energy_differences()
+        self.__calc_HH1_HH2_energy_differences()
 
         logging.info(f"Exporting data to CSV file:\n{csv_file_path}")
         from pathlib import Path
         filepath = Path(csv_file_path)
         filepath.parent.mkdir(parents=True, exist_ok=True)
-        self.outputs.to_csv(filepath, columns=['sweep_coords', 'overlap', 'transition_energy_meV', 'transition_energy_micron', 'HH1-LH1', 'HH1-HH2', 'absorption_at_transition_energy_TE', 'absorption_at_transition_energy_TM', *self.sweep_space.keys()])
-
-
-    def __calc_output_data(self, force_lightHole, bias):
-        if self.shortcuts.product_name != 'nextnano.NEGF++':  # TODO: implement overlap calculation for NEGF 8kp
-            self.__calc_overlap(force_lightHole)
-        self.__calc_transition_energies(force_lightHole)
-        self.__calc_HH1_LH1_energy_differences()
-        self.__calc_HH1_HH2_energy_differences()
-        if self.shortcuts.product_name == 'nextnano.NEGF++':
-            self.__calc_absorption_at_transition_energy(bias)
+        self.data.to_csv(filepath)
 
 
     ### Dispersion ###########################################################
@@ -960,16 +784,12 @@ class SweepHelper:
         # validate argument
         self.__validate_sweep_variables(sweep_variable)
 
-        sweep_space_reduced = self.__extract_1D_line_from_sweep_space(sweep_variable)
-
-        # returns bool whether the point in the sweep space belongs to the plot region
-        def isIn(coords):
-            return all(coords[i] in sweep_space_reduced[var] for i, var in enumerate(sweep_space_reduced.keys()))
+        sweep_space_reduced = self.sweep_space.extract_1D_line(sweep_variable)
 
         # plot dispersions
         for model in self.states_to_be_plotted.keys():
-            for coords, outfolder in zip(self.outputs['sweep_coords'], self.__get_output_subfolder_paths()):
-                if isIn(coords):
+            for coords, outfolder in zip(self.data['sweep_coords'], self.__get_output_subfolder_paths()):
+                if sweep_space_reduced.has_sweep_point(coords):
                     self.shortcuts.plot_dispersion(outfolder, np.amin(self.states_to_be_plotted[model]), np.amax(self.states_to_be_plotted[model]), savePDF=savePDF)
         return
 
@@ -999,19 +819,19 @@ class SweepHelper:
         self.__validate_sweep_variables(sweep_variable)
 
         # generate GIF
-        self.shortcuts.generate_gif(self.master_input_file['original'], sweep_variable, self.sweep_space[sweep_variable], self.states_to_be_plotted)
+        self.shortcuts.generate_gif(self.master_input_file['original'], sweep_variable, self.sweep_space.get_values_by_variable_name(sweep_variable), self.states_to_be_plotted)
 
 
     ### Optics analysis #######################################################
     def __calc_overlap(self, force_lightHole):
         """
         Compute overlaps and store them in self.data 
-        if not all overlaps have been calculated.
+        if not all overlaps have been calculated
         """
-        if not self.outputs['overlap'].isna().any():
+        if not self.data['overlap'].isna().any():
             return
         logging.info("Calculating overlap...")
-        self.outputs['overlap'] = self.__get_output_subfolder_paths().apply(self.shortcuts.calculate_overlap, force_lightHole=force_lightHole)
+        self.data['overlap'] = self.__get_output_subfolder_paths().apply(self.shortcuts.calculate_overlap, force_lightHole=force_lightHole)
         # self.data['overlap_squared'] = self.data['overlap'].apply(common.absolute_squared)   # BUG: somehow the results become complex128, not float --> cannot be plotted
         
 
@@ -1020,19 +840,18 @@ class SweepHelper:
         Get transition energies and store them in self.data 
         if not all transition energies have been calculated
         """
-        if not self.outputs['transition_energy_meV'].isna().any():
+        if not self.data['transition_energy_eV'].isna().any():
             return
-        
         logging.info("Calculating transition energies...")
-        if self.shortcuts.product_name in ['nextnano3', 'nextnano++']:
-            self.outputs['transition_energy_eV'] = self.__get_output_subfolder_paths().apply(self.shortcuts.get_transition_energy, force_lightHole=force_lightHole)
+        if self.shortcuts.product_name == 'nextnano++':
+            self.data['transition_energy_eV'] = self.__get_output_subfolder_paths().apply(self.shortcuts.get_transition_energy, force_lightHole=force_lightHole)
         elif self.shortcuts.product_name == 'nextnano.NEGF++':
-            self.outputs['transition_energy_eV'] = self.__get_output_subfolder_paths().apply(self.shortcuts.get_transition_energy)
+            self.data['transition_energy_eV'] = self.__get_output_subfolder_paths().apply(self.shortcuts.get_transition_energy)
 
         # Convert units
-        self.outputs['transition_energy_meV']    = self.outputs['transition_energy_eV'] * CommonShortcuts.scale1ToMilli
-        self.outputs['transition_energy_micron'] = self.outputs['transition_energy_eV'].apply(CommonShortcuts.electronvolt_to_micron)
-        self.outputs['transition_energy_nm']     = self.outputs['transition_energy_micron'] * 1e3
+        self.data['transition_energy_meV']    = self.data['transition_energy_eV'] * CommonShortcuts.scale1ToMilli
+        self.data['transition_energy_micron'] = self.data['transition_energy_eV'].apply(CommonShortcuts.electronvolt_to_micron)
+        self.data['transition_energy_nm']     = self.data['transition_energy_micron'] * 1e3
         
 
     def __calc_HH1_LH1_energy_differences(self):
@@ -1040,10 +859,10 @@ class SweepHelper:
         Get the energy difference HH1 - LH1 and store them in self.data
         if not all HH1-LH1 have been calculated
         """
-        if not self.outputs['HH1-LH1'].isna().any():
+        if not self.data['HH1-LH1'].isna().any():
             return
         logging.info("Calculating energy difference HH1 - LH1...")
-        self.outputs['HH1-LH1'] = self.__get_output_subfolder_paths().apply(self.shortcuts.get_HH1_LH1_energy_difference)
+        self.data['HH1-LH1'] = self.__get_output_subfolder_paths().apply(self.shortcuts.get_HH1_LH1_energy_difference)
 
 
     def __calc_HH1_HH2_energy_differences(self):
@@ -1051,32 +870,13 @@ class SweepHelper:
         Get the energy difference HH1 - HH2 and store them in self.data
         if not all HH1-HH2 have been calculated
         """
-        if not self.outputs['HH1-HH2'].isna().any():
+        if not self.data['HH1-HH2'].isna().any():
             return
         logging.info("Calculating energy difference HH1 - HH2...")
-        self.outputs['HH1-HH2'] = self.__get_output_subfolder_paths().apply(self.shortcuts.get_HH1_HH2_energy_difference)
+        self.data['HH1-HH2'] = self.__get_output_subfolder_paths().apply(self.shortcuts.get_HH1_HH2_energy_difference)
 
 
-    def __calc_absorption_at_transition_energy(self, bias):
-        if not self.outputs['absorption_at_transition_energy_TE'].isna().any() and not self.outputs['absorption_at_transition_energy_TM'].isna().any():
-            return
-        logging.info("Extracting optical absorption at transition energy (TE polarization)...")
-        self.outputs['absorption_at_transition_energy_TE'] = self.__get_output_subfolder_paths().apply(self.shortcuts.get_absorption_at_transition_energy, args=('TE',), bias=bias)
-        logging.info("Extracting optical absorption at transition energy (TM polarization)...")
-        self.outputs['absorption_at_transition_energy_TM'] = self.__get_output_subfolder_paths().apply(self.shortcuts.get_absorption_at_transition_energy, args=('z',), bias=bias)
-        
-
-    def plot_overlap_squared(self, 
-                             x_axis, 
-                             y_axis, 
-                             x_label=None, 
-                             y_label=None, 
-                             force_lightHole=False, 
-                             plot_title='', 
-                             figFilename=None, 
-                             colormap='Greys', 
-                             contour_value=None
-                             ):
+    def plot_overlap_squared(self, x_axis, y_axis, x_label=None, y_label=None, force_lightHole=False, plot_title='', figFilename=None, colormap='Greys'):
         """
         Plot the overlap colormap as a function of two selected sweep axes.
 
@@ -1096,8 +896,6 @@ class SweepHelper:
             output file name
         colormap : str, optional
             colormap used for the color bar
-        contour_value : float, optional
-            Specify the overlap squared at which to draw a contour line on top of the colormap
 
         Returns
         -------
@@ -1111,11 +909,11 @@ class SweepHelper:
         self.__validate_sweep_variables(x_axis)
         self.__validate_sweep_variables(y_axis)      
 
-        self.__calc_overlap(force_lightHole)  # TODO: implement overlap calculation for NEGF 8kp
+        self.__calc_overlap(force_lightHole)
 
         # x- and y-axis coordinates and 2D array-like of overlap data
         x_values, y_values, overlap = self.__slice_data_for_colormap_2D('overlap', x_axis, y_axis, datatype=np.cdouble)   # complex double = two double-precision floats
-        overlap_squared = np.absolute(overlap)**2
+        overlap_squared = np.abs(overlap)**2
         
         assert np.amin(overlap_squared) >= 0
 
@@ -1123,11 +921,9 @@ class SweepHelper:
         # instantiate 2D color plot
         fig, ax = plt.subplots()
         if not plot_title: plot_title = "Envelope overlap"
-        self.__setup_2D_color_plot(ax, x_axis, y_axis, x_label, y_label, plot_title, x_values, y_values, False)
+        self.__setup_2D_color_plot(ax, x_axis, y_axis, x_label, y_label, plot_title, x_values, y_values)
 
         # color setting
-        contour_color = 'white'
-        
         from matplotlib import colors
         divnorm = colors.Normalize(vmin=0.)   # set the colorscale minimum to 0
         pcolor = ax.pcolormesh(x_values, y_values, overlap_squared, cmap=colormap, norm=divnorm, shading='auto')
@@ -1135,17 +931,11 @@ class SweepHelper:
 
         cbar = fig.colorbar(pcolor)
         cbar.set_label("Envelope overlap")
-
-        if contour_value is not None:
-            # add contour line
-            contour = ax.contour(x_values, y_values, overlap_squared, levels=[contour_value], colors=contour_color)
-            ax.clabel(contour, inline=True)
-
         fig.tight_layout()
         plt.show()
 
         if figFilename is None or figFilename == "":
-            name = os.path.split(self.__get_output_folder_path())[1]
+            name = os.path.split(self.output_folder_path['original'])[1]
             figFilename = name + "_overlap"
         self.shortcuts.export_figs(figFilename, "png", output_folder_path=self.__get_output_folder_path(), fig=fig)
 
@@ -1164,20 +954,7 @@ class SweepHelper:
         return fig
 
 
-    def plot_transition_energies(self, 
-                                 x_axis, 
-                                 y_axis=None, 
-                                 x_label=None, 
-                                 y_label=None, 
-                                 force_lightHole=False, 
-                                 plot_title='', 
-                                 figFilename=None, 
-                                 colormap=None, 
-                                 set_center_to_zero=False, 
-                                 unit='meV', 
-                                 export_data=False, 
-                                 contour_energy=None
-                                 ):
+    def plot_transition_energies(self, x_axis, y_axis=None, x_label=None, y_label=None, force_lightHole=False, plot_title='', figFilename=None, colormap=None, set_center_to_zero=False, unit='meV', export_data=False, contour_energy=None):
         """
         Plot the transition energy (lowest electron eigenenergy - highest hole eigenenergy) colormap as a function of two selected sweep axes.
 
@@ -1261,7 +1038,7 @@ class SweepHelper:
                 fig = self.__plot_transition_energies_1D(x_axis, x_label, x_values, plot_title, unit, transition_energies)
 
             if figFilename is None or figFilename == "":
-                name = os.path.split(self.__get_output_folder_path())[1]
+                name = os.path.split(self.output_folder_path['original'])[1]
                 figFilename = name + "_transitionEnergies"
             self.shortcuts.export_figs(figFilename, "png", output_folder_path=self.__get_output_folder_path(), fig=fig)
             return fig
@@ -1275,10 +1052,19 @@ class SweepHelper:
         # instantiate 2D color plot
         fig, ax = plt.subplots()
         if not plot_title: plot_title = "Transition energies"
-        self.__setup_2D_color_plot(ax, x_axis, y_axis, x_label, y_label, plot_title, x_values, y_values, False)
+        self.__setup_2D_color_plot(ax, x_axis, y_axis, x_label, y_label, plot_title, x_values, y_values)
 
         # color setting
-        colormap, contour_color = self.__determine_contour_color(colormap, set_center_to_zero)
+        if colormap is None:  
+            # default colors
+            if set_center_to_zero: 
+                colormap = 'seismic'
+            else:
+                colormap = 'cividis'
+        if colormap == 'seismic':
+            contour_color = 'black'
+        elif colormap == 'viridis' or colormap == 'cividis':
+            contour_color = 'white'
 
         if set_center_to_zero:
             from matplotlib import colors
@@ -1305,31 +1091,6 @@ class SweepHelper:
         return fig
 
 
-    def __determine_contour_color(self, colormap, set_center_to_zero):
-        """
-        Decide on the color for contour line depending on the colormap of the 2D plot.
-        If colormap is None, set it to default.
-
-        Returns
-        -------
-        colormap : Colormap
-            Colormap for the 2D plot
-        contour_color : str
-            Name of color for contour line
-        """
-        if colormap is None:
-            # default colors
-            if set_center_to_zero:
-                colormap = self.default_colors.colormap['divergent_bright']
-            else:
-                colormap = self.default_colors.colormap['linear_bright_bg']
-
-        if colormap == self.default_colors.colormap['divergent_bright']:
-            return colormap, 'black'
-        elif colormap == 'viridis' or colormap == self.default_colors.colormap['linear_bright_bg']:
-            return colormap, self.default_colors.lines_on_colormap['linear_bright_bg']
-
-
     def __plot_transition_energies_1D(self, x_axis, x_label, x_values, plot_title, unit, transition_energies_scaled):
         if transition_energies_scaled.ndim != 1:
             raise ValueError("Transition_energies_scaled must be one dimensional!")
@@ -1353,17 +1114,7 @@ class SweepHelper:
 
 
     ### highest hole states ###################################################
-    def plot_HH1_LH1_energy_difference(self, 
-                                       x_axis, 
-                                       y_axis, 
-                                       x_label=None, 
-                                       y_label=None, 
-                                       plot_title='', 
-                                       figFilename=None, 
-                                       colormap=None, 
-                                       set_center_to_zero=True, 
-                                       contour_energy_meV=None
-                                       ):
+    def plot_HH1_LH1_energy_difference(self, x_axis, y_axis, x_label=None, y_label=None, plot_title='', figFilename=None, colormap=None, set_center_to_zero=True, contour_energy_meV=None):
         """
         Plot the hole energy difference (HH - LH) colormap as a function of two selected sweep axes.
 
@@ -1410,10 +1161,19 @@ class SweepHelper:
         # instantiate 2D color plot
         fig, ax = plt.subplots()
         if not plot_title: plot_title = "Energy difference HH1 - LH1"
-        self.__setup_2D_color_plot(ax, x_axis, y_axis, x_label, y_label, plot_title, x_values, y_values, False)
+        self.__setup_2D_color_plot(ax, x_axis, y_axis, x_label, y_label, plot_title, x_values, y_values)
 
         # color setting
-        colormap, contour_color = self.__determine_contour_color(colormap, set_center_to_zero)
+        if colormap is None:  
+            # default colors
+            if set_center_to_zero: 
+                colormap = 'seismic'
+            else:
+                colormap = 'cividis'
+        if colormap == 'seismic':
+            contour_color = 'black'
+        elif colormap == 'viridis' or colormap == 'cividis':
+            contour_color = 'white'
 
         if set_center_to_zero:
             from matplotlib import colors
@@ -1433,24 +1193,14 @@ class SweepHelper:
         plt.show()
 
         if figFilename is None or figFilename == "":
-            name = os.path.split(self.__get_output_folder_path())[1]
+            name = os.path.split(self.output_folder_path['original'])[1]
             figFilename = name + "_HH1_LH1_EnergyDifference"
         self.shortcuts.export_figs(figFilename, "png", output_folder_path=self.__get_output_folder_path(), fig=fig)
 
         return fig
 
 
-    def plot_HH1_HH2_energy_difference(self, 
-                                       x_axis, 
-                                       y_axis, 
-                                       x_label=None, 
-                                       y_label=None, 
-                                       plot_title='', 
-                                       figFilename=None, 
-                                       colormap=None, 
-                                       set_center_to_zero=True, 
-                                       contour_energy_meV=None
-                                       ):
+    def plot_HH1_HH2_energy_difference(self, x_axis, y_axis, x_label=None, y_label=None, plot_title='', figFilename=None, colormap=None, set_center_to_zero=True, contour_energy_meV=None):
         """
         Plot the hole energy difference (HH - LH) colormap as a function of two selected sweep axes.
 
@@ -1497,10 +1247,19 @@ class SweepHelper:
         # instantiate 2D color plot
         fig, ax = plt.subplots()
         if not plot_title: plot_title = "Energy difference HH1 - HH2"
-        self.__setup_2D_color_plot(ax, x_axis, y_axis, x_label, y_label, plot_title, x_values, y_values, False)
+        self.__setup_2D_color_plot(ax, x_axis, y_axis, x_label, y_label, plot_title, x_values, y_values)
 
         # color setting
-        colormap, contour_color = self.__determine_contour_color(colormap, set_center_to_zero)
+        if colormap is None:  
+            # default colors
+            if set_center_to_zero: 
+                colormap = 'seismic'
+            else:
+                colormap = 'cividis'
+        if colormap == 'seismic':
+            contour_color = 'black'
+        elif colormap == 'viridis' or colormap == 'cividis':
+            contour_color = 'white'
 
         if set_center_to_zero:
             from matplotlib import colors
@@ -1515,121 +1274,21 @@ class SweepHelper:
             ax.clabel(contour, inline=True)
 
         cbar = fig.colorbar(pcolor, ax=ax)
-        cbar.set_label("Hole energy difference HH1-HH2 ($\mathrm{meV}$)")
+        cbar.set_label("Hole energy difference HH-LH ($\mathrm{meV}$)")
         fig.tight_layout()
         plt.show()
 
         if figFilename is None or figFilename == "":
-            name = os.path.split(self.__get_output_folder_path())[1]
+            name = os.path.split(self.output_folder_path['original'])[1]
             figFilename = name + "_HH1_HH2_EnergyDifference"
         self.shortcuts.export_figs(figFilename, "png", output_folder_path=self.__get_output_folder_path(), fig=fig)
 
         return fig
 
-
-    ### Transport analysis ####################################################
-    def __calc_average_current(self, bias):
-        """
-        Compute spatial average of current density [A/cm^2] (1D structure) and store them in self.outputs
-        if not all currents have been calculated.
-        """
-        if not self.outputs['ave_current'].isna().any():
-            return
-        logging.info("Calculating current...")
-        self.outputs['ave_current'] = self.__get_output_subfolder_paths().apply(self.shortcuts.calculate_average_current, bias=bias, is_fullpath=True)
-
-    def plot_average_current(self,
-                               x_axis,
-                               y_axis,
-                               bias,
-                               x_label=None,
-                               y_label=None,
-                               plot_title='',
-                               figFilename=None,
-                               colormap=None,
-                               logscale=False
-                               ):
-        """
-        Plot the colormap of the spatial average of current density as a function of two selected sweep axes.
-        Note that, in steady states of periodic structures, the current density should be constant over the simulation region to conserve charge.
-
-        Parameters
-        ----------
-        x_axis : str
-            sweep variable for x-axis
-        y_axis : str
-            sweep variable for y-axis
-        bias : float
-            potential drop per period at which the current data should be extracted
-        x_label : str, optional
-            custom x-axis label
-        y_label : str, optional
-            custom y-axis label
-        plot_title : str, optional
-            title of the plot
-        figFilename : str, optional
-            output file name
-        colormap : str, optional
-            colormap used for the color bar
-        logscale : bool, optional
-            If True, x, y, and z-axes are set to logscale. 
-            
-        Returns
-        -------
-        fig : matplotlib.figure.Figure object
-
-        """
-        if not self.__output_subfolders_exist():
-            raise RuntimeError("Simulation output does not exist for this sweep!")
-
-        # validate input
-        self.__validate_sweep_variables(x_axis)
-        self.__validate_sweep_variables(y_axis)
-
-        self.__calc_average_current(bias)
-
-        # x- and y-axis coordinates and 2D array-like of overlap data
-        x_values, y_values, ave_current = self.__slice_data_for_colormap_2D('ave_current', x_axis, y_axis, datatype=np.double)
-
-        # instantiate 2D color plot
-        fig, ax = plt.subplots()
-        if not plot_title: plot_title = "Spatial average of current density"
-        self.__setup_2D_color_plot(ax, x_axis, y_axis, x_label, y_label, plot_title, x_values, y_values, logscale)
-
-        # color setting
-        colormap, contour_color = self.__determine_contour_color(colormap, False)
-
-        from matplotlib import colors
-        if logscale:
-            norm = colors.LogNorm()
-        else:
-            norm = colors.Normalize(vmin=0.)  # set the colorscale minimum to 0
-        pcolor = ax.pcolormesh(x_values, y_values, ave_current, cmap=colormap, norm=norm, shading='auto')
-
-        if logscale:
-            format_str = '%.0e'
-        else:
-            format_str = None
-        cbar = fig.colorbar(pcolor, ax=ax, format=format_str)
-        cbar.set_label("Current density [$\mathrm{A}/\mathrm{cm}^2$]")
-
-        fig.tight_layout()
-        plt.show()
-
-        if figFilename is None or figFilename == "":
-            name = os.path.split(self.__get_output_folder_path())[1]
-            figFilename = name + "_average_current"
-        self.shortcuts.export_figs(figFilename, "png", output_folder_path=self.__get_output_folder_path(), fig=fig)
-
-        return fig
-
-
     ### in-plane k ###########################################################
     def plot_inplaneK(self):
-        if self.isFilenameAbbreviated:
-            raise RuntimeError("recover_original_filenames() must be called before!")
-        
-        inplane_k = self.shortcuts.getKPointsData1D_in_folder(self.outputs.loc[0, 'output_subfolder_original'])   # assuming k points are identical to all the sweeps
+
+        inplane_k = self.shortcuts.getKPointsData1D_in_folder(self.data.loc[0, 'output_subfolder'])   # assuming k points are identical to all the sweeps
         return self.shortcuts.plot_inplaneK(inplane_k)
 
 

@@ -26,7 +26,7 @@ class SlurmData:
 		self.sbatch_script_paths = list()
 
 		# cache file containing metascript paths
-		# The user can recover SlurmData even after destructing the SweepHelper object, by providing the same sweep range.
+		# The user can recover SlurmData even after destructing the SweepManager object, by providing the same sweep range.
 		# This is useful e.g. when Slurm simulations take long time.
 		from pathlib import Path
 		folderpath = Path(output_folder)
@@ -69,7 +69,7 @@ class SlurmData:
 		self.memory_limit = memory_limit
 		self.time_limit_hrs = time_limit_hrs
 
-		self.unique_tag = "_on_" + node + suffix  # TODO: use this to differentiate output folders, keeping consistency with SweepHelper.data
+		self.unique_tag = "_on_" + node + suffix  # TODO: use this to differentiate output folders, keeping consistency with SweepManager.outputs
 
 
 	def create_sbatch_scripts(self, input_file_fullpaths : list, exe, output_folder, database, license, product_name):

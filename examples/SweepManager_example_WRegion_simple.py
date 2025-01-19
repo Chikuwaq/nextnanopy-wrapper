@@ -1,15 +1,15 @@
 """
 Created on 2022/05/22
-Modified on 2023/04/27
+Modified on 2025/01/19
 
-This script demonstrates the use of SweepHelper class.
+This script demonstrates the use of SweepManager class.
 Structure: W-shaped quantum well of the interband cascade laser design in [Vurgaftman2011]
 
 @author: takuma.sato@nextnano.com
 """
 
 import nextnanopy as nn
-from nnHelpers import SweepHelper
+from boostsweep.sweep_manager import SweepManager
 
 # Specify input file.
 path = r"Density_WRegion_kp8_nnp_rescaleS1.in"
@@ -39,7 +39,7 @@ y_axis = 'AlloyContent_hWell'
 
 
 # --- MAIN --------------------------------------------------------------------
-helper = SweepHelper(sweep_ranges, nn.InputFile(path), eigenstate_range=eigenstate_ranges, round_decimal=3)
+helper = SweepManager(sweep_ranges, nn.InputFile(path), eigenstate_range=eigenstate_ranges, round_decimal=3)
 helper.execute_sweep(parallel_limit=4)
 
 helper.delete_input_files()
