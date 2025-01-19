@@ -1,3 +1,23 @@
+
+[SweepManager]
+- get WRegion example working
+- delete '*_idea.py' files once debugging of SweepManager is done
+- implement:
+implement horizontalCut and verticalCut options to 2D colormap plot function that plots 2D schalar field data as 1D plot
+if horizontal,
+take x values as x values
+take y values as color
+take z values as y values
+elif verticalCut,
+take x values as color
+take y values as x values
+take z values as y values
+else
+plot 2D colormap
+
+- add an option 'outfolder_name' in execute_sweep()
+- get generate_gif working
+
 [all]
 - use nextnano corporate colormap in 2D plot methods
 - format warnings console output
@@ -25,11 +45,6 @@
 E.g. get_states_to_be_plotted()
 - is it possible to move imports to __init__? or at least to the parent class
 - if the difference between overridden methods is only 'software', they can be defined in the parent.
-
-[SweepHelper]
-- add an example to demonstrate usage
-- add an option 'outfolder_name' in execute_sweep()
-- get generate_gif working
 
 [README]
 
