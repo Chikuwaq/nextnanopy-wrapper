@@ -1,0 +1,249 @@
+$num_bands = 8   # number of bands in Schroedinger (ListOfValues:2,3,8)
+$strain = no     # include strain (yes/no)
+$Temperature = 300              # unit = K
+$dz = 0.1 				# unit = nm
+$smoothingLength = 0.1          # unit = nm
+
+nextnano.NEGF{ 				# Version = 1.1.6
+	ExeType = developer
+	# ExeType = release
+	
+    Header{
+        Author = "Takuma Sato"
+        Content = "Test input file for 8-band k.p model." 
+        # 	  Design: AlSb / InAs / Ga(0.65)In(0.35)Sb / InAs / AlSb
+        #     Ref:    Vurgaftman ICL Nat. Comm. (2011)
+    }
+
+    SweepParameters{
+        SchroedingerOnly = yes
+		SweepType = Single
+    }
+
+    Bias{
+        PotentialDrop = 0.0 				# unit = meV
+    }
+
+    Temperature = $Temperature 				# unit = K  # Temperature of the lattice in K
+
+	# the crystal section is needed to account for strain
+    Crystal{
+        CrystalStructure = Zincblende
+		
+		# The heterostructure growth direction is along z (simulation direction).
+		# (hkl) are the Miller indices of the plane perpendicular to each axis.
+        Orientation{
+            zAxis{
+                h = 0
+                k = 0
+                l = 1
+            }
+
+            yAxis{
+                h = 0
+                k = 1
+                l = 0
+            }
+
+        }
+
+        MaterialSubstrate{
+            Name = GaSb
+        }
+
+        Strain = $strain
+        Piezoelectricity = $strain
+        Pyroelectricity = $strain
+    }
+
+    Materials{
+        Material{
+            Name = "InAs"
+            Alias = "e-well"
+            EffectiveMassFromKpParameters = no
+            RescaleS = yes
+            RescaleSTo = 1.0
+        }
+
+        Material{
+            Name = "Ga(x)In(1-x)Sb"
+            AlloyComposition = 0.65
+            Alias = "h-well"
+            EffectiveMassFromKpParameters = no
+            RescaleS = yes
+            RescaleSTo = 1.0
+        }
+
+        Material{
+            Name = "AlSb"
+            Alias = barrier
+            EffectiveMassFromKpParameters = no
+            RescaleS = yes
+            RescaleSTo = 1.0
+        }
+
+        # Model nonparabolicity
+        NonParabolicity = no
+        NumberOfBands = $num_bands
+        UseConductionBandOffset = no
+        TemperatureDependentEightBandDKKParameters = yes
+    }
+
+    OverwriteMaterialDatabase{
+      Material{
+         Name = 'InAs'
+         S = 1                         # fixed(?)
+         Ep = 7.736                    # from TiberCAD log
+         kp_8_bands{
+            B = 3.596                  # CartoixaPhDthesis
+            L = -2.560  M = -3.651  N = -4.195      # from TiberCAD log
+         }
+      }
+
+      Material{
+         Name = 'GaSb'
+         S = 1                         # fixed(?)
+         Ep = 10.41                    # from TiberCAD log
+         kp_8_bands{
+            B = 13.079                 # CartoixaPhDthesis
+            L = -11.18  M = -5.0  N = -13.98      # from TiberCAD log
+         }
+      }
+
+      Material{
+         Name = 'InSb'
+         S = 1                         # fixed(?)
+         Ep = 8.438                    # from TiberCAD log
+         kp_8_bands{
+            B = 2.703                  # CartoixaPhDthesis
+            L = -58.37  M = -4.80  N = -59.57      # from TiberCAD log
+         }
+      }
+
+      Material{
+         Name = 'AlSb'
+         S = 1                         # fixed(?)
+         Ep = 7.372                    # from TiberCAD log
+         kp_8_bands{
+            B = 0                      # CartoixaPhDthesis
+            L = -4.88694  M = -3.8  N = -5.76694      # from TiberCAD log
+         }
+      }
+    }
+
+    Structure{
+        # W-shaped quantum well
+		Layer{
+            Material = barrier
+            Thickness = 2.0 				# unit = nm
+        }
+
+        Layer{
+            Material = "e-well"
+            Thickness = 1.7 				# unit = nm
+        }
+		
+		Layer{
+            Material = "h-well"
+            Thickness = 3.0 				# unit = nm
+        }
+
+        Layer{
+            Material = "e-well"
+            Thickness = 1.4 				# unit = nm
+        }
+
+        Layer{
+            Material = barrier
+            Thickness = 2.0 				# unit = nm
+        }
+
+        Doping{
+			# homogeneous doping between starting and end point
+			# doping can be in barriers or wells or both
+			# origin = start of first barrier
+            DopingStart = 9.6 				# unit = nm
+            DopingEnd = 14.6 				# unit = nm
+            DopingSpecification = "2dequiv"	# SweepType: "2dequiv", "3ddoped" or "3dall"
+            DopingDensity = 3e10			# [Fathololoumi2012]: 3 * 10^10 cm^-2 | Doping in units according to Doping_Specification
+        }
+
+    }
+
+    Scattering{
+        MaterialForScatteringParameters = "e-well"
+        InterfaceRoughness{
+            AmplitudeInZ = 0.05 				# unit = nm # this should be a realistic guess for III-V systems
+            InterfaceAutoCorrelationType = 0	# Correlation type: 0=Exponential, 1=Gaussian
+            CorrelationLengthInXY = 8 			# unit = nm
+        }
+
+        AcousticPhononScattering = no			# Acoustic phonons are in general not efficient - can be neglected in most cases
+        AcousticPhononScatteringEnergyMax = 3.0 	# unit = meV  # Maximum acoustic phonon energy
+
+		# Charged impurities
+		# Effective temperature of the electrons involved in electrostatic screeening: 3 models available
+		# model #1: Teff = T + Toffset * exp(-T/Toffset) with Toffset specified as TemperatureOffsetParameter
+		# model #2: self-consistent calculation (requires several iterations of the all calculation). The ccuracy specified by Accuracy_Self_consistent_Electron_Temperature
+		# model #3: Teff is directly specified by Electron_Temperature_for_Screening
+        ScreeningTemperatureType = 1						# integer 1,2 or 3 is required accordingly to the desired model
+        TemperatureOffsetParameter = 150
+        # AccuracySelfConsistentElectronTemperature = 0.05	# for model #2 only: self-consistent calculation until the effective temperature convergences below the desired accuracy
+        # ElectronTemperatureForScreening = 200				# for model#3 only: the effective temperature is directly specified
+        ImpurityScatteringStrength = 1.0					# 1.0 is the normal physical calculation. Other values may be used for testing the importance of impurity scattering.
+        ElectronElectronScattering = yes
+        AlloyScattering = yes
+        HomogeneousCoulomb = yes
+    }
+
+    Poisson = no
+    LateralDiscretization{
+        MaterialForLateralMotion = "e-well"
+        Value = 50 				# unit = meV   # Lateral energy spacing
+    }
+
+    SimulationParameter{
+		# BASIS STATE CALCULATION
+		# parameters only affect the basis state calculation time. Not critical for total calculation time.
+		
+		# SPATIAL GRID - defines number of grid points per period
+        SpatialGridSpacing = $dz
+		
+		# number of periods in the Schrodinger solver
+		nLateralPeriodsForBandStructure = 0
+		
+		# ENERGY GRID - critical for calculation time!
+		# It holds for higher temperatures: More broadening, i.e. less energy grid points are sufficient.
+        EnergyGridSpacing = 5.0 				# unit = meV  # homogeneously spaced grid
+        # for RTDs, the energy range often needs to be increased to capture the broadening induced by the contacts
+		EminShift = 0 				# unit = meV
+        EmaxShift = 0 				# unit = meV
+        
+		EnergyRangeLateral = 100 			# unit = meV  # xy-direction, evaluated from lowest state
+        EnergyRangeAxial = 1000 				# unit = meV  # z-direction,  evaluated from lowest state/miniband.
+        EnergyRangeAxialValence = 400       # unit = meV  # z-direction,  evaluated from highest hole-like state/miniband.
+        
+		# The self-consistent loop ends successfully if the 2 following convergence factors are reached for the lesser Green's function and the current (relative difference between two consecutive iterations)
+		ConvergenceValueGF = 1e-5	# a low value is needed for the accuracy of the C-V calculation
+        ConvergenceValueCurrent = 1e-5
+        
+		# PERIODS
+		CoherenceLengthInPeriods = 0	# 1 -> coherent transport from one period to the next | N -> coherent transport between N+1 periods
+        
+		# Number of maximum iterations if the above convergence values are not reached
+		# Higher values give more accurate results.
+		NMaxIterations = 1000			# this has been increased with respect to default calculation for the accuracy of the C-V calculation
+        ConvergFactMin = 0.3			
+        ConvergFactMax = 1.0
+        BiasForInitialElectronicModes = 0 				# unit = meV
+
+        SmoothingLengthKP = $smoothingLength
+        ContinuousValenceBand = no
+    }
+
+    Output{
+        EnergyResolvedPlots = no	# output 2D energy resolved graphs
+    }
+
+}
+
