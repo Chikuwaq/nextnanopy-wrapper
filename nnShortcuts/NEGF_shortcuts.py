@@ -253,12 +253,13 @@ class NEGFShortcuts(CommonShortcuts):
         d = nn.DataFolder(subfolder)
 
         # Get the fullpath of 'Init' subfolder
+        init_folder = None
         for folder_name in d.folders.keys():
             if 'Init' in folder_name:
                 # listOfFiles = d.go_to(folder_name).find(keyword, deep=True)
                 init_folder = d.go_to(folder_name)
         
-        if not init_folder: 
+        if init_folder is None:
             raise RuntimeError(f"'Init' folder not found under\n{subfolder}")
         
         if search_raw_solution_folder:
