@@ -109,7 +109,7 @@ class SweepManager:
         default_colors : DefaultColors object
     """
     default_colors = DefaultColors()
-
+    n_characters_uuid = 5
 
     def __init__(self, sweep_ranges, master_input_file, eigenstate_range=None, round_decimal=8, loglevel=logging.INFO):
         """
@@ -213,8 +213,7 @@ class SweepManager:
 
         self.outputs['sweep_coords'] = self.inputs['sweep_coords']
         self.inputs['fullpaths_original'] = self.__create_input_file_fullpaths(self.master_input_file['original'])
-        self.outputs['output_subfolder_original'] = [CommonShortcuts.get_output_subfolder_path(self.output_folder_path['original'], input_path) for input_path in self.inputs['fullpaths_original']]
-        
+        self.outputs['output_subfolder_original'] = SweepManager.__compose_subfolder_paths(0, self.inputs['fullpaths_original'], self.output_folder_path['original'])
 
         # prepare files and folders with abbreviated names if needed
         outfolder = self.shortcuts.compose_sweep_output_folder_path(self.master_input_file['original'].fullpath, *self.sweep_space.get_variable_names())
@@ -231,7 +230,7 @@ class SweepManager:
             dir = os.path.dirname(master_input_file.fullpath)
             ext = os.path.splitext(master_input_file.fullpath)[1]
             id = str(uuid.uuid4())
-            filename = 'tmp' + id[:5] + ext  # using a part of the Universally Unique Identifier
+            filename = 'tmp' + id[:SweepManager.n_characters_uuid] + ext  # using a part of the Universally Unique Identifier
             temp_path = os.path.join(dir, filename)
             master_input_file.save(temp_path, overwrite=True, automkdir=True)
 
@@ -241,9 +240,7 @@ class SweepManager:
         self.master_input_file['short'] = master_input_file
         
         self.inputs['fullpaths_short'] = self.__create_input_file_fullpaths(self.master_input_file['short'])
-        
-        self.outputs['output_subfolder_short'] = [CommonShortcuts.get_output_subfolder_path(self.output_folder_path['short'], input_path) for input_path in self.inputs['fullpaths_short']]
-
+        self.outputs['output_subfolder_short'] = SweepManager.__compose_subfolder_paths(0, self.inputs['fullpaths_short'], self.output_folder_path['short'])
 
         if self.__output_subfolders_exist_with_originalname():
             # simulation outputs of this sweep exist already. The user might want to access those outputs without executing sweep simulation.
@@ -275,6 +272,14 @@ class SweepManager:
 
         self.slurm_data = SlurmData(self.output_folder_path['short'])
 
+    @staticmethod
+    def __compose_subfolder_paths(n_characters_to_remove : int, input_fullpaths : pd.DataFrame, output_folder_path : str):
+        subfolder_paths = list()
+        for input_path in input_fullpaths:
+            sweep_input_name = CommonShortcuts.separate_extension(input_path)[0]
+            sweep_var_string = sweep_input_name[n_characters_to_remove:]  # remove master input file name to shorten the paths
+            subfolder_paths.append(CommonShortcuts.get_output_subfolder_path(output_folder_path, sweep_var_string))
+        return subfolder_paths
 
     def __str__(self):
         """ this method is executed when print(SweepManager object) is invoked """
@@ -341,14 +346,17 @@ class SweepManager:
         """
         input_file_fullpaths = ['' for _ in range(self.get_num_simulations())]
 
-        # code following nextnanopy > inputs.py > Sweep.create_input_files()
+
         filename_path, filename_extension = os.path.splitext(master_input_file.fullpath)
+        folder = os.path.split(filename_path)[0]
         for i, combination in enumerate(self.outputs['sweep_coords']):
-            filename_end = '__'
+            # filename_end = '__'  # code following nextnanopy > inputs.py > Sweep.create_input_files()
+            filename_end = ''
             for var_name, var_value in zip(self.sweep_space.get_variable_names(), combination):
                 var_value_string = SweepManager.__format_number(var_value, self.round_decimal)
                 filename_end += '{}_{}_'.format(var_name, var_value_string)
-            input_file_fullpaths[i] = filename_path + filename_end + filename_extension
+            # input_file_fullpaths[i] = filename_path + filename_end + filename_extension  # code following nextnanopy > inputs.py > Sweep.create_input_files()
+            input_file_fullpaths[i] = os.path.join(folder, filename_end + filename_extension)
         return pd.Series(input_file_fullpaths)
     
 
