@@ -628,7 +628,7 @@ class SweepManager:
                 try:
                     datafiles_probability = self.shortcuts.get_DataFile_probabilities_in_folder(self.outputs.loc[0, 'output_subfolder_short'])
                     self.states_to_be_plotted, num_evs = self.shortcuts.get_states_to_be_plotted(datafiles_probability)   # states_range_dict=None -> all states are plotted
-                except FileNotFoundError:  # 1,2,3-band NEGF doesn't have probability output
+                except (FileNotFoundError, ValueError):  # 1,2,3-band NEGF doesn't have probability output
                     warnings.warn("SweepManager.execute_sweep(): Probability distribution not found")
 
 
