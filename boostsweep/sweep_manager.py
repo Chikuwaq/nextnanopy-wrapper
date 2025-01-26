@@ -297,6 +297,7 @@ class SweepManager:
     def __count_nonzero_digits(number):
         flat_string = f"{number:.20f}"  # 20 decimal digits should be large enough for practical usage
         flat_string = flat_string.rstrip('0').rstrip('.')  # remove trailing zeros and decimal point
+        flat_string = flat_string.lstrip('-')  # remove leading negative sign
         integers = [int(digit) for digit in flat_string]
         return np.count_nonzero(integers)
 
@@ -624,7 +625,7 @@ class SweepManager:
         # If not given at the class instantiation, determine how many eigenstates to plot (states_to_be_plotted attribute)
         if self.states_to_be_plotted is None:   # by default, plot all states in the output data
             if os.path.exists(self.outputs.loc[0, 'output_subfolder_short']):
-                try: 
+                try:
                     datafiles_probability = self.shortcuts.get_DataFile_probabilities_in_folder(self.outputs.loc[0, 'output_subfolder_short'])
                     self.states_to_be_plotted, num_evs = self.shortcuts.get_states_to_be_plotted(datafiles_probability)   # states_range_dict=None -> all states are plotted
                 except FileNotFoundError:  # 1,2,3-band NEGF doesn't have probability output

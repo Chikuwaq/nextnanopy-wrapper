@@ -1,5 +1,6 @@
 
 [SweepManager]
+- log-scale 2D plot: extract function for colorbar formatting
 - get WRegion example working
 - delete '*_idea.py' files once debugging of SweepManager is done
 - implement:
@@ -15,6 +16,7 @@ take z values as y values
 else
 plot 2D colormap
 
+- Add import_from_excel method (https://swcarpentry.github.io/python-novice-gapminder/07-reading-tabular.html)
 - add an option 'outfolder_name' in execute_sweep()
 - get generate_gif working
 
@@ -47,7 +49,7 @@ E.g. get_states_to_be_plotted()
 - if the difference between overridden methods is only 'software', they can be defined in the parent.
 
 [README]
-
+- Add cool dispersion-LDOS plot as demo
 
 [nnResults] object-oriented approach to post-processing, inspired by kwant
 - define a parent class Results
