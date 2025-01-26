@@ -1177,6 +1177,7 @@ class NEGFShortcuts(CommonShortcuts):
                             Imin=None, Imax=None,
                             Rmin=None, Rmax=None,
                             Vmin=None, Vmax=None,
+                            in_mAW=False
                           ):
         """
         Plot one or more responsivity curves [A/W] as a function of potential per drop.
@@ -1207,10 +1208,14 @@ class NEGFShortcuts(CommonShortcuts):
         Vmin, Vmax : float, optional
             minimum and maximum voltage values for the plot range
 
+        in_mAW : bool, optional
+            If True, plot the responsivity in units of [mA/W].
+            Else, the units will be [A/W]
+
         Units in plot
         -------------
         current density [kA/cm^2]
-        photodetector responsivity [A/W]
+        photodetector responsivity [A/W] or [mA/W]
         potential drop per period [mV]
 
         Returns
@@ -1274,12 +1279,14 @@ class NEGFShortcuts(CommonShortcuts):
         # ax3.set_xlabel('Current density [$\mathrm{kA}/\mathrm{cm}^2$]', fontsize=labelsize)
 
         # responsivity curve
-
+        scaling = 1.0
+        if in_mAW:
+            scaling = 1e3
         ax2 = ax1.twinx()   # shared x axis
         for i, p_drop_dark in enumerate(potential_drops_dark):
             p_drop, responsivity = self.__calc_responsivities(potential_drops_dark[i], dark_current_densities[i], potential_drops_illuminated[i], illuminated_current_densities[i], input_light_intensity)
-            print(f"pdrop: {p_drop}, responsivity: {responsivity}")
-            ax2.plot(p_drop, responsivity, '.', color=self.default_colors.responsivity, ls=linetypes[i], label=labels[i])
+            print(f"pdrop: {p_drop}, responsivity [A/W]: {responsivity}")
+            ax2.plot(p_drop, responsivity * scaling, '.', color=self.default_colors.responsivity, ls=linetypes[i], label=labels[i])
 
         ax2.set_ylabel("Responsivity [$\mathrm{A/W}$]", color=self.default_colors.responsivity, fontsize=labelsize)
         ax2.tick_params(axis='x', labelsize=ticksize)
