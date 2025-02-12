@@ -298,7 +298,11 @@ class SweepManager:
         flat_string = f"{number:.20f}"  # 20 decimal digits should be large enough for practical usage
         flat_string = flat_string.rstrip('0').rstrip('.')  # remove trailing zeros and decimal point
         flat_string = flat_string.lstrip('-')  # remove leading negative sign
-        integers = [int(digit) for digit in flat_string]
+        integers = list()
+        for digit in flat_string:
+            if digit == '.':
+                continue
+            integers.append(int(digit))
         return np.count_nonzero(integers)
 
     @staticmethod
