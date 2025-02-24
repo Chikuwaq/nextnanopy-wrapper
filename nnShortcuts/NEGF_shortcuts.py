@@ -309,7 +309,7 @@ class NEGFShortcuts(CommonShortcuts):
         return amplitude_dict_trimmed
 
 
-    def get_DataFile_NEGF_atBias(self, keywords, name, bias, is_fullpath=False):
+    def get_DataFile_NEGF_atBias(self, keywords, name, bias, is_fullpath=False, exclude_keywords = None):
         """
         Get single nextnanopy.DataFile of NEGF output data with the given string keyword(s) at the specified bias.
 
@@ -339,7 +339,7 @@ class NEGFShortcuts(CommonShortcuts):
             filename_no_extension = CommonShortcuts.separate_extension(name)[0]
             bias_subfolder = os.path.join(output_folder, filename_no_extension, str(bias) + 'mV')
 
-        return self.get_DataFile_in_folder(keywords, bias_subfolder)
+        return self.get_DataFile_in_folder(keywords, bias_subfolder, exclude_keywords)
 
 
     # def get_convergenceInfo(self, bias):
