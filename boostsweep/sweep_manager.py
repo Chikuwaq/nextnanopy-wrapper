@@ -1248,7 +1248,7 @@ class SweepManager:
         if colormap == self.default_colors.colormap['divergent_bright']:
             return colormap, 'black'
         elif colormap == 'viridis' or colormap == self.default_colors.colormap['linear_bright_bg']:
-            return colormap, self.default_colors.lines_on_colormap['linear_bright_bg']
+            return colormap, self.default_colors.lines_on_colormap['bright_bg']
 
 
     def __plot_transition_energies_1D(self, x_axis, x_label, x_values, plot_title, unit, transition_energies_scaled):
