@@ -44,18 +44,16 @@ class DefaultColors:
         self.bandgap_fill = '#333333'  # 'grey' in the scale from 0 to f
 
         self.colormap['linear_bright_bg'] = NextnanoColor.cmap['linear']  # 'cividis'
-        self.lines_on_colormap['linear_bright_bg'] = 'black'
+        self.lines_on_colormap['bright_bg'] = ['black', 'orange']
 
         self.colormap['linear_dark_bg'] = NextnanoColor.cmap['linear'].reversed()  # 'cividis'
-        self.lines_on_colormap['linear_dark_bg'] = 'white'
+        self.lines_on_colormap['dark_bg'] = ['white', 'yellow']
 
 
         # TODO: load the CSV file at root of this repo and implement 'Fast' color map, which is divergent and Color Vision Deficiency (https://www.kennethmoreland.com/color-advice/)
         self.colormap['divergent_bright'] = 'bwr'  # 'seismic'
-        self.lines_on_colormap['divergent_bright'] = 'black'
 
         self.colormap['divergent_dark'] = NextnanoColor.cmap['divergent_dark'].reversed()
-        self.lines_on_colormap['divergent_dark'] = 'white'
 
         self.colormap['sequential'] = 'Greens'
 
