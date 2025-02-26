@@ -620,11 +620,6 @@ class SweepManager:
             # count the number of finished jobs
             n_finished_jobs = 0
             for future in concurrent.futures.as_completed(futures):
-                try:
-                    result = future.result()
-                except Exception as e:
-                    logging.critical(f"Sweep jobs ended up with exception: {e}")
-
                 n_finished_jobs += 1
                 logging.info(f"Completed jobs: {n_finished_jobs}/{self.get_num_simulations()}")
 
