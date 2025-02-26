@@ -298,6 +298,8 @@ class SweepManager:
         flat_string = f"{number:.20f}"  # 20 decimal digits should be large enough for practical usage
         flat_string = flat_string.rstrip('0').rstrip('.')  # remove trailing zeros and decimal point
         flat_string = flat_string.lstrip('-')  # remove leading negative sign
+        # flat_string = flat_string.lstrip('0').lstrip('.')  # remove leading zeros and decimal point
+        # return len(flat_string.split('.')[-1])
         integers = list()
         for digit in flat_string:
             if digit == '.':
@@ -316,10 +318,10 @@ class SweepManager:
 
         is_integer_type = isinstance(number, (int, np.integer))
         if is_integer_type or isinstance(number, (float, np.floating)):
-            n_digits = SweepManager.__count_nonzero_digits(number)
             if is_integer_type or number.is_integer():  # e.g. 1000.0
                 n_decimals = 0
             else:
+                n_digits = SweepManager.__count_nonzero_digits(number)
                 n_decimals = max(round_decimal, n_digits - 1)
             scientific = f"{number:.{n_decimals}e}"
             use_scientific = (len(scientific) < len(str(number)))  # do not use scientific format if the string would get longer
