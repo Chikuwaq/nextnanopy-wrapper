@@ -1,10 +1,10 @@
 # nextnanopy-wrapper
-The package `nnShortcuts` contains shortcut functions using nextnanopy features and simplifies the pre- and post-processing of nextnano simulations.
+The package `nnShortcuts` is an object-oriented wrapper around [nextnanopy](https://github.com/nextnanopy/nextnanopy). It contains shortcut functions and simplifies the pre- and post-processing of nextnano simulations.
 A big advantage of `nnShortcuts.common` is that you get a DataFile without knowing the exact output file name. You can narrow down the output data by specifying a list of keywords and exclude keywords.
 
-The module `nnHelpers` is an object-oriented wrapper around [nextnanopy](https://github.com/nextnanopy/nextnanopy). The class `SweepManager` object 
+The package `boostsweep` defines the `SweepManager` class. It
 1. facilitates preparing, running and post-processing nextnano sweep simulations by bridging the simulation inputs and outputs. This is in contrast to nextnanopy, which does not associate simulation input and output.
-2. create a copy of your input file with a shorter name if the original filename is too long, so that the output path length does not exceed the system limit. The method `SweepManager.execute_sweep()` will bring back the original filename to the output folders after the simulations have finished.
+2. creates a copy of your input file with a shorter name if the original filename is too long, so that the output path length does not exceed the system limit. The method `SweepManager.execute_sweep()` will bring back the original filename to the output folders after the simulations have finished.
 
 ![alt text](/docs/images/nnp_shortcuts.png)
 ![alt text](/docs/images/NEGF_shortcuts.png)
@@ -48,6 +48,7 @@ cmap3 = NextnanoColor.cmap['linear']
 # Use one of these for e.g. matplotlib's colormap parameter.
 
 ```
+See example usages in the `SweepManager` class.
 
 
 ## Examples
