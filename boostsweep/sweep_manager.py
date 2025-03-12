@@ -521,7 +521,7 @@ class SweepManager:
             if not sweep_space_reduced.has_sweep_point(coords):
                 continue
 
-            xIndex = np.where(x_values == coords[x_axis_variable_index])   # find index for which arr == value
+            xIndex = np.where(x_values == coords[x_axis_variable_index])   # find index for which array == value
             res[xIndex] = quantity
 
         return x_values, res

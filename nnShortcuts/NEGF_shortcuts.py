@@ -37,12 +37,21 @@ class NEGFShortcuts(CommonShortcuts):
             self.product_name = 'nextnano.NEGF++'
         super().__init__(loglevel)
 
-    def get_IV(self, input_file_name):
+    def get_IV(self, input_file_name=None, output_folder=None):
         """
         Get I-V curve.
         OUTPUT: 2 nn.DataFile() attributes for current & voltage
         """
-        datafile = self.get_DataFile('Current_vs_Voltage', input_file_name)
+        if (input_file_name is not None) and (output_folder is not None):
+            raise ValueError("'input file name' and 'output folder' must not be specified simultaneously.")
+
+        if input_file_name is not None:
+            datafile = self.get_DataFile('Current_vs_Voltage', input_file_name)
+        elif output_folder is not None:
+            datafile = self.get_DataFile_in_folder('Current_vs_Voltage', output_folder)
+        else:
+            raise ValueError("Either 'input file name' or 'output folder' must be specified!")
+
         voltage = datafile.coords['Potential per period']
         current = datafile.variables['Current density']
         return voltage, current
