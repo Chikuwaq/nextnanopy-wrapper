@@ -32,24 +32,25 @@ class SlurmData:
 		folderpath = Path(output_folder)
 		folderpath.mkdir(parents=True, exist_ok=True)
 		
-		self.cache_path = os.path.join(output_folder, "cache.txt")
+		# Cache is not reliable when multiple SweepHelpers are submitting jobs.
+		# self.cache_path = os.path.join(output_folder, "cache.txt")
 
-		if os.path.isfile(self.cache_path):
-			logging.info("Reading SlurmData cache...")
-			with open(self.cache_path, "r") as f_cache:
-				lines = f_cache.readlines()
-			for line in lines:
-				if "#!/bin/bash" in line or line == "":
-					continue
-				if self.sbatch_file_name in line:
-					self.sbatch_script_paths.append(line)
-				elif self.metascript_name in line:
-					self.metascript_paths.append(line)
-				elif "Node" in line:
-					self.node = line
+		# if os.path.isfile(self.cache_path):
+		# 	logging.info("Reading SlurmData cache...")
+		# 	with open(self.cache_path, "r") as f_cache:
+		# 		lines = f_cache.readlines()
+		# 	for line in lines:
+		# 		if "#!/bin/bash" in line or line == "":
+		# 			continue
+		# 		if self.sbatch_file_name in line:
+		# 			self.sbatch_script_paths.append(line)
+		# 		elif self.metascript_name in line:
+		# 			self.metascript_paths.append(line)
+		# 		elif "Node" in line:
+		# 			self.node = line
 			
-			if self.node is None:
-				logging.error("Node data wasn't found in cache!")
+		# 	if self.node is None:
+		# 		logging.error("Node data wasn't found in cache!")
 
 
 	def set(self, node, suffix, email, num_CPU, memory_limit, time_limit_hrs) -> None:
@@ -59,8 +60,9 @@ class SlurmData:
 		if not isinstance(num_CPU, int) or num_CPU < 0: ValueError(f"Illegal number of CPUs: {num_CPU}")
 		if not isinstance(time_limit_hrs, int) or time_limit_hrs < 0: ValueError(f"Illegal time limit: '{time_limit_hrs} hours'")
 	
-		if os.path.isfile(self.cache_path):
-			os.remove(self.cache_path)
+		# Cache is not reliable when multiple SweepHelpers are submitting jobs.
+		# if os.path.isfile(self.cache_path):
+		# 	os.remove(self.cache_path)
 
 		self.node = node
 		self.suffix = suffix
@@ -114,12 +116,14 @@ class SlurmData:
 		with open(metascript_path, 'w') as f_meta:
 			f_meta.write("#!/bin/bash\n\n")
 
+		import uuid
+		id = str(uuid.uuid4())
 		while len(input_file_fullpaths) > 0:
 			input_file_fullpaths_for_one_sbatch.append(input_file_fullpaths.pop(0))
 			
 			if len(input_file_fullpaths_for_one_sbatch) == nSimulations_per_sbatch_file:
 				sbatch_file_count += 1
-				scriptpath = os.path.join(sbatch_scripts_folder, f"{self.sbatch_file_name}{sbatch_file_count}.sh")
+				scriptpath = os.path.join(sbatch_scripts_folder, f"{self.sbatch_file_name}{sbatch_file_count}_{id[:3]}.sh")  # differentiate shell script file names to avoid overwriting when multiple SweepHelpers are submitting jobs
 				self.sbatch_script_paths.append(scriptpath)
 
 				is_last_sbatch_file = (len(input_file_fullpaths) < nSimulations_per_sbatch_file)
@@ -134,12 +138,13 @@ class SlurmData:
 		assert sbatch_file_count <= self.max_num_jobs_per_user
 		
 		# save SlurmData to file
-		with open(self.cache_path, 'w') as f_cache:
-			f_cache.write(f"Node = {self.node}\n")
-			for sbatch in self.sbatch_script_paths:
-				f_cache.write(f"{sbatch}\n")
-			for metascript in self.metascript_paths:
-				f_cache.write(f"{metascript}\n")
+		# Cache is not reliable when multiple SweepHelpers are submitting jobs.
+		# with open(self.cache_path, 'w') as f_cache:
+		# 	f_cache.write(f"Node = {self.node}\n")
+		# 	for sbatch in self.sbatch_script_paths:
+		# 		f_cache.write(f"{sbatch}\n")
+		# 	for metascript in self.metascript_paths:
+		# 		f_cache.write(f"{metascript}\n")
 
 
 	def write_sbatch_script(self, sbatch_file_count, scriptpath, inputpaths, exe, output_folder_path, database, license, product_name, is_last_sbatch_file):
@@ -163,7 +168,8 @@ class SlurmData:
 			logging.error("Node is undefined!")
 		
 		# initialize log file
-		logfile = os.path.join(output_folder_path, f"simulation{sbatch_file_count}.log")
+		first_filename, extension = CommonShortcuts.separate_extension(inputpaths[0])
+		logfile = os.path.join(output_folder_path, f"{sbatch_file_count}_{first_filename}.log")  # differentiate log file names to avoid conflicts when multiple SweepHelpers are submitting jobs
 		if os.path.isfile(logfile):
 			os.remove(logfile)
 		
