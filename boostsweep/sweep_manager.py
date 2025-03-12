@@ -276,7 +276,7 @@ class SweepManager:
     def __compose_subfolder_paths(n_characters_to_remove : int, input_fullpaths : pd.DataFrame, output_folder_path : str):
         subfolder_paths = list()
         for input_path in input_fullpaths:
-            sweep_input_name = CommonShortcuts.separate_extension(input_path)[0]
+            sweep_input_name = os.path.split(input_path)[1]   # remove directory
             sweep_var_string = sweep_input_name[n_characters_to_remove:]  # remove master input file name to shorten the paths
             subfolder_paths.append(CommonShortcuts.get_output_subfolder_path(output_folder_path, sweep_var_string))
         return subfolder_paths
