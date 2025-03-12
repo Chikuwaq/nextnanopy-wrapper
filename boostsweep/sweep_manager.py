@@ -21,6 +21,7 @@ import copy
 import shutil
 import subprocess
 import time
+import platform
 
 
 # nextnanopy includes
@@ -220,7 +221,12 @@ class SweepManager:
         initSweepCoords = {key: arr[0] for key, arr in self.sweep_space.get_items()}
         subfolder = self.shortcuts.compose_sweep_output_subfolder_name(self.master_input_file['original'].fullpath, initSweepCoords)
         outpath = os.path.join(outfolder, subfolder)
-        if len(outpath) + 160 <= 260:
+        max_path_length = 260
+        if platform.system() == 'Linux':
+            max_path_length = 4095
+        elif platform.system() == 'Darwin':
+            max_path_length = 1024
+        if len(outpath) + 160 <= max_path_length:
             self.isFilenameAbbreviated = False
         else:
             self.isFilenameAbbreviated = True
