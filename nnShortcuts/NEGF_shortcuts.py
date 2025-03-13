@@ -1430,7 +1430,7 @@ class NEGFShortcuts(CommonShortcuts):
     def calc_responsivities(self,
                             potential_drops_dark, dark_current_dens,
                             potential_drops_illuminated, illuminated_current_dens,
-                            input_light_intensity
+                            input_light_intensityWm2
                             ):
         """
         Calculate d(current) / d(input light power) at the common bias points between dark and illuminated currents.
@@ -1457,7 +1457,7 @@ class NEGFShortcuts(CommonShortcuts):
                 illuminated_current_densities_exerpt.append(illuminated)
         logging.info(f"illuminated current: {illuminated_current_densities_exerpt}")
         responsivities = np.zeros(len(all_potential_drops))
-        input_light_intensity_Wcm2 = input_light_intensity * 1e-4  # nextnano.NEGF input is in [W/m^2]
+        input_light_intensity_Wcm2 = input_light_intensityWm2 * 1e-4  # nextnano.NEGF input is in [W/m^2]
         num_skipped_pdrop = 0
         for i_bias, pdrop in enumerate(all_potential_drops):
             if pdrop in common_potential_drops:
