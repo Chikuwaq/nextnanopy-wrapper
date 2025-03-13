@@ -112,7 +112,7 @@ class SweepManager:
     default_colors = DefaultColors()
     n_characters_uuid = 5
 
-    def __init__(self, sweep_ranges, master_input_file, eigenstate_range=None, round_decimal=8, loglevel=logging.INFO):
+    def __init__(self, sweep_ranges, master_input_file, eigenstate_range=None, round_decimal=8, abbreviate_if_too_long=True, loglevel=logging.INFO):
         """
         Parameters
         ----------
@@ -226,7 +226,7 @@ class SweepManager:
             max_path_length = 4095
         elif platform.system() == 'Darwin':
             max_path_length = 1024
-        if len(outpath) + 160 <= max_path_length:
+        if (len(outpath) + 160 <= max_path_length) or not abbreviate_if_too_long:
             self.isFilenameAbbreviated = False
         else:
             self.isFilenameAbbreviated = True
