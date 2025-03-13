@@ -206,6 +206,8 @@ class SlurmData:
 				elif product_name == 'nextnano3':
 					f.write(f"{exe} -o \"{output_subfolder_path}\" -d \"{database}\" --check -license \"{license}\" -t {self.num_CPU} -inputfile \"{inputpath}\"\n")
 
+				f.write(f"rm -f {inputpath}\n")  # delete temporary input file after simulation has ended
+
 
 	def delete_sbatch_scripts(self):
 		for script in self.sbatch_script_paths:
