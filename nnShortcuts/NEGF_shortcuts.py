@@ -57,8 +57,8 @@ class NEGFShortcuts(CommonShortcuts):
         return voltage, current
 
 
-    def extract_current_density_at_bias(self, input_file_name, bias):
-        voltage, current = self.get_IV(input_file_name)
+    def extract_current_density_at_bias(self, bias, input_file_name=None, output_folder=None):
+        voltage, current = self.get_IV(input_file_name=input_file_name, output_folder=output_folder)
         current_density_at_bias = None
         if voltage.value.ndim == 0:
             if voltage.value == bias:
@@ -69,7 +69,10 @@ class NEGFShortcuts(CommonShortcuts):
                     current_density_at_bias = I
                     break
         if current_density_at_bias is None:
-            raise RuntimeError(f"Desired bias {bias} wasn't found for {input_file_name}")
+            if input_file_name is not None:
+                raise RuntimeError(f"Desired bias {bias} wasn't found for:\n {input_file_name}")
+            else:
+                raise RuntimeError(f"Desired bias {bias} wasn't found for:\n {output_folder}")
         return current_density_at_bias
 
 
@@ -131,9 +134,10 @@ class NEGFShortcuts(CommonShortcuts):
 
 
     def plot_dark_current_vs_T(self,
-            input_file_names,
             biases,
             temperatures,
+            input_file_names=None,
+            output_folders=None,
             title=None,
             Imin=None, Imax=None,
             Vmin=None, Vmax=None,
@@ -147,14 +151,17 @@ class NEGFShortcuts(CommonShortcuts):
 
         Parameters
         ----------
-        input_file_names : list of str
-            Specifies input files
-
         biases : list of float
             Potential drop per period [mV] from which current should be extracted.
 
         temperatures : list of float
             Lattice temperatures. Should be in the same order as 'input_file_names'.
+
+        input_file_names : list of str, optional
+            Specifies input files
+
+        output_folders : list of str, optional
+            Alternatively to input_file_names, specifies output folder of desired data
 
         Imin, Imax : float, optional
             minimum and maximum current values for the plot range
@@ -172,9 +179,17 @@ class NEGFShortcuts(CommonShortcuts):
             Value used if overlay = True
         """
         # validate arguments
-        if len(input_file_names) != len(temperatures):
-            raise NextnanopyScriptError(f"Number of input files ({len(input_file_names)}) do not match that of plot labels ({len(temperatures)})")
-
+        if (input_file_names is not None) and (output_folders is not None):
+            raise ValueError("'input file name' and 'output folder' must not be specified simultaneously.")
+        if input_file_names is not None:
+            if len(input_file_names) != len(temperatures):
+                raise NextnanopyScriptError(f"Number of input files ({len(input_file_names)}) do not match that of temperatures ({len(temperatures)})")
+        elif output_folders is not None:
+            if len(output_folders) != len(temperatures):
+                raise NextnanopyScriptError(f"Number of input files ({len(output_folders)}) do not match that of temperatures ({len(temperatures)})")
+        else:
+            raise ValueError("Either 'input file name' or 'output folder' must be specified!")
+        
         fig, ax = plt.subplots()
         ax.set_ylabel("Current density [$\mathrm{A}/\mathrm{cm}^{2}$]", fontsize=labelsize)
         ax.set_yscale("log")
@@ -195,7 +210,10 @@ class NEGFShortcuts(CommonShortcuts):
 
         for bias in biases:
             # list of data for sweeping temperature
-            current_densities_at_bias = [self.extract_current_density_at_bias(input_file_name, bias) for input_file_name in input_file_names]
+            if input_file_names is not None:
+                current_densities_at_bias = [self.extract_current_density_at_bias(bias, input_file_name=input_file_name) for input_file_name in input_file_names]
+            else:
+                current_densities_at_bias = [self.extract_current_density_at_bias(bias, output_folder=outfolder) for outfolder in output_folders]
             ax.plot(inv_temperatures, current_densities_at_bias, 'o', label=f"simulation at {bias} mV")
 
         if overlay:
@@ -1400,8 +1418,8 @@ class NEGFShortcuts(CommonShortcuts):
                 f"Number of input files ({len(names_illuminated)}) do not match that of plot labels ({len(temperatures)})")
 
         # list of data for sweeping temperature
-        dark_current_densities = [self.extract_current_density_at_bias(name, bias) for name in names_dark]
-        illuminated_current_densities = [self.extract_current_density_at_bias(name, bias) for name in names_illuminated]
+        dark_current_densities = [self.extract_current_density_at_bias(bias, input_file_name=name) for name in names_dark]
+        illuminated_current_densities = [self.extract_current_density_at_bias(bias, input_file_name=name) for name in names_illuminated]
 
         from matplotlib.ticker import MultipleLocator
 
