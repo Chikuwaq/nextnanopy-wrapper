@@ -190,6 +190,7 @@ class NEGFShortcuts(CommonShortcuts):
         else:
             raise ValueError("Either 'input file name' or 'output folder' must be specified!")
         
+        # fig, ax = plt.subplots(layout='constrained')  # not supported by matplotlib 3.3
         fig, ax = plt.subplots()
         ax.set_ylabel("Current density [$\mathrm{A}/\mathrm{cm}^{2}$]", fontsize=labelsize)
         ax.set_yscale("log")
@@ -293,10 +294,10 @@ class NEGFShortcuts(CommonShortcuts):
         ax3 = ax.secondary_xaxis('top', functions=(forward_conversion, backward_conversion))
         ax3.set_xlabel('Temperature [K]', fontsize=labelsize)
         ax3.set_xticks(temperatures)
-        ax3.tick_params(axis='x', labelsize=ticksize*0.77) # avoid overlapping
+        ax3.tick_params(axis='x', labelsize=ticksize*0.75) # avoid overlapping
 
-        ax.legend(fontsize=labelsize*0.7)
-        # fig.legend(loc='outside upper right')  # not supported by matplotlib 3.3?
+        ax.legend(fontsize=labelsize*0.5)  # , bbox_to_anchor=(1.05, 1)
+        ax.grid()
         fig.tight_layout()
         plt.show()
 
