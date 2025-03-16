@@ -143,7 +143,7 @@ class NEGFShortcuts(CommonShortcuts):
             Vmin=None, Vmax=None,
             labelsize=CommonShortcuts.labelsize_default,
             ticksize=CommonShortcuts.ticksize_default,
-            overlay=False, effective_gaps=None, coeffs=None,
+            overlay=False, effective_gaps_meV=None, coeffs=None, temperature_separator=None
             ):
         """
         Plot dark current at specified bias as a function of 1000/T.
@@ -232,7 +232,7 @@ class NEGFShortcuts(CommonShortcuts):
 
             colors = ['red', 'lime', 'blue']
             index = 0
-            for coeff, Eg in zip(coeffs, effective_gaps):
+            for coeff, Eg in zip(coeffs, effective_gaps_meV):
                 diffusion_limited_dark_currents = [diffusion_limited_dark_current(coeff, T, Eg) for T in temperatures]
                 # ax.plot(inv_temperatures, diffusion_limited_dark_currents, '--', color='grey', label="$T^3\mathrm{exp}(-\Delta / k_\mathrm{B}T)$")
                 ax.plot(inv_temperatures, diffusion_limited_dark_currents, '--', color=colors[index], label="$C \mathrm{exp}(-\Delta / k_\mathrm{B}T)$, " + f"$C$ = {coeff:.1e}, $\Delta$ = {Eg:.0f} meV")
@@ -246,15 +246,10 @@ class NEGFShortcuts(CommonShortcuts):
         ax3 = ax.secondary_xaxis('top', functions=(forward_conversion, backward_conversion))
         ax3.set_xlabel('Temperature [K]', fontsize=labelsize)
         ax3.set_xticks(temperatures)
-        ax3.tick_params(axis='x', labelsize=ticksize*0.85) # avoid overlapping
-
-        # export to an image file
-        outputFolder = nn.config.get(self.product_name, 'outputdirectory')
-        filename_no_extension = CommonShortcuts.separate_extension(input_file_names[0])[0]
-        outputSubfolder = os.path.join(outputFolder, filename_no_extension)
-        self.export_figs("dark_current_vs_T", "png", output_folder_path=outputSubfolder, fig=fig)
+        ax3.tick_params(axis='x', labelsize=ticksize*0.77) # avoid overlapping
 
         ax.legend(fontsize=labelsize*0.7)
+        # fig.legend(loc='outside upper right')  # not supported by matplotlib 3.3?
         fig.tight_layout()
         plt.show()
 
@@ -1412,10 +1407,10 @@ class NEGFShortcuts(CommonShortcuts):
         # validate arguments
         if len(names_dark) != len(temperatures):
             raise NextnanopyScriptError(
-                f"Number of input files ({len(names_dark)}) do not match that of plot labels ({len(temperatures)})")
+                f"Number of input files ({len(names_dark)}) do not match that of temperatures ({len(temperatures)})")
         if len(names_illuminated) != len(temperatures):
             raise NextnanopyScriptError(
-                f"Number of input files ({len(names_illuminated)}) do not match that of plot labels ({len(temperatures)})")
+                f"Number of input files ({len(names_illuminated)}) do not match that of temperatures ({len(temperatures)})")
 
         # list of data for sweeping temperature
         dark_current_densities = [self.extract_current_density_at_bias(bias, input_file_name=name) for name in names_dark]
