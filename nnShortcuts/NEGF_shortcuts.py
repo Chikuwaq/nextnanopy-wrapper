@@ -230,6 +230,53 @@ class NEGFShortcuts(CommonShortcuts):
                 effective_gap_J = effective_gap / CommonShortcuts.scale1ToMilli * CommonShortcuts.scale_eV_to_J
                 return C * T ** (-7./2.) * math.exp(- effective_gap_J / (2 * CommonShortcuts.Boltzmann * T))  # "LO-phonon-induced diffusive transport" of [Glennon2023]
 
+            if temperature_separator is not None:
+                if effective_gaps_meV is not None or coeffs is not None:
+                    raise ValueError("'coeffs', 'effective_gaps_meV', and 'temperature_separator' must not be specified simultaneously")
+                if len(biases) > 1:
+                    raise NotImplementedError("Automatic linear fit not yet supporting multiple bias points")
+                
+                effective_gaps_meV = list()
+                coeffs = list()
+
+                def is_hot(foldername, temperature_separator):
+                    for T in temperatures:
+                        if f"T_{T}_" in foldername:
+                            return T > temperature_separator
+                    raise ValueError("Temperature could not be deduced from output folder path!")
+                
+                # find linear fits to two temperature regions
+                # I = C*exp(-Delta/kT)
+                # log(I) = -Delta/kT + log(C)
+                # linear fit is: y = slope * x + intercept, where x = 1000 / T and y = log(I), i.e.,
+                # y = -Delta/1000k * x + log(C)
+                # --> Delta = -1000k * slope, C = exp(intercept)
+                inv_temperatures_hot = [backward_conversion(T) for T in temperatures if T > temperature_separator]
+                inv_temperatures_cold = [backward_conversion(T) for T in temperatures if T <= temperature_separator]
+                log_of_currents_hot = []
+                log_of_currents_cold = []
+                if input_file_names is not None:
+                    for input_file_name in input_file_names:
+                        current = self.extract_current_density_at_bias(biases[0], input_file_name=input_file_name)
+                        if is_hot(input_file_name, temperature_separator):
+                            log_of_currents_hot.append(math.log(current))
+                        else:
+                            log_of_currents_cold.append(math.log(current))
+                else:
+                    for outfolder in output_folders:
+                        current = self.extract_current_density_at_bias(biases[0], output_folder=outfolder)
+                        if is_hot(outfolder, temperature_separator):
+                            log_of_currents_hot.append(math.log(current))
+                        else:
+                            log_of_currents_cold.append(math.log(current))
+                slope_hot, intercept_hot = np.polyfit(inv_temperatures_hot, log_of_currents_hot, deg=1)  # find a linear fit that minimizes least squares
+                slope_cold, intercept_cold = np.polyfit(inv_temperatures_cold, log_of_currents_cold, deg=1)  # find a linear fit that minimizes least squares
+                effective_gaps_meV.append(-1000 * CommonShortcuts.Boltzmann * slope_hot / CommonShortcuts.elementary_charge * CommonShortcuts.scale1ToMilli)
+                effective_gaps_meV.append(-1000 * CommonShortcuts.Boltzmann * slope_cold / CommonShortcuts.elementary_charge * CommonShortcuts.scale1ToMilli)
+                coeffs.append(math.exp(intercept_hot))
+                coeffs.append(math.exp(intercept_cold))
+                
+
             colors = ['red', 'lime', 'blue']
             index = 0
             for coeff, Eg in zip(coeffs, effective_gaps_meV):
