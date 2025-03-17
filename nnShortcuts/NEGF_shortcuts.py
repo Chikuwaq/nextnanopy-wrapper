@@ -441,7 +441,7 @@ class NEGFShortcuts(CommonShortcuts):
     #     return convergenceInfo
 
 
-    def get_conduction_bandedge(self, input_file_name, bias):
+    def get_conduction_bandedge(self, bias, input_file_name=None, output_folder=None):
         """
         INPUT:
             input file name
@@ -451,20 +451,25 @@ class NEGFShortcuts(CommonShortcuts):
             datafile.coords['Position']
             datafile.variables['Conduction Band Edge']
         """
-        try:
-            datafile = self.get_DataFile_NEGF_atBias("EigenStates.dat", input_file_name, bias)
-        except FileNotFoundError:
+        if output_folder is None:
+            if input_file_name is None:
+                raise ValueError("Either input file name or output folder must be specified")
             try:
-                datafile = self.get_DataFile_NEGF_atBias('Conduction_BandEdge.dat', input_file_name, bias)
+                datafile = self.get_DataFile_NEGF_atBias("EigenStates.dat", input_file_name, bias)
             except FileNotFoundError:
                 try:
-                    datafile = self.get_DataFile_NEGF_atBias('ConductionBandEdge.dat', input_file_name, bias)
-                    # print('Found ConductionBandEdge.dat')
+                    datafile = self.get_DataFile_NEGF_atBias('Conduction_BandEdge.dat', input_file_name, bias)
                 except FileNotFoundError:
                     try:
-                        datafile = self.get_DataFile_NEGF_atBias('BandEdges.dat', input_file_name, bias)
+                        datafile = self.get_DataFile_NEGF_atBias('ConductionBandEdge.dat', input_file_name, bias)
+                        # print('Found ConductionBandEdge.dat')
                     except FileNotFoundError:
-                        raise
+                        try:
+                            datafile = self.get_DataFile_NEGF_atBias('BandEdges.dat', input_file_name, bias)
+                        except FileNotFoundError:
+                            raise
+        else:
+            datafile = self.get_DataFile_NEGF_atBias("EigenStates.dat", output_folder, bias, is_fullpath=True)
 
         position = datafile.coords['Position']
         try:
@@ -478,7 +483,7 @@ class NEGFShortcuts(CommonShortcuts):
         return position, bandedge
     
 
-    def get_lightHole_bandedge(self, input_file_name, bias):
+    def get_lightHole_bandedge(self, bias, input_file_name=None, output_folder=None):
         """
         INPUT:
             input file name
@@ -488,13 +493,18 @@ class NEGFShortcuts(CommonShortcuts):
             datafile.coords['Position']
             datafile.variables['Light-Hole Band Edge']
         """
-        try:
-            datafile = self.get_DataFile_NEGF_atBias("EigenStates.dat", input_file_name, bias)
-        except FileNotFoundError:
+        if output_folder is None:
+            if input_file_name is None:
+                raise ValueError("Either input file name or output folder must be specified")
             try:
-                datafile = self.get_DataFile_NEGF_atBias('BandEdges.dat', input_file_name, bias)
+                datafile = self.get_DataFile_NEGF_atBias("EigenStates.dat", input_file_name, bias, False)
             except FileNotFoundError:
-                raise
+                try:
+                    datafile = self.get_DataFile_NEGF_atBias('BandEdges.dat', input_file_name, bias, False)
+                except FileNotFoundError:
+                    raise
+        else:
+            datafile = self.get_DataFile_NEGF_atBias("EigenStates.dat", output_folder, bias, True)
 
         position = datafile.coords['Position']
         try:
@@ -508,7 +518,7 @@ class NEGFShortcuts(CommonShortcuts):
         return position, bandedge
 
 
-    def get_heavyHole_bandedge(self, input_file_name, bias):
+    def get_heavyHole_bandedge(self, bias, input_file_name=None, output_folder=None):
         """
         INPUT:
             input file name
@@ -518,13 +528,18 @@ class NEGFShortcuts(CommonShortcuts):
             datafile.coords['Position']
             datafile.variables['Light-Hole Band Edge']
         """
-        try:
-            datafile = self.get_DataFile_NEGF_atBias("EigenStates.dat", input_file_name, bias)
-        except FileNotFoundError:
+        if output_folder is None:
+            if input_file_name is None:
+                raise ValueError("Either input file name or output folder must be specified")
             try:
-                datafile = self.get_DataFile_NEGF_atBias('BandEdges.dat', input_file_name, bias)
+                datafile = self.get_DataFile_NEGF_atBias("EigenStates.dat", input_file_name, bias, False)
             except FileNotFoundError:
-                raise
+                try:
+                    datafile = self.get_DataFile_NEGF_atBias('BandEdges.dat', input_file_name, bias, False)
+                except FileNotFoundError:
+                    raise
+        else:
+            datafile = self.get_DataFile_NEGF_atBias("EigenStates.dat", output_folder, bias, True)
 
         position = datafile.coords['Position']
         try:
@@ -806,7 +821,7 @@ class NEGFShortcuts(CommonShortcuts):
         return fig
     
 
-    def get_2Ddata_atBias(self, input_file_name, bias, data='carrier'):
+    def get_2Ddata_atBias(self, bias, data='carrier', input_file_name=None, output_folder=None):
         """
         INPUT: 
             data
@@ -844,7 +859,10 @@ class NEGFShortcuts(CommonShortcuts):
         datafile = None
         for file in files:
             try:
-                datafile = self.get_DataFile_NEGF_atBias(file, input_file_name, bias)
+                if output_folder is None:
+                    datafile = self.get_DataFile_NEGF_atBias(file, input_file_name, bias)
+                else:
+                    datafile = self.get_DataFile_NEGF_atBias(file, output_folder, bias, is_fullpath=True)
             except FileNotFoundError:
                 continue
             else:
@@ -859,18 +877,18 @@ class NEGFShortcuts(CommonShortcuts):
         return x, y, quantity, is_divergent
 
 
-    def draw_bandedges_on_2DPlot(self, ax, input_file_name, bias, labelsize, shadowBandgap):
+    def draw_bandedges_on_2DPlot(self, ax, bias, labelsize, shadowBandgap, input_file_name=None, output_folder=None):
         CB = None
         LH = None
         HH = None
 
-        position, CB = self.get_conduction_bandedge(input_file_name, bias)
+        position, CB = self.get_conduction_bandedge(bias, input_file_name=input_file_name, output_folder=output_folder)
         try:
-            position, LH = self.get_lightHole_bandedge(input_file_name, bias)
+            position, LH = self.get_lightHole_bandedge(bias, input_file_name=input_file_name, output_folder=output_folder)
         except:
             pass
         try:
-            position, HH = self.get_heavyHole_bandedge(input_file_name, bias)
+            position, HH = self.get_heavyHole_bandedge(bias, input_file_name=input_file_name, output_folder=output_folder)
         except:
             pass
 
@@ -1024,7 +1042,7 @@ class NEGFShortcuts(CommonShortcuts):
         lattice_temperature : float
             If not None, the energy kBT is indicated inside the dispersion plot.
         """
-        x, y, quantity, is_divergent = self.get_2Ddata_atBias(input_file_name, bias, 'LDOS')
+        x, y, quantity, is_divergent = self.get_2Ddata_atBias(bias, 'LDOS', input_file_name=input_file_name)
         if dark_mode:
             colormap = self.default_colors.colormap['linear_dark_bg']
         else:
@@ -1040,8 +1058,8 @@ class NEGFShortcuts(CommonShortcuts):
             fig, (ax1, ax2) = plt.subplots(1, 2, sharey=True, gridspec_kw={'width_ratios': [1, 3]})
             plt.subplots_adjust(wspace=0)
 
-            NEGFShortcuts.__draw_2D_color_plot(fig, ax2, x.value, y.value, quantity.value, is_divergent, colormap, title, unit, bias, labelsize, ticksize, zmin, zmax, showBias, False)
-            self.draw_bandedges_on_2DPlot(ax2, input_file_name, bias, labelsize, shadowBandgap)
+            NEGFShortcuts.draw_2D_color_plot(fig, ax2, x.value, y.value, quantity.value, is_divergent, colormap, title, unit, bias, labelsize, ticksize, zmin, zmax, showBias, False)
+            self.draw_bandedges_on_2DPlot(ax2, bias, labelsize, shadowBandgap, input_file_name=input_file_name)
             if showFermiLevel:
                 E_FermiElectron, E_FermiHole = self.draw_Fermi_levels_on_2DPlot(ax2, input_file_name, bias, labelsize, is_divergent, dark_mode)
                 if showDensityDeviation:
@@ -1051,8 +1069,8 @@ class NEGFShortcuts(CommonShortcuts):
             CommonShortcuts.draw_inplane_dispersion(ax1, kPoints, dispersions, states_toBePlotted, True, True, labelsize, title='Dispersion', lattice_temperature=lattice_temperature)  # dispersions[iState, ik]
         else:
             fig, ax = plt.subplots()
-            NEGFShortcuts.__draw_2D_color_plot(fig, ax, x.value, y.value, quantity.value, is_divergent, colormap, title, unit, bias, labelsize, ticksize, zmin, zmax, showBias, True)
-            self.draw_bandedges_on_2DPlot(ax, input_file_name, bias, labelsize, shadowBandgap)
+            NEGFShortcuts.draw_2D_color_plot(fig, ax, x.value, y.value, quantity.value, is_divergent, colormap, title, unit, bias, labelsize, ticksize, zmin, zmax, showBias, True)
+            self.draw_bandedges_on_2DPlot(ax, bias, labelsize, shadowBandgap, input_file_name=input_file_name)
             if showFermiLevel:
                 E_FermiElectron, E_FermiHole = self.draw_Fermi_levels_on_2DPlot(ax, input_file_name, bias, labelsize, is_divergent, dark_mode)
                 if showDensityDeviation:
@@ -1070,8 +1088,9 @@ class NEGFShortcuts(CommonShortcuts):
 
 
     def plot_carrier_density(self,
-            input_file_name,
             bias,
+            input_file_name=None,
+            output_folder=None,
             labelsize=CommonShortcuts.labelsize_default,
             ticksize=CommonShortcuts.ticksize_default,
             zmin=None,
@@ -1106,7 +1125,10 @@ class NEGFShortcuts(CommonShortcuts):
             data_name = 'carrier'
         else:
             data_name = 'electron'
-        x, y, quantity, is_divergent = self.get_2Ddata_atBias(input_file_name, bias, data_name)
+        if output_folder is None:
+            x, y, quantity, is_divergent = self.get_2Ddata_atBias(bias, data_name, input_file_name=input_file_name)
+        else:
+            x, y, quantity, is_divergent = self.get_2Ddata_atBias(bias, data_name, output_folder=output_folder)
         if is_divergent:
             if dark_mode:
                 colormap = self.default_colors.colormap['divergent_dark']
@@ -1134,8 +1156,8 @@ class NEGFShortcuts(CommonShortcuts):
             plt.subplots_adjust(wspace=0)
 
             # 2D color plot
-            NEGFShortcuts.__draw_2D_color_plot(fig, ax2, x.value, y.value, quantity.value, is_divergent, colormap, title, unit, bias, labelsize, ticksize, zmin, zmax, showBias, False)
-            self.draw_bandedges_on_2DPlot(ax2, input_file_name, bias, labelsize, shadowBandgap)
+            NEGFShortcuts.draw_2D_color_plot(fig, ax2, x.value, y.value, quantity.value, is_divergent, colormap, title, unit, bias, labelsize, ticksize, zmin, zmax, showBias, False)
+            self.draw_bandedges_on_2DPlot(ax2, bias, labelsize, shadowBandgap, input_file_name=input_file_name)
             if showFermiLevel:
                 E_FermiElectron, E_FermiHole = self.draw_Fermi_levels_on_2DPlot(ax2, input_file_name, bias, labelsize, is_divergent, dark_mode)
                 if showDensityDeviation:
@@ -1150,8 +1172,8 @@ class NEGFShortcuts(CommonShortcuts):
             fig, ax = plt.subplots()
 
             # 2D color plot
-            NEGFShortcuts.__draw_2D_color_plot(fig, ax, x.value, y.value, quantity.value, is_divergent, colormap, title, unit, bias, labelsize, ticksize, zmin, zmax, showBias, True)
-            self.draw_bandedges_on_2DPlot(ax, input_file_name, bias, labelsize, shadowBandgap)
+            NEGFShortcuts.draw_2D_color_plot(fig, ax, x.value, y.value, quantity.value, is_divergent, colormap, title, unit, bias, labelsize, ticksize, zmin, zmax, showBias, True)
+            self.draw_bandedges_on_2DPlot(ax, bias, labelsize, shadowBandgap, input_file_name=input_file_name)
             if showFermiLevel:
                 E_FermiElectron, E_FermiHole = self.draw_Fermi_levels_on_2DPlot(ax, input_file_name, bias, labelsize, is_divergent, dark_mode)
                 if showDensityDeviation:
@@ -1192,7 +1214,7 @@ class NEGFShortcuts(CommonShortcuts):
         texts : list of list of str
             Display first list on the left and the second on the right of the plot.
         """
-        x, y, quantity, is_divergent = self.get_2Ddata_atBias(input_file_name, bias, 'current')
+        x, y, quantity, is_divergent = self.get_2Ddata_atBias(bias, 'current', input_file_name=input_file_name)
         colormap = self.default_colors.colormap['linear_dark_bg']
 
         logging.info("Plotting current density...")
@@ -1201,8 +1223,8 @@ class NEGFShortcuts(CommonShortcuts):
         quantity.value *= 1  #1e-3
 
         fig, ax = plt.subplots()
-        self.draw_bandedges_on_2DPlot(ax, input_file_name, bias, labelsize, shadowBandgap) # needs to be before drawing the current density not to mask tunneling currents
-        NEGFShortcuts.__draw_2D_color_plot(fig, ax, x.value, y.value, quantity.value, is_divergent, colormap, label, unit, bias, labelsize, ticksize, zmin, zmax, showBias, True)
+        self.draw_bandedges_on_2DPlot(ax, bias, labelsize, shadowBandgap, input_file_name=input_file_name) # needs to be before drawing the current density not to mask tunneling currents
+        NEGFShortcuts.draw_2D_color_plot(fig, ax, x.value, y.value, quantity.value, is_divergent, colormap, label, unit, bias, labelsize, ticksize, zmin, zmax, showBias, True)
 
         if texts is not None:
                 CommonShortcuts.place_texts(ax, texts)
@@ -1219,7 +1241,7 @@ class NEGFShortcuts(CommonShortcuts):
 
 
     @staticmethod
-    def __draw_2D_color_plot(fig, ax, X, Y, Z, is_divergent, colormap, label, cbar_unit, bias, labelsize, ticksize, zmin, zmax, showBias, set_ylabel):
+    def draw_2D_color_plot(fig, ax, X, Y, Z, is_divergent, colormap, label, cbar_unit, bias, labelsize, ticksize, zmin, zmax, showBias, set_ylabel):
         from matplotlib import colors
         if is_divergent:
             pcolor = ax.pcolormesh(X, Y, Z.T, cmap=colormap, norm=colors.CenteredNorm(vcenter=0, halfrange=zmax))
@@ -1564,6 +1586,7 @@ class NEGFShortcuts(CommonShortcuts):
         INPUT:
             two strings among ['DOS', 'carrier', 'current', 'power']
 
+        TODO: integrate more recent script 'T2SL_animation.py' to this method
         """
         quantity_names = ['DOS', 'carrier', 'current', 'power']   # TODO: should be global variables in this file
         unit = r'$\mathrm{nm}^{-1} \mathrm{eV}^{-1}$'   # TODO: make a list of units for 2D data
@@ -1579,15 +1602,15 @@ class NEGFShortcuts(CommonShortcuts):
         array_of_biases = np.array(self.get_biases(input_file_name))
 
         # get 2D data at the largest bias
-        x_last, y_last, quantity_last, is_divergent = self.get_2Ddata_atBias(input_file_name, array_of_biases[-1], leftFig)
+        x_last, y_last, quantity_last, is_divergent = self.get_2Ddata_atBias(array_of_biases[-1], leftFig, input_file_name=input_file_name)
 
         # define a map from (xIndex, yIndex, biasIndex) to scalar value
         F = np.zeros((len(x_last.value), len(y_last.value), len(array_of_biases)))
 
         # store data to F
         for i, bias in enumerate(array_of_biases):
-            position, CB = self.get_conduction_bandedge(input_file_name, bias)
-            x, y, quantity, is_divergent = self.get_2Ddata_atBias(input_file_name, bias, leftFig)
+            position, CB = self.get_conduction_bandedge(bias, input_file_name=input_file_name)
+            x, y, quantity, is_divergent = self.get_2Ddata_atBias(bias, leftFig, input_file_name=input_file_name)
             F[:, :, i] = quantity.value
 
         fig, ax = plt.subplots()
