@@ -1,4 +1,5 @@
 pandas
 pandas[performance]
 pandas[excel]
+matplotlib>=3.9
 nextnanopy
