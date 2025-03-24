@@ -469,7 +469,7 @@ class NEGFShortcuts(CommonShortcuts):
                         except FileNotFoundError:
                             raise
         else:
-            datafile = self.get_DataFile_NEGF_atBias("EigenStates.dat", output_folder, bias, is_fullpath=True)
+            datafile = self.get_DataFile_NEGF_atBias("BandEdges.dat", output_folder, bias, is_fullpath=True)
 
         position = datafile.coords['Position']
         try:
@@ -504,7 +504,7 @@ class NEGFShortcuts(CommonShortcuts):
                 except FileNotFoundError:
                     raise
         else:
-            datafile = self.get_DataFile_NEGF_atBias("EigenStates.dat", output_folder, bias, True)
+            datafile = self.get_DataFile_NEGF_atBias("BandEdges.dat", output_folder, bias, True)
 
         position = datafile.coords['Position']
         try:
@@ -539,7 +539,7 @@ class NEGFShortcuts(CommonShortcuts):
                 except FileNotFoundError:
                     raise
         else:
-            datafile = self.get_DataFile_NEGF_atBias("EigenStates.dat", output_folder, bias, True)
+            datafile = self.get_DataFile_NEGF_atBias("BandEdges.dat", output_folder, bias, True)
 
         position = datafile.coords['Position']
         try:
