@@ -825,7 +825,7 @@ class NEGFShortcuts(CommonShortcuts):
         """
         INPUT: 
             data
-                one of the following strings: ['LDOS', 'carrier', 'current', 'current_with_dispersion']
+                one of the following strings: ['LDOS', 'carrier', 'carrier_inplane_resolved', 'current', 'current_with_dispersion']
 
         RETURN: nn.DataFile() attributes
             x = datafile.coords['x']
@@ -853,6 +853,12 @@ class NEGFShortcuts(CommonShortcuts):
             files = ['CurrentDensity_WithDispersion.vtr']
             variableKey = 'Current Density'
             is_divergent = False
+        elif data == 'carrier_inplane_resolved':
+            # files = ['CarrierDensity_InPlaneResolved.vtr']
+            # variableKey = 'Carrier Density'
+            files = ['ElectronHoleDensity_InPlaneResolved.vtr']
+            variableKey = 'Electron-hole density'
+            is_divergent = True
         else:
             raise KeyError(f'Unexpected data {data} requested!')
 
