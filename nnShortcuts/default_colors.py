@@ -64,7 +64,7 @@ class DefaultColors:
 
     def get_lines_on_colormap(self, dark_mode):
         """
-        Return default color depending whether 'dark_mode' is True or False.
+        Return default color depending whether dark mode output is desired.
         
         Returns
         -------
@@ -76,3 +76,27 @@ class DefaultColors:
             return self.lines_on_colormap['dark_bg']
         else:
             return self.lines_on_colormap['bright_bg']
+
+    def get_colormap(self, is_divergent, dark_mode):
+        """
+        Return default color depending whether the data is divergent, and whether dark mode output is desired.
+        
+        Returns
+        -------
+            str
+        """
+        if not isinstance(is_divergent, bool):
+            raise ValueError(f"'dark_mode' must be a bool, not {type(is_divergent)}")
+        if not isinstance(dark_mode, bool):
+            raise ValueError(f"'dark_mode' must be a bool, not {type(dark_mode)}")
+        
+        if is_divergent:
+            if dark_mode:
+                return self.colormap['divergent_dark']
+            else:
+                return self.colormap['divergent_bright']
+        else:
+            if dark_mode:
+                return self.colormap['linear_dark_bg']
+            else:
+                return self.colormap['linear_bright_bg']
