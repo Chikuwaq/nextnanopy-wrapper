@@ -825,7 +825,7 @@ class NEGFShortcuts(CommonShortcuts):
         """
         INPUT: 
             data
-                one of the following strings: ['LDOS', 'carrier', 'carrier_inplane_resolved', 'current', 'current_with_dispersion']
+                one of the following strings: ['LDOS_zone_center', 'LDOS', 'carrier', 'carrier_inplane_resolved', 'current', 'current_with_dispersion']
 
         RETURN: nn.DataFile() attributes
             x = datafile.coords['x']
@@ -833,7 +833,11 @@ class NEGFShortcuts(CommonShortcuts):
             z = datafile.variables[variableKey]
             is_divergent : True if the 2D data needs diverging colormap
         """
-        if data == 'LDOS' or data == 'DOS':
+        if data == 'LDOS_zone_center':
+            files = ['DensityOfStates_ZoneCenter.vtr']
+            variableKey = 'Local Density of States'
+            is_divergent = False
+        elif data == 'LDOS' or data == 'DOS':
             files = ['DensityOfStates_WithDispersion.vtr']
             variableKey = 'Local Density of States'
             is_divergent = False
