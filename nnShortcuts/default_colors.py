@@ -61,3 +61,18 @@ class DefaultColors:
         self.light_voltage = 'tab:red'
         self.current_under_illumination = 'tab:orange'
         self.responsivity = 'tab:purple'
+
+    def get_lines_on_colormap(self, dark_mode):
+        """
+        Return default color depending whether 'dark_mode' is True or False.
+        
+        Returns
+        -------
+            str
+        """
+        if not isinstance(dark_mode, bool):
+            raise ValueError(f"'dark_mode' must be a bool, not {type(dark_mode)}")
+        if dark_mode:
+            return self.lines_on_colormap['dark_bg']
+        else:
+            return self.lines_on_colormap['bright_bg']
