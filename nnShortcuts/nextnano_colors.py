@@ -117,3 +117,10 @@ class NextnanoColor:
     colors[N:2 * N, 2] = np.linspace(b_in_nnblue, b_in_black, N)
 
     cmap['linear'] = pltc.ListedColormap(colors)
+
+    @staticmethod
+    def get_nextnano_blue(dark_mode : bool):
+        if dark_mode:
+            return (NextnanoColor.r_in_nnblue_dark, NextnanoColor.g_in_nnblue_dark, NextnanoColor.b_in_nnblue_dark)
+        else:
+            return (NextnanoColor.r_in_nnblue, NextnanoColor.g_in_nnblue, NextnanoColor.b_in_nnblue)
