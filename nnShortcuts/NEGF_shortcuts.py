@@ -1068,7 +1068,7 @@ class NEGFShortcuts(CommonShortcuts):
             fig, (ax1, ax2) = plt.subplots(1, 2, sharey=True, gridspec_kw={'width_ratios': [1, 3]})
             plt.subplots_adjust(wspace=0)
 
-            NEGFShortcuts.draw_2D_color_plot(fig, ax2, x.value, y.value, quantity.value, is_divergent, colormap, title, unit, bias, labelsize, ticksize, None, None, zmin, zmax, showBias, xlabel=xlabel, set_ylabel=False)
+            NEGFShortcuts.draw_2D_color_plot(fig, ax2, x.value, y.value, quantity.value, is_divergent, colormap, title, unit, bias, labelsize, ticksize, None, None, zmin, zmax, showBias, xlabel=xlabel, ylabel=None)
             self.draw_bandedges_on_2DPlot(ax2, bias, shadowBandgap, input_file_name=input_file_name)
             if showFermiLevel:
                 E_FermiElectron, E_FermiHole = self.draw_Fermi_levels_on_2DPlot(ax2, input_file_name, bias, labelsize, is_divergent, dark_mode)
@@ -1079,7 +1079,7 @@ class NEGFShortcuts(CommonShortcuts):
             CommonShortcuts.draw_inplane_dispersion(ax1, kPoints, dispersions, states_toBePlotted, True, True, labelsize, title='Dispersion', lattice_temperature=lattice_temperature)  # dispersions[iState, ik]
         else:
             fig, ax = plt.subplots()
-            NEGFShortcuts.draw_2D_color_plot(fig, ax, x.value, y.value, quantity.value, is_divergent, colormap, title, unit, bias, labelsize, ticksize, None, None, zmin, zmax, showBias, xlabel=xlabel, set_ylabel=True)
+            NEGFShortcuts.draw_2D_color_plot(fig, ax, x.value, y.value, quantity.value, is_divergent, colormap, title, unit, bias, labelsize, ticksize, None, None, zmin, zmax, showBias, xlabel=xlabel)
             self.draw_bandedges_on_2DPlot(ax, bias, shadowBandgap, input_file_name=input_file_name)
             if showFermiLevel:
                 E_FermiElectron, E_FermiHole = self.draw_Fermi_levels_on_2DPlot(ax, input_file_name, bias, labelsize, is_divergent, dark_mode)
@@ -1167,7 +1167,7 @@ class NEGFShortcuts(CommonShortcuts):
             plt.subplots_adjust(wspace=0)
 
             # 2D color plot
-            NEGFShortcuts.draw_2D_color_plot(fig, ax2, x.value, y.value, quantity.value, is_divergent, colormap, title, unit, bias, labelsize, ticksize, None, None, zmin, zmax, showBias, xlabel=xlabel, set_ylabel=False)
+            NEGFShortcuts.draw_2D_color_plot(fig, ax2, x.value, y.value, quantity.value, is_divergent, colormap, title, unit, bias, labelsize, ticksize, None, None, zmin, zmax, showBias, xlabel=xlabel, ylabel=None)
             self.draw_bandedges_on_2DPlot(ax2, bias, shadowBandgap, input_file_name=input_file_name)
             if showFermiLevel:
                 E_FermiElectron, E_FermiHole = self.draw_Fermi_levels_on_2DPlot(ax2, input_file_name, bias, labelsize, is_divergent, dark_mode)
@@ -1183,7 +1183,7 @@ class NEGFShortcuts(CommonShortcuts):
             fig, ax = plt.subplots()
 
             # 2D color plot
-            NEGFShortcuts.draw_2D_color_plot(fig, ax, x.value, y.value, quantity.value, is_divergent, colormap, title, unit, bias, labelsize, ticksize, None, None, zmin, zmax, showBias, xlabel=xlabel, set_ylabel=True)
+            NEGFShortcuts.draw_2D_color_plot(fig, ax, x.value, y.value, quantity.value, is_divergent, colormap, title, unit, bias, labelsize, ticksize, None, None, zmin, zmax, showBias, xlabel=xlabel)
             self.draw_bandedges_on_2DPlot(ax, bias, shadowBandgap, input_file_name=input_file_name)
             if showFermiLevel:
                 E_FermiElectron, E_FermiHole = self.draw_Fermi_levels_on_2DPlot(ax, input_file_name, bias, labelsize, is_divergent, dark_mode)
@@ -1236,7 +1236,7 @@ class NEGFShortcuts(CommonShortcuts):
 
         fig, ax = plt.subplots()
         self.draw_bandedges_on_2DPlot(ax, bias, shadowBandgap, input_file_name=input_file_name) # needs to be before drawing the current density not to mask tunneling currents
-        NEGFShortcuts.draw_2D_color_plot(fig, ax, x.value, y.value, quantity.value, is_divergent, colormap, label, unit, bias, labelsize, ticksize, None, None, zmin, zmax, showBias, xlabel=xlabel, set_ylabel=True)
+        NEGFShortcuts.draw_2D_color_plot(fig, ax, x.value, y.value, quantity.value, is_divergent, colormap, label, unit, bias, labelsize, ticksize, None, None, zmin, zmax, showBias, xlabel=xlabel)
 
         if texts is not None:
                 CommonShortcuts.place_texts(ax, texts)
@@ -1253,12 +1253,14 @@ class NEGFShortcuts(CommonShortcuts):
 
 
     @staticmethod
-    def draw_2D_color_plot(fig, ax, X, Y, Z, is_divergent, colormap, label, cbar_unit, bias, labelsize, ticksize, ymin, ymax, zmin, zmax, showBias, xlabel=None, set_ylabel=True):
+    def draw_2D_color_plot(fig, ax, X, Y, Z, is_divergent, colormap, label, cbar_unit, bias, labelsize, ticksize, ymin, ymax, zmin, zmax, showBias, xlabel=None, ylabel="Energy [eV]", cbar_label=None):
         """
         ymin : float
             lower bound of y values. If None, it is automatically set to the minimum of the data 'Y'.
         ymax : float
             upper bound of y values. If None, it is automatically set to the maximum of the data 'Y'.
+        cbar_label : str, optional
+            If not None, this overwrites the colorbar label.
         """
         from matplotlib import colors
         if is_divergent:
@@ -1267,10 +1269,11 @@ class NEGFShortcuts(CommonShortcuts):
             pcolor = ax.pcolormesh(X, Y, Z.T, vmin=zmin, vmax=zmax, cmap=colormap)
 
         cbar = fig.colorbar(pcolor)
-        if showBias:
-            cbar_label = label + ' [' + cbar_unit + ']'
-        else:
-            cbar_label = '[' + cbar_unit + ']'
+        if cbar_label is None:
+            if showBias:
+                cbar_label = label + ' [' + cbar_unit + ']'
+            else:
+                cbar_label = '[' + cbar_unit + ']'
 
         if len(cbar_label) > 35: 
             cbar.set_label(cbar_label, fontsize=labelsize*0.8)
@@ -1282,8 +1285,8 @@ class NEGFShortcuts(CommonShortcuts):
             raise TypeError(f"'xlabel' must be str, not {type(xlabel)}")
         if xlabel is not None:
             ax.set_xlabel(xlabel, fontsize=labelsize)
-        if set_ylabel:
-            ax.set_ylabel("Energy [eV]", fontsize=labelsize, labelpad=10)
+        if ylabel is not None:
+            ax.set_ylabel(ylabel, fontsize=labelsize, labelpad=10)
 
         ax.set_xlim(np.amin(X), np.amax(X))
         if ymin is None:
