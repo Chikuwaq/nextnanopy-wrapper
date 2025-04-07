@@ -2648,7 +2648,7 @@ class NEGFShortcuts(CommonShortcuts):
         SciPy package installation
 
         """
-        from scipy.integrate import simps
+        from scipy.integrate import simpson
 
         iLowestElectron = self.find_lowest_conduction_state_atK0(output_folder, threshold=0.5)
         iHighestHole    = self.find_highest_valence_state_atK0(output_folder, threshold=0.5)
@@ -2674,10 +2674,10 @@ class NEGFShortcuts(CommonShortcuts):
         for mu in range(len(self.kp8_basis)):
             for nu in range(len(self.kp8_basis)):
                 prod = np.multiply(np.conjugate(amplitude_h[nu,:]), amplitude_e[mu,:])   # multiply arguments element-wise (NOT inner product of spinor vector!)
-                overlap += simps(prod, x)
+                overlap += simpson(prod, x)
         # for mu in range(len(self.kp8_basis)):
         #     prod = np.multiply(np.conjugate(amplitude_e[mu,:]), amplitude_e[mu,:])   # inner product of spinor vector
-        #     overlap += simps(prod, x)
+        #     overlap += simpson(prod, x)
         return overlap
 
 

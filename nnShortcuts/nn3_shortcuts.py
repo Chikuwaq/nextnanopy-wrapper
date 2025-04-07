@@ -315,7 +315,7 @@ class nn3Shortcuts(CommonShortcuts):
         SciPy package installation
 
         """
-        from scipy.integrate import simps
+        from scipy.integrate import simpson
 
         # load amplitude data
         # TODO: nn3 has two output files '_el' and '_hl' also in 8kp calculation
@@ -396,14 +396,14 @@ class nn3Shortcuts(CommonShortcuts):
             for mu in range(len(self.kp8_basis)):
                 for nu in range(len(self.kp8_basis)):
                     prod = np.multiply(np.conjugate(amplitude_h[nu,:]), amplitude_e[mu,:])   # multiply arguments element-wise
-                    overlap += simps(prod, x)
+                    overlap += simpson(prod, x)
         elif hole_state_is_multiband:
             for nu in range(len(self.kp6_basis)):
                 prod = np.multiply(np.conjugate(amplitude_h[nu,:]), amplitude_e[:])   # multiply arguments element-wise
-                overlap += simps(prod, x)
+                overlap += simpson(prod, x)
         else:
             prod = np.multiply(np.conjugate(amplitude_h[:]), amplitude_e[:])   # multiply arguments element-wise
-            overlap += simps(prod, x)
+            overlap += simpson(prod, x)
 
         return overlap
 
