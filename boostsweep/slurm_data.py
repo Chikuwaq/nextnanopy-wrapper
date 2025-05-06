@@ -190,6 +190,7 @@ class SlurmData:
 				f.write("#SBATCH --mail-type=end\n")
 				f.write(f"#SBATCH --mail-user={self.email}\n")
 			f.write("\n")
+			f.write(r"echo 'Job started at: ' `date`")
 
 			for inputpath in inputpaths:
 				filename, extension = CommonShortcuts.separate_extension(inputpath)
@@ -207,6 +208,8 @@ class SlurmData:
 					f.write(f"{exe} -o \"{output_subfolder_path}\" -d \"{database}\" --check -license \"{license}\" -t {self.num_CPU} -inputfile \"{inputpath}\"\n")
 
 				f.write(f"rm -f {inputpath}\n")  # delete temporary input file after simulation has ended
+
+			f.write(r"echo 'Job ended at: ' `date`")
 
 
 	def delete_sbatch_scripts(self):
