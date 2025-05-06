@@ -1023,8 +1023,9 @@ class NEGFShortcuts(CommonShortcuts):
 
 
     def plot_DOS(self,
-            input_file_name, 
             bias, 
+            input_file_name=None,
+            output_folder=None, 
             labelsize=CommonShortcuts.labelsize_default,
             ticksize=CommonShortcuts.ticksize_default,
             zmin=None,
@@ -1051,7 +1052,10 @@ class NEGFShortcuts(CommonShortcuts):
         lattice_temperature : float
             If not None, the energy kBT is indicated inside the dispersion plot.
         """
-        x, y, quantity, is_divergent = self.get_2Ddata_atBias(bias, 'LDOS', input_file_name=input_file_name)
+        if output_folder is None:
+            x, y, quantity, is_divergent = self.get_2Ddata_atBias(bias, 'LDOS', input_file_name=input_file_name)
+        else:
+            x, y, quantity, is_divergent = self.get_2Ddata_atBias(bias, 'LDOS', output_folder=output_folder)
         if dark_mode:
             colormap = self.default_colors.colormap['linear_dark_bg']
         else:
@@ -1204,8 +1208,9 @@ class NEGFShortcuts(CommonShortcuts):
 
 
     def plot_current_density(self,
-            input_file_name, 
             bias, 
+            input_file_name=None,
+            output_folder=None, 
             labelsize=CommonShortcuts.labelsize_default, 
             ticksize=CommonShortcuts.ticksize_default,
             zmin=None,
@@ -1225,7 +1230,11 @@ class NEGFShortcuts(CommonShortcuts):
         texts : list of list of str
             Display first list on the left and the second on the right of the plot.
         """
-        x, y, quantity, is_divergent = self.get_2Ddata_atBias(bias, 'current', input_file_name=input_file_name)
+        if output_folder is None:
+            x, y, quantity, is_divergent = self.get_2Ddata_atBias(bias, 'current', input_file_name=input_file_name)
+        else:
+            x, y, quantity, is_divergent = self.get_2Ddata_atBias(bias, 'current', output_folder=output_folder)
+            
         colormap = self.default_colors.colormap['linear_dark_bg']
 
         logging.info("Plotting current density...")
