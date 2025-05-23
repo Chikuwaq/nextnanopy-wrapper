@@ -375,14 +375,12 @@ class SweepManager:
         """
         input_file_fullpaths = ['' for _ in range(self.get_num_simulations())]
 
-
-        filename_path, filename_extension = os.path.splitext(master_input_file.fullpath)
-        folder = os.path.split(filename_path)[0]
-
         var_names = self.sweep_space.get_variable_names()
         if var_names is None:
-            input_file_fullpaths[0] = os.path.join(folder, 'single_simulation' + filename_extension)
+            input_file_fullpaths[0] = master_input_file.fullpath
         else:
+            filename_path, filename_extension = os.path.splitext(master_input_file.fullpath)
+            folder = os.path.split(filename_path)[0]
             for i, combination in enumerate(self.outputs['sweep_coords']):
                 # filename_end = '__'  # code following nextnanopy > inputs.py > Sweep.create_input_files()
                 filename_end = ''
