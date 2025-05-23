@@ -169,7 +169,7 @@ class SlurmData:
 		
 		# initialize log file
 		first_filename, extension = CommonShortcuts.separate_extension(inputpaths[0])
-		logfile = os.path.join(output_folder_path, f"{sbatch_file_count}_{first_filename}.log")  # differentiate log file names to avoid conflicts when multiple SweepHelpers are submitting jobs
+		logfile = os.path.join(output_folder_path, f"%j_{sbatch_file_count}_{first_filename}.log")  # differentiate log file names to avoid conflicts when multiple SweepHelpers are submitting jobs
 		if os.path.isfile(logfile):
 			os.remove(logfile)
 		
@@ -202,7 +202,7 @@ class SlurmData:
 
 
 				if product_name == 'nextnano.NEGF++':
-					f.write(f"{exe} -i \"{inputpath}\" -o \"{output_subfolder_path}\" -m \"{database}\" -c -l \"{license}\" -t {self.num_CPU} -v splitfile\n")
+					f.write(f"{exe} -i \"{inputpath}\" -o \"{output_subfolder_path}\" -m \"{database}\" -c -l \"{license}\" -t {self.num_CPU} \n")  # add '-v splitfile' if needed
 				elif product_name == 'nextnano++':
 					f.write(f"{exe} -o \"{output_subfolder_path}\" -d \"{database}\" -l \"{license}\" -t {self.num_CPU} \"{inputpath}\"\n")
 				elif product_name == 'nextnano3':
