@@ -191,6 +191,7 @@ class SlurmData:
 				f.write(f"#SBATCH --mail-user={self.email}\n")
 			f.write("\n")
 			f.write(r"echo 'Job started at: ' `date`")
+			f.write("\n")
 
 			for inputpath in inputpaths:
 				filename, extension = CommonShortcuts.separate_extension(inputpath)
