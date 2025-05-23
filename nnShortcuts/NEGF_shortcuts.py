@@ -74,6 +74,10 @@ class NEGFShortcuts(CommonShortcuts):
             else:
                 raise RuntimeError(f"Desired bias {bias} wasn't found for:\n {output_folder}")
         return current_density_at_bias
+    
+    def extract_threshold_voltage(self, folder):
+        df = self.get_DataFile_in_folder("Threshold", folder, exclude_keywords=None, exclude_folders=None)
+        return df.coords['Voltage threshold'].value[0]  # nextnanopy fails to distinguish Coordinates from Values, or NEGF output doesn't conform to the expected format
 
 
     def plot_IV(self, 
