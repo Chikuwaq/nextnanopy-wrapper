@@ -32,6 +32,8 @@ class SweepSpace:
 					raise TypeError("First tuple of `sweep_ranges` must be str specifying variable names!")
 				dictionary[var] = [sweep_ranges[1][i_variable]]  # tentative: store only the first value
 			assert(len(dictionary.keys()) > 0)
+		elif sweep_ranges is None:
+			pass
 		else:
 			raise TypeError(f"__init__(): argument 'sweep_ranges' must be a either dict or list, but is {type(sweep_ranges)}")
 
@@ -49,7 +51,11 @@ class SweepSpace:
 		return self.data.items()
 
 	def get_variable_names(self):
-		return self.data.keys()
+		if len(self.data) == 0:
+			# empty SweepSpace means single simulation
+			return None
+		else:
+			return self.data.keys()
 
 	def get_values(self):
 		return self.data.values()

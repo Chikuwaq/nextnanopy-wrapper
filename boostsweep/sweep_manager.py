@@ -126,6 +126,8 @@ class SweepManager:
                                          (value1-2, value2-2, ...),
                                          ...
                                         ]
+                       OR
+                       None          - Run the master input file only.
             specifies the values of each sweep variable.
 
         master_input_file : nextnanopy.InputFile object
@@ -176,7 +178,11 @@ class SweepManager:
         self.round_decimal = round_decimal  # used by execute_sweep()
 
         # store its related data
-        self.output_folder_path['original']  = self.shortcuts.compose_sweep_output_folder_path(master_input_file.fullpath, *self.sweep_space.get_variable_names())
+        var_names = self.sweep_space.get_variable_names()
+        if var_names is None:
+            self.output_folder_path['original'] = self.shortcuts.compose_sweep_output_folder_path(master_input_file.fullpath)
+        else:
+            self.output_folder_path['original']  = self.shortcuts.compose_sweep_output_folder_path(master_input_file.fullpath, *var_names)
 
         # store master input file object with the original file name
         master_input_file.config.set(self.shortcuts.product_name, 'outputdirectory', self.output_folder_path['original'])
@@ -211,16 +217,22 @@ class SweepManager:
             self.inputs['sweep_coords'] = list(itertools.product(*self.sweep_space.get_values()))
         elif isinstance(sweep_ranges, list):
             self.inputs['sweep_coords'] = sweep_ranges[1:]
+        elif sweep_ranges is None:
+            self.inputs['sweep_coords'] = None
 
         self.outputs['sweep_coords'] = self.inputs['sweep_coords']
         self.inputs['fullpaths_original'] = self.__create_input_file_fullpaths(self.master_input_file['original'])
         self.outputs['output_subfolder_original'] = SweepManager.__compose_subfolder_paths(0, self.inputs['fullpaths_original'], self.output_folder_path['original'])
 
         # prepare files and folders with abbreviated names if needed
-        outfolder = self.shortcuts.compose_sweep_output_folder_path(self.master_input_file['original'].fullpath, *self.sweep_space.get_variable_names())
-        initSweepCoords = {key: arr[0] for key, arr in self.sweep_space.get_items()}
-        subfolder = self.shortcuts.compose_sweep_output_subfolder_name(self.master_input_file['original'].fullpath, initSweepCoords)
-        outpath = os.path.join(outfolder, subfolder)
+        if var_names is None:
+            outfolder = self.shortcuts.compose_sweep_output_folder_path(self.master_input_file['original'].fullpath)
+            outpath = outfolder
+        else:
+            outfolder = self.shortcuts.compose_sweep_output_folder_path(self.master_input_file['original'].fullpath, *self.sweep_space.get_variable_names())
+            initSweepCoords = {key: arr[0] for key, arr in self.sweep_space.get_items()}
+            subfolder = self.shortcuts.compose_sweep_output_subfolder_name(self.master_input_file['original'].fullpath, initSweepCoords)
+            outpath = os.path.join(outfolder, subfolder)
         max_path_length = 260
         if platform.system() == 'Linux':
             max_path_length = 4095
@@ -243,7 +255,10 @@ class SweepManager:
             temp_path = os.path.join(dir, filename)
             master_input_file.save(temp_path, overwrite=True, automkdir=True)
 
-        self.output_folder_path['short']  = self.shortcuts.compose_sweep_output_folder_path(master_input_file.fullpath, *self.sweep_space.get_variable_names())
+        if var_names is None:
+            self.output_folder_path['short']  = self.shortcuts.compose_sweep_output_folder_path(master_input_file.fullpath)
+        else:
+            self.output_folder_path['short']  = self.shortcuts.compose_sweep_output_folder_path(master_input_file.fullpath, *self.sweep_space.get_variable_names())
 
         master_input_file.config.set(self.shortcuts.product_name, 'outputdirectory', self.output_folder_path['short'])
         self.master_input_file['short'] = master_input_file
@@ -253,10 +268,11 @@ class SweepManager:
 
 
         # for convenience in postprocessing/visualizing CSV/Excel output
-        def extract_coord(tupl, index=0):
-            return tupl[index]
-        for i, coord_key in enumerate(self.sweep_space.get_variable_names()):
-            self.outputs[coord_key] = self.outputs['sweep_coords'].apply(extract_coord, index=i)
+        if var_names is not None:
+            def extract_coord(tupl, index=0):
+                return tupl[index]
+            for i, coord_key in enumerate(var_names):
+                self.outputs[coord_key] = self.outputs['sweep_coords'].apply(extract_coord, index=i)
 
         logging.info(f"Initialized output data table:\n{self.outputs}")
         assert len(self.outputs) == self.inputs['fullpaths_short'].size
@@ -362,14 +378,19 @@ class SweepManager:
 
         filename_path, filename_extension = os.path.splitext(master_input_file.fullpath)
         folder = os.path.split(filename_path)[0]
-        for i, combination in enumerate(self.outputs['sweep_coords']):
-            # filename_end = '__'  # code following nextnanopy > inputs.py > Sweep.create_input_files()
-            filename_end = ''
-            for var_name, var_value in zip(self.sweep_space.get_variable_names(), combination):
-                var_value_string = SweepManager.__format_number(var_value, self.round_decimal)
-                filename_end += '{}_{}_'.format(var_name, var_value_string)
-            # input_file_fullpaths[i] = filename_path + filename_end + filename_extension  # code following nextnanopy > inputs.py > Sweep.create_input_files()
-            input_file_fullpaths[i] = os.path.join(folder, filename_end + filename_extension)
+
+        var_names = self.sweep_space.get_variable_names()
+        if var_names is None:
+            input_file_fullpaths[0] = os.path.join(folder, 'single_simulation' + filename_extension)
+        else:
+            for i, combination in enumerate(self.outputs['sweep_coords']):
+                # filename_end = '__'  # code following nextnanopy > inputs.py > Sweep.create_input_files()
+                filename_end = ''
+                for var_name, var_value in zip(var_names, combination):
+                    var_value_string = SweepManager.__format_number(var_value, self.round_decimal)
+                    filename_end += '{}_{}_'.format(var_name, var_value_string)
+                # input_file_fullpaths[i] = filename_path + filename_end + filename_extension  # code following nextnanopy > inputs.py > Sweep.create_input_files()
+                input_file_fullpaths[i] = os.path.join(folder, filename_end + filename_extension)
         return pd.Series(input_file_fullpaths)
 
 
@@ -425,7 +446,11 @@ class SweepManager:
 
 
     def get_num_simulations(self):
-        return self.inputs['sweep_coords'].size
+        if self.inputs['sweep_coords'].size == 0:
+            # empty SweepSpace means single simulation
+            return 1
+        else:
+            return self.inputs['sweep_coords'].size
 
 
     ### auxillary postprocessing methods ####################################
@@ -664,10 +689,13 @@ class SweepManager:
         # Shallow copy should be enough because the only change is the input variables.
         self.inputs['obj'] = [copy.copy(self.master_input_file['short']) for _ in range(n)]
 
-        for i, row in self.inputs.iterrows():
-            for var_name, var_value in zip(self.sweep_space.get_variable_names(), row['sweep_coords']):
-                row['obj'].set_variable(var_name, var_value)
-            row['obj'].save(row['fullpaths_short'], overwrite=True)
+        var_names = self.sweep_space.get_variable_names()
+        if var_names is not None:
+            # empty SweepSpace means single simulation
+            for i, row in self.inputs.iterrows():
+                for var_name, var_value in zip(var_names, row['sweep_coords']):
+                    row['obj'].set_variable(var_name, var_value)
+                row['obj'].save(row['fullpaths_short'], overwrite=True)
 
         # i_input = 0
         # for input_path, coords in zip(self.inputs['fullpaths_short'], self.inputs['sweep_coords']):

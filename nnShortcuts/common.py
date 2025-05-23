@@ -694,10 +694,12 @@ class CommonShortcuts:
 
         """
         filename_no_extension = CommonShortcuts.separate_extension(filename)[0]
-        output_folder_path = os.path.join(nn.config.get(self.product_name, 'outputdirectory'), filename_no_extension + '_sweep')
+        output_root_dir = nn.config.get(self.product_name, 'outputdirectory')
 
-        if len(args) == 0: raise ValueError("Sweep variable string is missing in the argument!")
+        if len(args) == 0: 
+            return output_root_dir
 
+        output_folder_path = os.path.join(output_root_dir, filename_no_extension + '_sweep')
         for sweepVar in args:
             if not isinstance(sweepVar, str):
                 raise TypeError(f'Argument {sweepVar} must be a string, but is {type(sweepVar)}')
