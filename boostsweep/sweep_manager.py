@@ -228,7 +228,7 @@ class SweepManager:
             max_path_length = 1024
         if (len(outpath) + 160 <= max_path_length) or not abbreviate_if_too_long:
             self.isFilenameAbbreviated = False
-        elif self.__output_subfolders_exist_with_originalname():
+        elif self.output_subfolders_exist_with_originalname():
             # simulation outputs of this sweep exist already. The user might want to access those outputs without executing sweep simulation.
             self.isFilenameAbbreviated = False
         else:
@@ -411,7 +411,7 @@ class SweepManager:
         return all(os.path.isdir(path) for path in self.__get_output_subfolder_paths())
 
 
-    def __output_subfolders_exist_with_originalname(self):
+    def output_subfolders_exist_with_originalname(self):
         return all(os.path.isdir(path) for path in self.outputs['output_subfolder_original'])
 
 
