@@ -91,11 +91,10 @@ class SlurmData:
 		if not isinstance(database, str): TypeError(f"Database path must be a string, not {type(database)}")
 		if not isinstance(license, str): TypeError(f"License path must be a string, not {type(license)}")
 
-		# refresh sbatch_scripts_folder
 		sbatch_scripts_folder = "./sbatch_temp"
-		if os.path.isdir(sbatch_scripts_folder):
-			shutil.rmtree(sbatch_scripts_folder)
-		os.mkdir(sbatch_scripts_folder)
+		# DO NOT delete the existing sbatch scripts! Slurm may be pending the job until a node becomes available
+		if not os.path.isdir(sbatch_scripts_folder):
+			os.mkdir(sbatch_scripts_folder)
 
 		# refresh class variables
 		self.metascript_paths = list()
