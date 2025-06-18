@@ -6,7 +6,7 @@ import subprocess
 from nnShortcuts.common import CommonShortcuts
 
 class SlurmData:
-	max_num_jobs_per_user = 5  # may be larger (check cluster's policy - also affected by numCPU requested and number of physical cores?)
+	max_num_jobs_per_user = 8  # may be larger (check cluster's policy - also affected by numCPU requested and number of physical cores?)
 	jobname = 'nnSweep'  # used to inquire job status by the commands `sacct` and `squeue`
 	sbatch_file_name = "run_"
 	metascript_name = "submit_jobs.sh"
@@ -103,11 +103,6 @@ class SlurmData:
 
 		logging.info("Writing sbatch scripts...")
 
-		def ceildiv(a, b):
-			return -(a // -b)
-		
-		nSimulations_per_sbatch_file = ceildiv(len(input_file_fullpaths), self.max_num_jobs_per_user)
-		input_file_fullpaths_for_one_sbatch = list()
 		sbatch_file_count = 0
 
 		# initialize metascript (list of `sbatch` commands) to be run by the user
@@ -116,24 +111,25 @@ class SlurmData:
 		with open(metascript_path, 'w') as f_meta:
 			f_meta.write("#!/bin/bash\n\n")
 
+		# prepare sbatch script paths
+		num_sbatch_scripts = min(self.max_num_jobs_per_user, len(input_file_fullpaths))
 		import uuid
 		id = str(uuid.uuid4())
-		while len(input_file_fullpaths) > 0:
-			input_file_fullpaths_for_one_sbatch.append(input_file_fullpaths.pop(0))
-			
-			if len(input_file_fullpaths_for_one_sbatch) == nSimulations_per_sbatch_file:
-				sbatch_file_count += 1
-				scriptpath = os.path.join(sbatch_scripts_folder, f"{self.sbatch_file_name}{sbatch_file_count}_{id[:3]}.sh")  # differentiate shell script file names to avoid overwriting when multiple SweepHelpers are submitting jobs
-				self.sbatch_script_paths.append(scriptpath)
+		for sbatch_file_count in range(1, num_sbatch_scripts + 1):
+			scriptpath = os.path.join(sbatch_scripts_folder, f"{self.sbatch_file_name}{sbatch_file_count}_{id[:3]}.sh")  # differentiate shell script file names to avoid overwriting when multiple SweepHelpers are submitting jobs
+			self.sbatch_script_paths.append(scriptpath)
 
-				is_last_sbatch_file = (len(input_file_fullpaths) < nSimulations_per_sbatch_file)
+		input_file_fullpaths_for_each_sbatch = [list() for _ in range(num_sbatch_scripts)]
+		for i_input, input_file_fullpath in enumerate(input_file_fullpaths):
+			input_file_fullpaths_for_each_sbatch[i_input % num_sbatch_scripts].append(input_file_fullpath)
 
-				logging.info((f"Writing sbatch file {scriptpath}..."))
-				self.write_sbatch_script(sbatch_file_count, scriptpath, input_file_fullpaths_for_one_sbatch, exe, output_folder, database, license, product_name, is_last_sbatch_file)
-				input_file_fullpaths_for_one_sbatch = list()  # delete all elements
-
-				with open(metascript_path, 'a') as f_meta:
-					f_meta.write(f"sbatch {scriptpath}\n")
+		for scriptpath, input_file_fullpaths_for_this_sbatch in zip(self.sbatch_script_paths, input_file_fullpaths_for_each_sbatch):
+			assert isinstance(input_file_fullpaths_for_this_sbatch, list)
+			is_last_sbatch_file = (scriptpath == self.sbatch_script_paths[-1])
+			logging.info((f"Writing sbatch file {scriptpath}..."))
+			self.write_sbatch_script(sbatch_file_count, scriptpath, input_file_fullpaths_for_this_sbatch, exe, output_folder, database, license, product_name, is_last_sbatch_file)
+			with open(metascript_path, 'a') as f_meta:
+				f_meta.write(f"sbatch {scriptpath}\n")
 
 		assert sbatch_file_count <= self.max_num_jobs_per_user
 		
