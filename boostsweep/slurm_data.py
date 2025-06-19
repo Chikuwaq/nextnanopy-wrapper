@@ -112,10 +112,14 @@ class SlurmData:
 
 		# prepare sbatch script paths
 		num_sbatch_scripts = min(self.max_num_jobs_per_user, len(input_file_fullpaths))
-		import uuid
-		id = str(uuid.uuid4())
+		
+		# unique ID to differentiate sbatch scripts because many SweepManager objects might generate scripts simultaneously.
+		# UUID has 16^n patters, where n is the number of digits of the ID.
+		# Here we have (26 + 26 + 10)^n patterns, making the file names shorter
+		# NOTE: Assuming that upper and lower cases are distinguished in the filesystem (will not work on Windows).
+		id = SlurmData.__random_lowercase_letter() + SlurmData.__random_lowercase_letter() + SlurmData.__random_lowercase_letter() + SlurmData.__random_lowercase_letter()
 		for sbatch_file_count in range(1, num_sbatch_scripts + 1):
-			scriptpath = os.path.join(sbatch_scripts_folder, f"{self.sbatch_file_name}{sbatch_file_count}_{id[:3]}.sh")  # differentiate shell script file names to avoid overwriting when multiple SweepHelpers are submitting jobs
+			scriptpath = os.path.join(sbatch_scripts_folder, f"{self.sbatch_file_name}{sbatch_file_count}_{id}.sh")  # differentiate shell script file names to avoid overwriting when multiple SweepHelpers are submitting jobs
 			self.sbatch_script_paths.append(scriptpath)
 
 		input_file_fullpaths_for_each_sbatch = [list() for _ in range(num_sbatch_scripts)]
@@ -140,6 +144,12 @@ class SlurmData:
 		# 		f_cache.write(f"{sbatch}\n")
 		# 	for metascript in self.metascript_paths:
 		# 		f_cache.write(f"{metascript}\n")
+
+
+	@staticmethod
+	def __random_lowercase_letter():
+		import random, string
+		return random.choice(string.ascii_letters + '0123456789')
 
 
 	def write_sbatch_script(self, sbatch_file_count, scriptpath, inputpaths, exe, output_folder_path, database, license, product_name, is_last_sbatch_file):
