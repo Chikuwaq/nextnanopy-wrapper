@@ -175,7 +175,7 @@ class SweepManager:
                 if model not in self.shortcuts.model_names: raise KeyError(f"__init__(): Quantum model '{model}' is not supported")
                 if len(plot_range) != 2: raise ValueError("__init__(): argument 'eigenstate_range' must be of the form 'quantum model': [min, max]")
 
-        self.round_decimal = round_decimal  # used by execute_sweep()
+        self.round_decimal = round_decimal  # used by __create_input_file_fullpaths()
 
         # store its related data
         var_names = self.sweep_space.get_variable_names()
@@ -339,12 +339,12 @@ class SweepManager:
             number = float(number)
 
         is_integer_type = isinstance(number, (int, np.integer))
-        if is_integer_type or isinstance(number, (float, np.floating)):
-            if is_integer_type or number.is_integer():  # e.g. 1000.0
-                n_decimals = 0
-            else:
-                n_digits = SweepManager.__count_nonzero_digits(number)
-                n_decimals = max(round_decimal, n_digits - 1)
+        is_float_type = isinstance(number, (float, np.floating))
+
+        if is_integer_type or is_float_type:
+            n_digits = SweepManager.__count_nonzero_digits(number)
+            n_decimals = min(round_decimal, n_digits - 1)
+
             scientific = f"{number:.{n_decimals}e}"
             use_scientific = (len(scientific) < len(str(number)))  # do not use scientific format if the string would get longer
 
