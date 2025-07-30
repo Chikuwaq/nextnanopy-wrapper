@@ -80,8 +80,8 @@ class NEGFShortcuts(CommonShortcuts):
         return df.coords['Voltage threshold'].value[0]  # nextnanopy fails to distinguish Coordinates from Values, or NEGF output doesn't conform to the expected format
 
 
-    def plot_IV(self, 
-            input_file_names, 
+    def plot_IV(self,
+            input_file_names,
             labels,
             title=None,
             Imin=None, Imax=None,
@@ -108,7 +108,7 @@ class NEGFShortcuts(CommonShortcuts):
             minimum and maximum voltage values for the plot range
         """
         # validate arguments
-        if len(input_file_names) != len(labels): 
+        if len(input_file_names) != len(labels):
             raise NextnanopyScriptError(f"Number of input files ({len(input_file_names)}) do not match that of plot labels ({len(labels)})")
 
         fig, ax = plt.subplots()
@@ -370,7 +370,7 @@ class NEGFShortcuts(CommonShortcuts):
             quantum_model = 'kp8'  # currently, NEGF has amplitude output on in kp8
 
             if quantum_model == 'kp8' or quantum_model == 'kp6':
-                if '_k0' not in filename: 
+                if '_k0' not in filename:
                     continue   # exclude non k|| = 0 amplitudes
             amplitude_dict[quantum_model].append(df)
 
@@ -621,7 +621,7 @@ class NEGFShortcuts(CommonShortcuts):
         """
         datafiles = self.get_DataFiles_NEGFInit_in_folder('EigenStates.dat', filename_no_extension, search_WannierStark_folder=True)
         for df in datafiles:
-            if NEGFShortcuts.wannierStarkFolder in df.fullpath: 
+            if NEGFShortcuts.wannierStarkFolder in df.fullpath:
                 datafile = df
 
         position = datafile.coords['Position']
@@ -661,10 +661,10 @@ class NEGFShortcuts(CommonShortcuts):
 
 
     def plot_WannierStarkStates_init(self,
-            filename_no_extension, 
-            start_position = -10000., 
-            end_position   = 10000., 
-            labelsize      = CommonShortcuts.labelsize_default, 
+            filename_no_extension,
+            start_position = -10000.,
+            end_position   = 10000.,
+            labelsize      = CommonShortcuts.labelsize_default,
             ticksize       = CommonShortcuts.ticksize_default
             ):
         """
@@ -727,11 +727,11 @@ class NEGFShortcuts(CommonShortcuts):
 
 
     def plot_gain(self,
-            input_file_name, 
+            input_file_name,
             bias,
-            start_position = -10000., 
-            end_position   = 10000., 
-            labelsize      = CommonShortcuts.labelsize_default, 
+            start_position = -10000.,
+            end_position   = 10000.,
+            labelsize      = CommonShortcuts.labelsize_default,
             ticksize       = CommonShortcuts.ticksize_default,
             title          = 'Gain spectrum',
             flipSign       = False
@@ -775,11 +775,11 @@ class NEGFShortcuts(CommonShortcuts):
     
 
     def plot_SCGain(self,
-            input_file_name, 
+            input_file_name,
             bias,
-            start_position = -10000., 
-            end_position   = 10000., 
-            labelsize      = CommonShortcuts.labelsize_default, 
+            start_position = -10000.,
+            end_position   = 10000.,
+            labelsize      = CommonShortcuts.labelsize_default,
             ticksize       = CommonShortcuts.ticksize_default,
             title          = 'Semiclassical gain spectrum',
             flip_sign       = False
@@ -827,7 +827,7 @@ class NEGFShortcuts(CommonShortcuts):
 
     def get_2Ddata_atBias(self, bias, data='carrier', input_file_name=None, output_folder=None):
         """
-        INPUT: 
+        INPUT:
             data
                 one of the following strings: ['LDOS_zone_center', 'LDOS', 'carrier', 'carrier_inplane_resolved', 'current', 'current_with_dispersion']
 
@@ -973,7 +973,7 @@ class NEGFShortcuts(CommonShortcuts):
         if scaling_factor is None:
             scaling_factor = 0.05 * (max_energy - min_energy)  # NOTE: important to make it independent of carrier density data when visualizing carrier rebalancing
         logging.info(f"Scaling deviation by {scaling_factor}")
-        electron_density_scaled = electron_density.value * scaling_factor        
+        electron_density_scaled = electron_density.value * scaling_factor
         hole_density_scaled = hole_density.value * scaling_factor
 
         if dark_mode:
@@ -1027,9 +1027,9 @@ class NEGFShortcuts(CommonShortcuts):
 
 
     def plot_DOS(self,
-            bias, 
+            bias,
             input_file_name=None,
-            output_folder=None, 
+            output_folder=None,
             labelsize=CommonShortcuts.labelsize_default,
             ticksize=CommonShortcuts.ticksize_default,
             zmin=None,
@@ -1212,10 +1212,10 @@ class NEGFShortcuts(CommonShortcuts):
 
 
     def plot_current_density(self,
-            bias, 
+            bias,
             input_file_name=None,
-            output_folder=None, 
-            labelsize=CommonShortcuts.labelsize_default, 
+            output_folder=None,
+            labelsize=CommonShortcuts.labelsize_default,
             ticksize=CommonShortcuts.ticksize_default,
             zmin=None,
             zmax=None,
@@ -1735,17 +1735,17 @@ class NEGFShortcuts(CommonShortcuts):
 
 
     def plot_Light_Current_Voltage_characteristics(self,
-            names, 
-            period_length, 
-            num_periods, 
-            area, 
-            front_mirror_loss, 
-            total_cavity_loss, 
-            labels, 
-            labelsize=CommonShortcuts.labelsize_default, 
-            ticksize=CommonShortcuts.ticksize_default, 
-            Imin=None, Imax=None, 
-            Vmin=None, Vmax=None, 
+            names,
+            period_length,
+            num_periods,
+            area,
+            front_mirror_loss,
+            total_cavity_loss,
+            labels,
+            labelsize=CommonShortcuts.labelsize_default,
+            ticksize=CommonShortcuts.ticksize_default,
+            Imin=None, Imax=None,
+            Vmin=None, Vmax=None,
             Pmin=None, Pmax=None
             ):
         """
@@ -1808,7 +1808,7 @@ class NEGFShortcuts(CommonShortcuts):
 
         """
         # validate arguments
-        if len(names) != len(labels): 
+        if len(names) != len(labels):
             raise NextnanopyScriptError(f"Number of input files ({len(names)}) do not match that of plot labels ({len(labels)})")
 
         # volume in [cm^3]
@@ -1929,7 +1929,7 @@ class NEGFShortcuts(CommonShortcuts):
         input_file : nextnanopy.InputFile object
             nextnano++ input file.
         bias : real, optional
-            If not None, that bias is used to search for the energy eigenstates output folder. 
+            If not None, that bias is used to search for the energy eigenstates output folder.
             If None, output is sought in the Init folder.
         states_range_dict : dict, optional
             range of state indices to be plotted for each quantum model. The default is None.
@@ -1981,7 +1981,7 @@ class NEGFShortcuts(CommonShortcuts):
 
         for model, datafiles in datafiles_probability_dict.items():
             if isinstance(datafiles, list):
-                if len(datafiles) == 0: 
+                if len(datafiles) == 0:
                     continue
                 datafile_probability = datafiles[0]
                 # print(type(datafile_probability))
@@ -2031,8 +2031,8 @@ class NEGFShortcuts(CommonShortcuts):
                 datafile = dfs
                 dfs = list()
                 dfs.append(datafile)
-                
-            if len(dfs) == 0: 
+
+            if len(dfs) == 0:
                 continue
             
             for cnt, stateIndex in enumerate(states_toBePlotted[model]):
@@ -2088,7 +2088,7 @@ class NEGFShortcuts(CommonShortcuts):
             compositions = dict()
 
             for model, state_indices in states_toBePlotted.items():
-                if model not in ['kp6', 'kp8']: 
+                if model not in ['kp6', 'kp8']:
                     continue
 
                 compositions[model] = np.zeros((num_evs[model], num_kPoints[model], 4))   # compositions[quantum model][eigenvalue index][k index][spinor index]
@@ -2431,7 +2431,7 @@ class NEGFShortcuts(CommonShortcuts):
         folder_path : str
             output folder path in which the datafile should be sought
         bias : real, optional
-            If not None, that bias is used to search for the energy eigenstates output folder. 
+            If not None, that bias is used to search for the energy eigenstates output folder.
             If None, output is sought in the Init folder.
         
         Returns
@@ -2715,7 +2715,7 @@ class NEGFShortcuts(CommonShortcuts):
         E_LH = self.__get_highest_LH_energy(output_folder)
 
         if E_LH is not None:
-            return E_HH - E_LH 
+            return E_HH - E_LH
         else:
             return None
     
@@ -2727,8 +2727,8 @@ class NEGFShortcuts(CommonShortcuts):
         """
         E_HH1, E_HH2 = self.__get_highest_HH_energy(output_folder, True)
 
-        return E_HH1 - E_HH2 
-    
+        return E_HH1 - E_HH2
+
 
     def __get_lowest_electron_energy(self, output_folder):
         """

@@ -4,7 +4,7 @@
 - get WRegion example working
 - delete '*_idea.py' files once debugging of SweepManager is done
 - implement:
-implement horizontalCut and verticalCut options to 2D colormap plot function that plots 2D schalar field data as 1D plot
+implement horizontalCut and verticalCut options to 2D colormap plot function that plots 2D scalar field data as 1D plot
 if horizontal,
 take x values as x values
 take y values as color
@@ -23,7 +23,7 @@ plot 2D colormap
 [all]
 - use nextnano corporate colormap in 2D plot methods
 - format warnings console output
-- visualization of warning in yellow (error will be in red, info in default colour)
+- visualization of warning in yellow (error will be in red, info in default color)
 
 [unit test]
 
@@ -35,7 +35,7 @@ plot 2D colormap
   1. support interpolated colormaps (using contourf in python) + adding a line which indicates the waveguide losses
   2. plot oscillator strengths for colored transitions
 - 10^19 instead of 1e+1 in ylabel of the charge density 
-- use labelsize and ticsize also for plot_inplaneK()
+- use labelsize and ticksize also for plot_inplaneK()
 - avoid output PDF filename conflict between plot_carrier_density() and plot_probabilities() 
 
 [NEGFShortcuts]
@@ -43,7 +43,7 @@ plot 2D colormap
 - would be cool to have animation of band diagram & DOS as a function of bias (Winter School, Gerhard Klimeck)
 
 [object-oriented approach]
-- benefit of using classes is that the methods don't need to be defined above the code line of invocation. Bring the major methods up, auxilirary methods to the bottom.
+- benefit of using classes is that the methods don't need to be defined above the code line of invocation. Bring the major methods up, auxiliary methods to the bottom.
 E.g. get_states_to_be_plotted()
 - is it possible to move imports to __init__? or at least to the parent class
 - if the difference between overridden methods is only 'software', they can be defined in the parent.
@@ -55,5 +55,5 @@ E.g. get_states_to_be_plotted()
 - define a parent class Results
 - within Results, define plotter class
 - implement plotter methods using nnShortcuts 
-- add png image to ReadMe if possible. Looks proffesional
+- add png image to ReadMe if possible. Looks professional
 
