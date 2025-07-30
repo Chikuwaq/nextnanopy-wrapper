@@ -693,8 +693,8 @@ class NEGFShortcuts(CommonShortcuts):
         WS_states = [CommonShortcuts.mask_part_of_array(WS_state) for WS_state in WS_states]   # hide flat tails
 
         fig, ax = plt.subplots()
-        ax.set_xlabel("Position $z$ [nm]", fontsize=labelsize)
-        ax.set_ylabel("Energy [eV]", fontsize=labelsize)
+        ax.set_xlabel("Position $z$ (nm)", fontsize=labelsize)
+        ax.set_ylabel("Energy (eV)", fontsize=labelsize)
         ax.set_title('Wannier-Stark states', fontsize=labelsize)
         ax.tick_params(axis='x', labelsize=ticksize)
         ax.tick_params(axis='y', labelsize=ticksize)
@@ -763,7 +763,7 @@ class NEGFShortcuts(CommonShortcuts):
 
         fig, ax = plt.subplots()
         ax.set_xlabel(EPhoton.label, fontsize=labelsize)
-        ax.set_ylabel("Gain [1/cm]", fontsize=labelsize)
+        ax.set_ylabel("Gain ($\mathrm{cm}^{-1}$)", fontsize=labelsize)
         ax.set_title(title, fontsize=labelsize)
         ax.tick_params(axis='x', labelsize=ticksize)
         ax.tick_params(axis='y', labelsize=ticksize)
@@ -814,7 +814,7 @@ class NEGFShortcuts(CommonShortcuts):
             
         fig, ax = plt.subplots()
         ax.set_xlabel(EPhoton.label, fontsize=labelsize)
-        ax.set_ylabel("Gain [1/cm]", fontsize=labelsize)
+        ax.set_ylabel("Gain ($\mathrm{cm}^{-1}$)", fontsize=labelsize)
         ax.set_title(title, fontsize=labelsize)
         ax.tick_params(axis='x', labelsize=ticksize)
         ax.tick_params(axis='y', labelsize=ticksize)
@@ -1069,7 +1069,7 @@ class NEGFShortcuts(CommonShortcuts):
         unit = r'$\mathrm{nm}^{-1} \mathrm{eV}^{-1}$'
         if title is None:
             title = 'Density of states'
-        xlabel = "Position $z$ [nm]"
+        xlabel = "Position $z$ (nm)"
 
         if attachDispersion:
             # Create subplots with shared y-axis and remove spacing
@@ -1160,14 +1160,14 @@ class NEGFShortcuts(CommonShortcuts):
 
         logging.info("Plotting electron density...")
         unit = r'$10^{18} \mathrm{cm}^{-3} \mathrm{eV}^{-1}$'
-        # label = 'Electron-hole density [' + unit + ']'
+        # label = 'Electron-hole density (' + unit + ')'
         if title is None:
             if in_electron_hole_picture:
                 title = 'Electron-hole density'
             else:
                 title = 'Electron density'
         quantity.value *= 1e-18
-        xlabel = "Position $z$ [nm]"
+        xlabel = "Position $z$ (nm)"
 
         if attachDispersion:
             # Create subplots with shared y-axis and remove spacing
@@ -1245,7 +1245,7 @@ class NEGFShortcuts(CommonShortcuts):
         unit = r'$\mathrm{A}$ $\mathrm{cm}^{-2} \mathrm{eV}^{-1}$'
         label = 'Current density'
         quantity.value *= 1  #1e-3
-        xlabel = "Position $z$ [nm]"
+        xlabel = "Position $z$ (nm)"
 
         fig, ax = plt.subplots()
         self.draw_bandedges_on_2DPlot(ax, bias, shadowBandgap, input_file_name=input_file_name) # needs to be before drawing the current density not to mask tunneling currents
@@ -1266,7 +1266,7 @@ class NEGFShortcuts(CommonShortcuts):
 
 
     @staticmethod
-    def draw_2D_color_plot(fig, ax, X, Y, Z, is_divergent, colormap, label, cbar_unit, bias, labelsize, ticksize, ymin, ymax, zmin, zmax, showBias, xlabel=None, ylabel="Energy [eV]", cbar_label=None):
+    def draw_2D_color_plot(fig, ax, X, Y, Z, is_divergent, colormap, label, cbar_unit, bias, labelsize, ticksize, ymin, ymax, zmin, zmax, showBias, xlabel=None, ylabel="Energy (eV)", cbar_label=None):
         """
         ymin : float
             lower bound of y values. If None, it is automatically set to the minimum of the data 'Y'.
@@ -1284,11 +1284,11 @@ class NEGFShortcuts(CommonShortcuts):
         cbar = fig.colorbar(pcolor)
         if cbar_label is None:
             if showBias:
-                cbar_label = label + ' [' + cbar_unit + ']'
+                cbar_label = label + ' (' + cbar_unit + ')'
             else:
-                cbar_label = '[' + cbar_unit + ']'
+                cbar_label = '(' + cbar_unit + ')'
 
-        if len(cbar_label) > 35: 
+        if len(cbar_label) > 35:
             cbar.set_label(cbar_label, fontsize=labelsize*0.8)
         else:
             cbar.set_label(cbar_label, fontsize=labelsize)
@@ -1634,7 +1634,7 @@ class NEGFShortcuts(CommonShortcuts):
         """
         quantity_names = ['DOS', 'carrier', 'current', 'power']   # TODO: should be global variables in this file
         unit = r'$\mathrm{nm}^{-1} \mathrm{eV}^{-1}$'   # TODO: make a list of units for 2D data
-        label = 'Density of states [' + unit + ']'   # TODO: make a list of labels for 2D data
+        label = 'Density of states (' + unit + ')'   # TODO: make a list of labels for 2D data
 
         if leftFig not in quantity_names:
             raise KeyError(f"Entry must be {quantity_names}!")
@@ -1757,7 +1757,7 @@ class NEGFShortcuts(CommonShortcuts):
             Specifies input files
 
         period_length : float
-            length of one QCL/ICL period in [nm]
+            length of one QCL/ICL period in (nm)
 
         num_periods : int
             Number of periods in the QCL/ICL structure.
@@ -2061,7 +2061,7 @@ class NEGFShortcuts(CommonShortcuts):
                     psiSquared[model][cnt][kIndex] = CommonShortcuts.cutOff_edges1D(psiSquared[model][cnt][kIndex], x, start_position, end_position)   # chop off edges of the simulation region
 
         x = CommonShortcuts.cutOff_edges1D(x, x, start_position, end_position)
-        # simLength = x[-1]-x[0]   # [nm]
+        # simLength = x[-1]-x[0]   # (nm)
 
 
         # mask psiSquared data where it is flat
@@ -2107,7 +2107,7 @@ class NEGFShortcuts(CommonShortcuts):
         title = CommonShortcuts.adjust_plot_title(plot_title)
 
         def draw_bandedges(ax, model, want_valence_band):
-            self.set_plot_labels(ax, 'Position [nm]', 'Energy [eV]', title)
+            self.set_plot_labels(ax, 'Position (nm)', 'Energy (eV)', title)
             if model == 'Gamma' or model == 'kp8':
                 ax.plot(x, CBBandedge, label='conduction band', linewidth=0.6, color=self.default_colors.bands['CB'])
             if want_valence_band:
@@ -2333,7 +2333,7 @@ class NEGFShortcuts(CommonShortcuts):
             psiSquared[stateIndex] = CommonShortcuts.cutOff_edges1D(psiSquared[stateIndex], x, start_position, end_position)   # chop off edges of the simulation region
 
         x = CommonShortcuts.cutOff_edges1D(x, x, start_position, end_position)
-        # simLength = x[-1]-x[0]   # [nm]
+        # simLength = x[-1]-x[0]   # (nm)
 
 
         # mask psiSquared data where it is flat
@@ -2345,7 +2345,7 @@ class NEGFShortcuts(CommonShortcuts):
         title = CommonShortcuts.adjust_plot_title(plot_title)
 
         def draw_bandedges(ax, model, want_valence_band):
-            self.set_plot_labels(ax, 'Position [nm]', 'Energy [eV]', title)
+            self.set_plot_labels(ax, 'Position (nm)', 'Energy (eV)', title)
             if model == 'Gamma' or model == 'kp8':
                 ax.plot(x, CBBandedge, label='conduction band', linewidth=0.6, color=self.default_colors.bands['CB'])
             if want_valence_band:

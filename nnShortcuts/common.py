@@ -1478,7 +1478,7 @@ class CommonShortcuts:
             if True, invert the x axis.
         labelsize : float
         """
-        ax.set_xlabel("$k_x$ (1/nm)", fontsize=labelsize)
+        ax.set_xlabel("$k_x$ ($\mathrm{nm}^{-1}$)", fontsize=labelsize)
         kmin = np.amin(kPoints)
         kmax = np.amax(kPoints)
         ax.set_xlim(kmin, kmax)
