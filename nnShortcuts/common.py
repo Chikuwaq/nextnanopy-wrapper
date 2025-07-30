@@ -67,8 +67,8 @@ class CommonShortcuts:
     # -------------------------------------------------------
     # Output default formats
     # -------------------------------------------------------
-    figFormat_list = ['.pdf', '.png', '.jpg', '.svg']
-    figFormat_list_display = ['pdf', 'png', 'jpg', 'svg']
+    figFormat_list = ['.pdf', '.eps', '.png', '.jpg', '.svg']
+    figFormat_list_display = ['pdf', 'eps', 'png', 'jpg', 'svg']
 
     labelsize_default = 16
     ticksize_default = 14
@@ -1539,7 +1539,8 @@ class CommonShortcuts:
             file name of the exported figure
 
         figFormat : str
-            PDF = vector graphic
+            PDF = vector graphics
+            EPS = vector graphics, suitable for LaTeX documents
             PNG = high quality, lossless compression, large size (recommended)
             JPG = lower quality, lossy compression, small size (not recommended)
             SVG = supports animations and image editing for e.g. Adobe Illustrator
@@ -1599,6 +1600,6 @@ class CommonShortcuts:
                 for figure in range(1, plt.gcf().number + 1):
                     pdf.savefig(figure)
         else:
-            fig.savefig(export_fullpath, dpi=200)
+            fig.savefig(export_fullpath, dpi=300, bbox_inches='tight')  # 'tight' bbox ensures that legends outside of axes frame is included in the image
 
 
