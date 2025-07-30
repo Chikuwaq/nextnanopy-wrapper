@@ -587,19 +587,28 @@ class NEGFShortcuts(CommonShortcuts):
         return position, bandedge
     
 
-    def get_Fermi_levels(self, input_file_name, bias):
+    def get_Fermi_levels(self, input_file_name, output_folder, bias):
         """
-        INPUT:
+        INPUT
+        -----
             input file name
             bias value
 
-        RETURN: nn.DataFile() attributes
+        RETURN
+        ------ 
+        nn.DataFile() attributes
             z coordinates
             electron Fermi level
             hole Fermi level
             electron-hole border energy
         """
-        datafile = self.get_DataFile_NEGF_atBias("FermiLevel.dat", input_file_name, bias=bias)
+        if input_file_name is not None:
+            datafile = self.get_DataFile_NEGF_atBias("FermiLevel.dat", input_file_name, bias=bias)
+        elif output_folder is not None:
+            datafile = self.get_DataFile_in_folder("FermiLevel.dat", CommonShortcuts.append_bias_to_path(output_folder, bias))
+        else:
+            raise ValueError("Either 'input_file_name' or 'output_folder' must be specified!")
+        
         position = datafile.coords['Position']
         try:
             return position, datafile.variables['Fermi level'], datafile.variables['Fermi level'], CommonShortcuts.DUMMYVALUE
@@ -920,7 +929,7 @@ class NEGFShortcuts(CommonShortcuts):
                 ax.fill_between(position.value, VBTop, CB.value, color=self.default_colors.bandgap_fill)
             
 
-    def draw_Fermi_levels_on_2DPlot(self, ax, input_file_name, bias, labelsize, is_divergent, dark_mode):
+    def draw_Fermi_levels_on_2DPlot(self, ax, input_file_name, output_folder, bias, labelsize, is_divergent, dark_mode):
         """
         Returns
         -------
@@ -940,7 +949,7 @@ class NEGFShortcuts(CommonShortcuts):
             else:
                 color = self.default_colors.lines_on_colormap['bright_bg'][0]
 
-        position, FermiElectron, FermiHole, ElectronHoleBorder = self.get_Fermi_levels(input_file_name, bias)
+        position, FermiElectron, FermiHole, ElectronHoleBorder = self.get_Fermi_levels(input_file_name, output_folder, bias)
         ax.plot(position.value, FermiElectron.value, color=color, linewidth=0.7, label=FermiElectron.label)
         ax.plot(position.value, FermiHole.value, color=color, linewidth=0.7, label=FermiHole.label)
         if ElectronHoleBorder != CommonShortcuts.DUMMYVALUE:
@@ -997,25 +1006,66 @@ class NEGFShortcuts(CommonShortcuts):
         # ax.annotate("", color=color, fontsize=labelsize, xy=(0.1*zmax, E_FermiElectron), xytext=(0.1*zmax, E_FermiElectron + 0.2))
 
 
-    def __get_inplane_dispersion(self, input_file_name, startIdx, stopIdx):
+    def __get_inplane_dispersion_corrected(self, input_file_name, output_folder, startIdx, stopIdx):
         """
+        Search for bias 0mV in-plane dispersion data in the Init folder.
+
         Parameters
         ----------
         input_file_name : str
-            input file name (= output subfolder name). May contain extensions and/or fullpath.
+            input file name. May contain extensions and/or fullpath.
+        output_folder : str
+            path of the output folder in which the data is sought.
 
         Returns
         -------
         tuple of numpy arrays
         """
         # load output data files
-        filename_no_extension = CommonShortcuts.separate_extension(input_file_name)[0]
-        datafiles_dispersion = self.get_DataFiles_NEGFInit_in_folder('InplaneDispersionReduced_Corrected', filename_no_extension, search_raw_solution_folder=True)
+        if input_file_name is not None:
+            filename_no_extension = CommonShortcuts.separate_extension(input_file_name)[0]
+            datafiles_dispersion = self.get_DataFiles_NEGFInit_in_folder('InplaneDispersionReduced_Corrected', filename_no_extension, search_raw_solution_folder=True)
+        elif output_folder is not None:
+            datafiles_dispersion = self.get_DataFiles_NEGFInit_in_folder('InplaneDispersionReduced_Corrected', output_folder, search_raw_solution_folder=True)
+        else:
+            raise ValueError("Either 'input_file_name' or 'output_folder' must be specified!")
+        
         if len(datafiles_dispersion) == 0:
             raise RuntimeError("No output found for in-plane dispersion!")
         if len(datafiles_dispersion) > 1:
             raise RuntimeError("More than one output file found for in-plane dispersion!")
-        df = datafiles_dispersion[0]
+        return self.__get_inplane_dispersion_core(datafiles_dispersion[0], startIdx, stopIdx)
+
+
+    def __get_inplane_dispersion_atBias(self, input_file_name, output_folder, bias, startIdx, stopIdx):
+        """
+        Search for in-plane dispersion data at specified bias.
+
+        Parameters
+        ----------
+        input_file_name : str
+            input file name. May contain extensions and/or fullpath.
+        output_folder : str
+            path of the output folder in which the data is sought.
+
+        Returns
+        -------
+        tuple of numpy arrays
+        """
+        # load output data files
+        if input_file_name is not None:
+            filename_no_extension = CommonShortcuts.separate_extension(input_file_name)[0]
+            datafile_dispersion = self.get_DataFile_NEGF_atBias('InplaneDispersion', filename_no_extension, bias, is_fullpath=False, exclude_keywords=[])
+        elif output_folder is not None:
+            datafile_dispersion = self.get_DataFile_in_folder('InplaneDispersion', CommonShortcuts.append_bias_to_path(output_folder, bias), exclude_keywords=[])
+        else:
+            raise ValueError("Either 'input_file_name' or 'output_folder' must be specified!")
+        
+        return self.__get_inplane_dispersion_core(datafile_dispersion, startIdx, stopIdx)
+
+
+    def __get_inplane_dispersion_core(self, datafile_dispersion, startIdx, stopIdx):
+        df = datafile_dispersion
 
         # store data in arrays
         kPoints     = df.coords['inplane k'].value
@@ -1087,20 +1137,20 @@ class NEGFShortcuts(CommonShortcuts):
             plt.subplots_adjust(wspace=0)
 
             NEGFShortcuts.draw_2D_color_plot(fig, ax2, x.value, y.value, quantity.value, is_divergent, colormap, title, unit, bias, labelsize, ticksize, None, None, zmin, zmax, showBias, xlabel=xlabel, ylabel=None)
-            self.draw_bandedges_on_2DPlot(ax2, bias, shadowBandgap, input_file_name=input_file_name)
+            self.draw_bandedges_on_2DPlot(ax2, bias, shadowBandgap, input_file_name=input_file_name, output_folder=output_folder)
             if showFermiLevel:
-                E_FermiElectron, E_FermiHole = self.draw_Fermi_levels_on_2DPlot(ax2, input_file_name, bias, labelsize, is_divergent, dark_mode)
+                E_FermiElectron, E_FermiHole = self.draw_Fermi_levels_on_2DPlot(ax2, input_file_name, output_folder, bias, labelsize, is_divergent, dark_mode)
                 if showDensityDeviation:
                     self.draw_1D_carrier_densities_on_2DPlot(ax2, input_file_name, bias, labelsize, E_FermiElectron, E_FermiHole, dark_mode, scaling_factor)
 
-            kPoints, dispersions, states_toBePlotted = self.__get_inplane_dispersion(input_file_name, 0, 0)  # TODO: implement user-defined state index range (see nnpShortcuts.plot_dispersion)
+            kPoints, dispersions, states_toBePlotted = self.__get_inplane_dispersion_atBias(input_file_name, output_folder, bias, 0, 0)  # TODO: implement user-defined state index range (see nnpShortcuts.plot_dispersion)
             CommonShortcuts.draw_inplane_dispersion(ax1, kPoints, dispersions, states_toBePlotted, True, True, labelsize, title='Dispersion', lattice_temperature=lattice_temperature)  # dispersions[iState, ik]
         else:
             fig, ax = plt.subplots()
             NEGFShortcuts.draw_2D_color_plot(fig, ax, x.value, y.value, quantity.value, is_divergent, colormap, title, unit, bias, labelsize, ticksize, None, None, zmin, zmax, showBias, xlabel=xlabel)
-            self.draw_bandedges_on_2DPlot(ax, bias, shadowBandgap, input_file_name=input_file_name)
+            self.draw_bandedges_on_2DPlot(ax, bias, shadowBandgap, input_file_name=input_file_name, output_folder=output_folder)
             if showFermiLevel:
-                E_FermiElectron, E_FermiHole = self.draw_Fermi_levels_on_2DPlot(ax, input_file_name, bias, labelsize, is_divergent, dark_mode)
+                E_FermiElectron, E_FermiHole = self.draw_Fermi_levels_on_2DPlot(ax, input_file_name, output_folder, bias, labelsize, is_divergent, dark_mode)
                 if showDensityDeviation:
                     self.draw_1D_carrier_densities_on_2DPlot(ax, input_file_name, bias, labelsize, E_FermiElectron, E_FermiHole, dark_mode, scaling_factor)
 
@@ -1108,8 +1158,12 @@ class NEGFShortcuts(CommonShortcuts):
 
         # export to an image file
         outputFolder = nn.config.get(self.product_name, 'outputdirectory')
-        filename_no_extension = CommonShortcuts.separate_extension(input_file_name)[0]
-        outputSubfolder = os.path.join(outputFolder, filename_no_extension)
+        if input_file_name is not None:
+            filename_no_extension = CommonShortcuts.separate_extension(input_file_name)[0]
+            outputSubfolder = os.path.join(outputFolder, filename_no_extension)
+        else:
+            filename_no_extension = None
+            outputSubfolder = outputFolder
         self.export_figs("DOS", fig_format, output_folder_path=outputSubfolder, fig=fig)
 
         return fig
@@ -1186,25 +1240,25 @@ class NEGFShortcuts(CommonShortcuts):
 
             # 2D color plot
             NEGFShortcuts.draw_2D_color_plot(fig, ax2, x.value, y.value, quantity.value, is_divergent, colormap, title, unit, bias, labelsize, ticksize, None, None, zmin, zmax, showBias, xlabel=xlabel, ylabel=None)
-            self.draw_bandedges_on_2DPlot(ax2, bias, shadowBandgap, input_file_name=input_file_name)
+            self.draw_bandedges_on_2DPlot(ax2, bias, shadowBandgap, input_file_name=input_file_name, output_folder=output_folder)
             if showFermiLevel:
-                E_FermiElectron, E_FermiHole = self.draw_Fermi_levels_on_2DPlot(ax2, input_file_name, bias, labelsize, is_divergent, dark_mode)
+                E_FermiElectron, E_FermiHole = self.draw_Fermi_levels_on_2DPlot(ax2, input_file_name, output_folder, bias, labelsize, is_divergent, dark_mode)
                 if showDensityDeviation:
                     self.draw_1D_carrier_densities_on_2DPlot(ax2, input_file_name, bias, labelsize, E_FermiElectron, E_FermiHole, dark_mode, scaling_factor)
             if texts is not None:
                 CommonShortcuts.place_texts(ax2, texts)
                 
             # dispersion plot
-            kPoints, dispersions, states_toBePlotted = self.__get_inplane_dispersion(input_file_name, 0, 0)  # TODO: implement user-defined state index range (see nnpShortcuts.plot_dispersion)
+            kPoints, dispersions, states_toBePlotted = self.__get_inplane_dispersion_atBias(input_file_name, output_folder, bias, 0, 0)  # TODO: implement user-defined state index range (see nnpShortcuts.plot_dispersion)
             CommonShortcuts.draw_inplane_dispersion(ax1, kPoints, dispersions, states_toBePlotted, True, True, labelsize, title='Dispersion', lattice_temperature=lattice_temperature)  # dispersions[iState, ik]
         else:
             fig, ax = plt.subplots()
 
             # 2D color plot
             NEGFShortcuts.draw_2D_color_plot(fig, ax, x.value, y.value, quantity.value, is_divergent, colormap, title, unit, bias, labelsize, ticksize, None, None, zmin, zmax, showBias, xlabel=xlabel)
-            self.draw_bandedges_on_2DPlot(ax, bias, shadowBandgap, input_file_name=input_file_name)
+            self.draw_bandedges_on_2DPlot(ax, bias, shadowBandgap, input_file_name=input_file_name, output_folder=output_folder)
             if showFermiLevel:
-                E_FermiElectron, E_FermiHole = self.draw_Fermi_levels_on_2DPlot(ax, input_file_name, bias, labelsize, is_divergent, dark_mode)
+                E_FermiElectron, E_FermiHole = self.draw_Fermi_levels_on_2DPlot(ax, input_file_name, output_folder, bias, labelsize, is_divergent, dark_mode)
                 if showDensityDeviation:
                     self.draw_1D_carrier_densities_on_2DPlot(ax, input_file_name, bias, labelsize, E_FermiElectron, E_FermiHole, dark_mode, scaling_factor)
             if texts is not None:
@@ -1214,8 +1268,12 @@ class NEGFShortcuts(CommonShortcuts):
 
         # export to an image file
         outputFolder = nn.config.get(self.product_name, 'outputdirectory')
-        filename_no_extension = CommonShortcuts.separate_extension(input_file_name)[0]
-        outputSubfolder = os.path.join(outputFolder, filename_no_extension)
+        if input_file_name is not None:
+            filename_no_extension = CommonShortcuts.separate_extension(input_file_name)[0]
+            outputSubfolder = os.path.join(outputFolder, filename_no_extension)
+        else:
+            filename_no_extension = None
+            outputSubfolder = outputFolder
         self.export_figs("CarrierDensity", fig_format, output_folder_path=outputSubfolder, fig=fig)
 
         return fig
@@ -1258,7 +1316,7 @@ class NEGFShortcuts(CommonShortcuts):
         xlabel = "Position $z$ (nm)"
 
         fig, ax = plt.subplots()
-        self.draw_bandedges_on_2DPlot(ax, bias, shadowBandgap, input_file_name=input_file_name) # needs to be before drawing the current density not to mask tunneling currents
+        self.draw_bandedges_on_2DPlot(ax, bias, shadowBandgap, input_file_name=input_file_name, output_folder=output_folder) # needs to be before drawing the current density not to mask tunneling currents
         NEGFShortcuts.draw_2D_color_plot(fig, ax, x.value, y.value, quantity.value, is_divergent, colormap, label, unit, bias, labelsize, ticksize, None, None, zmin, zmax, showBias, xlabel=xlabel)
 
         if texts is not None:
@@ -1268,8 +1326,12 @@ class NEGFShortcuts(CommonShortcuts):
 
         # export to an image file
         outputFolder = nn.config.get(self.product_name, 'outputdirectory')
-        filename_no_extension = CommonShortcuts.separate_extension(input_file_name)[0]
-        outputSubfolder = os.path.join(outputFolder, filename_no_extension)
+        if input_file_name is not None:
+            filename_no_extension = CommonShortcuts.separate_extension(input_file_name)[0]
+            outputSubfolder = os.path.join(outputFolder, filename_no_extension)
+        else:
+            filename_no_extension = None
+            outputSubfolder = outputFolder
         self.export_figs("CurrentDensity", "png", output_folder_path=outputSubfolder, fig=fig)
 
         return fig
@@ -1926,6 +1988,12 @@ class NEGFShortcuts(CommonShortcuts):
             savePNG             = False,
             ):
         """
+        input_file : nextnanopy.InputFile object
+            nextnano++ input file.
+        bias : real, optional
+            If not None, that bias is used to search for the energy eigenstates output folder.
+            If None, output is sought in the Init folder.
+
         Plot probability distribution on top of bandedges.
         Properly distinguishes the results from the single band effective mass model, 6- and 8-band k.p models.
         If both electrons and holes have been simulated, also plot both probabilities in one figure.
@@ -1933,14 +2001,111 @@ class NEGFShortcuts(CommonShortcuts):
         The probability distributions are coloured according to
         quantum model that yielded the solution (for single-band effective mass and kp6 models) or
         electron fraction (for kp8 model).
+        """
+        # load output data files
+        datafiles_probability_dict = self.get_DataFile_probabilities_with_name(input_file.fullpath, bias=bias)
 
-        Parameters
-        ----------
-        input_file : nextnanopy.InputFile object
-            nextnano++ input file.
+        return self.plot_probabilities_core(
+            input_file.fullpath,
+            datafiles_probability_dict,
+            states_range_dict,
+            states_list_dict,
+            start_position,
+            end_position,
+            hide_tails,
+            only_k0,
+            show_spinor,
+            show_state_index,
+            want_valence_band,
+            color_by_fraction_of,
+            plot_title,
+            labelsize,
+            ticksize,
+            savePDF,
+            savePNG,
+        )
+
+    def plot_probabilities_by_folderpath(self,
+            output_folder_path,
+            bias                = None,
+            states_range_dict   = None,
+            states_list_dict    = None,
+            start_position      = -10000.,
+            end_position        = 10000.,
+            hide_tails          = False,
+            only_k0             = True,
+            show_spinor         = False,
+            show_state_index    = False,
+            want_valence_band   = True,
+            color_by_fraction_of = 'conduction_band',
+            plot_title          = '',
+            labelsize           = CommonShortcuts.labelsize_default,
+            ticksize            = CommonShortcuts.ticksize_default,
+            savePDF             = False,
+            savePNG             = False,
+            ):
+        """
+        output_folder_path : str
+            Location of simulation outputs.
         bias : real, optional
             If not None, that bias is used to search for the energy eigenstates output folder.
             If None, output is sought in the Init folder.
+
+        Plot probability distribution on top of bandedges.
+        Properly distinguishes the results from the single band effective mass model, 6- and 8-band k.p models.
+        If both electrons and holes have been simulated, also plot both probabilities in one figure.
+
+        The probability distributions are coloured according to
+        quantum model that yielded the solution (for single-band effective mass and kp6 models) or
+        electron fraction (for kp8 model).
+        """
+        # load output data files
+        datafiles_probability_dict = self.get_DataFile_probabilities_in_folder(output_folder_path, bias=bias)
+
+        return self.plot_probabilities_core(
+            output_folder_path,
+            datafiles_probability_dict,
+            states_range_dict,
+            states_list_dict,
+            start_position,
+            end_position,
+            hide_tails,
+            only_k0,
+            show_spinor,
+            show_state_index,
+            want_valence_band,
+            color_by_fraction_of,
+            plot_title,
+            labelsize,
+            ticksize,
+            savePDF,
+            savePNG,
+        )
+
+    def plot_probabilities_core(self,
+            name,
+            datafiles_probability_dict,
+            states_range_dict,
+            states_list_dict,
+            start_position,
+            end_position,
+            hide_tails,
+            only_k0,
+            show_spinor,
+            show_state_index,
+            want_valence_band,
+            color_by_fraction_of,
+            plot_title,
+            labelsize,
+            ticksize,
+            savePDF,
+            savePNG,
+        ):
+        """
+        Parameters
+        ----------
+        name : str
+            Specifies the output subfolder name
         states_range_dict : dict, optional
             range of state indices to be plotted for each quantum model. The default is None.
         states_list_dict : dict, optional
@@ -1984,10 +2149,6 @@ class NEGFShortcuts(CommonShortcuts):
 
         from matplotlib import colors
         from matplotlib.gridspec import GridSpec
-
-        # load output data files
-        datafiles_probability_dict = self.get_DataFile_probabilities_with_name(input_file.fullpath, bias=bias)
-
 
         for model, datafiles in datafiles_probability_dict.items():
             if isinstance(datafiles, list):
@@ -2088,7 +2249,7 @@ class NEGFShortcuts(CommonShortcuts):
                 'kp6': list(),
                 'kp8': list()
             }
-            datafiles = self.get_DataFiles(['wavefunctions_spinor_composition_AngMom'], input_file.fullpath)
+            datafiles = self.get_DataFiles(['spinor_composition_AngMom'], name)
             # datafiles = [df for cnt in range(len(datafiles)) for df in datafiles if str(cnt).zfill(5) + '_CbHhLhSo' in os.path.split(df.fullpath)[1]]   # sort spinor composition datafiles in ascending kIndex  # TODO: C++ doesn't have multiple in-plane k output
             for df in datafiles:
                 datafiles_spinor['kp8'].append(df)
@@ -2208,7 +2369,7 @@ class NEGFShortcuts(CommonShortcuts):
                     # define colorbar representing electron fraction
                     divnorm = colors.TwoSlopeNorm(vcenter=0.5, vmin=0.0, vmax=1.0)
                     scalarmappable = plt.cm.ScalarMappable(cmap='seismic', norm=divnorm)
-                    cbar = fig.colorbar(scalarmappable)
+                    cbar = fig.colorbar(scalarmappable, ax=ax_probability)
                     cbar.set_label("Conduction-band fraction", fontsize=labelsize)
                     cbar.ax.tick_params(labelsize=ticksize)
 
@@ -2224,10 +2385,10 @@ class NEGFShortcuts(CommonShortcuts):
         # Plots --- save all the figures to one PDF
         #-------------------------------------------
         if savePDF:
-            export_filename = f'{CommonShortcuts.separate_extension(input_file.fullpath)[0]}_probabilities'
+            export_filename = f'{CommonShortcuts.separate_extension(name)[0]}_probabilities'
             self.export_figs(export_filename, 'pdf')
         if savePNG:
-            export_filename = f'{CommonShortcuts.separate_extension(input_file.fullpath)[0]}_probabilities'
+            export_filename = f'{CommonShortcuts.separate_extension(name)[0]}_probabilities'
             self.export_figs(export_filename, 'png', fig=fig)   # NOTE: presumably only the last fig instance is exported
 
         # --- display in the GUI

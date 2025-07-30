@@ -760,6 +760,63 @@ class CommonShortcuts:
         return output_subfolderName
 
 
+    @staticmethod
+    def has_folder_starting_with(prefix, path='.'):
+        """
+        Checks if any folder under the given path (recursively) starts with 'prefix'.
+
+        Parameters
+        ----------
+            prefix (str): The string to match at start of folder names.
+            path (str): Directory to search from (default is current directory).
+
+        Returns
+        -------
+            bool: True if at least one matching folder is found; False otherwise.
+        """
+        for root, dirs, files in os.walk(path):
+            for dirname in dirs:
+                if dirname.startswith(prefix):
+                    return True
+        return False
+
+
+    @staticmethod
+    def get_folders_starting_with(path, prefix):
+        """
+        Returns a list of full paths for folders in 'path' whose name starts with 'prefix'.
+        
+        Parameters
+        ----------
+            path (str): The directory path in which to search.
+            prefix (str): The prefix string to match at the start of folder names.
+            
+        Returns
+        -------
+            List[str]: List of full paths to folders starting with the prefix.
+        """
+        result = []
+        # List all entries in the given directory
+        try:
+            for entry in os.listdir(path):
+                full_path = os.path.join(path, entry)
+                if os.path.isdir(full_path) and entry.startswith(prefix):
+                    result.append(full_path)
+        except FileNotFoundError:
+            print(f"Directory not found: {path}")
+        except PermissionError:
+            print(f"Permission denied: {path}")
+        return result
+
+
+    @staticmethod
+    def append_bias_to_path(output_folder, bias):
+        bias_string = str(bias) + "mV"
+        if bias_string in output_folder:
+            return output_folder
+        else:
+            return os.path.join(output_folder, bias_string)
+
 
     def get_DataFile(self, keywords, name, exclude_keywords=None):
         """
@@ -782,7 +839,7 @@ class CommonShortcuts:
         return self.get_DataFile_in_folder(keywords, outputSubfolder, exclude_keywords=exclude_keywords)
 
 
-    def get_DataFile_in_folder(self, keywords, folder_path, exclude_keywords=None, exclude_folders=None):
+    def get_DataFile_in_folder(self, keywords, folder_path, exclude_keywords=None, exclude_folders=None, allow_folder_name_suffix=False):
         """
         Get single nextnanopy.DataFile of output data with the given string keyword(s) in the specified folder.
 
@@ -796,6 +853,9 @@ class CommonShortcuts:
             Files containing these keywords in the file name are excluded from search.
         exclude_folders : str or list of str, optional
             Files with these folder names in their paths are excluded from search.
+        allow_folder_name_suffix : bool, optional
+            If True, search for the folder name starting with 'folder_path'.
+            If False, search for exact match of the folder name with 'folder_path'.
 
         Returns
         -------
@@ -803,7 +863,13 @@ class CommonShortcuts:
 
         """
         # validate the path
-        if not os.path.exists(folder_path): raise ValueError(f"Specified path {folder_path} does not exist")
+        if allow_folder_name_suffix:
+            parent_folder, rest = os.path.split(folder_path)
+            if not CommonShortcuts.has_folder_starting_with(rest, parent_folder):
+                raise ValueError(f"Specified path {folder_path}* does not exist")
+            candidate_folder_paths = CommonShortcuts.get_folders_starting_with(parent_folder, rest)
+        if not os.path.exists(folder_path): 
+            raise ValueError(f"Specified path {folder_path} does not exist")
 
         # if only one keyword is provided, make a list with single element to simplify code
         if isinstance(keywords, str):
@@ -833,7 +899,12 @@ class CommonShortcuts:
         logging.info(f'Searching for output data {message}...')
 
         # Search output data using nn.DataFolder.find(). If multiple keywords are provided, find the intersection of files found with each keyword.
-        list_of_sets = [set(nn.DataFolder(folder_path).find(keyword, deep=True)) for keyword in keywords]
+        if allow_folder_name_suffix:
+            list_of_sets = []
+            for candidate_folder in candidate_folder_paths:
+                list_of_sets += [set(nn.DataFolder(candidate_folder).find(keyword, deep=True)) for keyword in keywords]
+        else:
+            list_of_sets = [set(nn.DataFolder(folder_path).find(keyword, deep=True)) for keyword in keywords]
         candidates = list_of_sets[0]
         for s in list_of_sets:
             candidates = s.intersection(candidates)
