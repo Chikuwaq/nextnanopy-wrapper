@@ -868,8 +868,9 @@ class CommonShortcuts:
             if not CommonShortcuts.has_folder_starting_with(rest, parent_folder):
                 raise ValueError(f"Specified path {folder_path}* does not exist")
             candidate_folder_paths = CommonShortcuts.get_folders_starting_with(parent_folder, rest)
-        if not os.path.exists(folder_path): 
-            raise ValueError(f"Specified path {folder_path} does not exist")
+        else:
+            if not os.path.exists(folder_path): 
+                raise ValueError(f"Specified path {folder_path} does not exist")
 
         # if only one keyword is provided, make a list with single element to simplify code
         if isinstance(keywords, str):

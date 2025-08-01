@@ -383,7 +383,7 @@ class NEGFShortcuts(CommonShortcuts):
         return amplitude_dict_trimmed
 
 
-    def get_DataFile_NEGF_atBias(self, keywords, name, bias, is_fullpath=False, exclude_keywords = None):
+    def get_DataFile_NEGF_atBias(self, keywords, name, bias, allow_folder_name_suffix=False, is_fullpath=False, exclude_keywords = None):
         """
         Get single nextnanopy.DataFile of NEGF output data with the given string keyword(s) at the specified bias.
 
@@ -413,7 +413,7 @@ class NEGFShortcuts(CommonShortcuts):
             filename_no_extension = CommonShortcuts.separate_extension(name)[0]
             bias_subfolder = os.path.join(output_folder, filename_no_extension, str(bias) + 'mV')
 
-        return self.get_DataFile_in_folder(keywords, bias_subfolder, exclude_keywords)
+        return self.get_DataFile_in_folder(keywords, bias_subfolder, exclude_keywords, allow_folder_name_suffix=allow_folder_name_suffix)
 
 
     # def get_convergenceInfo(self, bias):
@@ -2027,6 +2027,7 @@ class NEGFShortcuts(CommonShortcuts):
 
     def plot_probabilities_by_folderpath(self,
             output_folder_path,
+            allow_folder_name_suffix = False,
             bias                = None,
             states_range_dict   = None,
             states_list_dict    = None,
@@ -2060,7 +2061,7 @@ class NEGFShortcuts(CommonShortcuts):
         electron fraction (for kp8 model).
         """
         # load output data files
-        datafiles_probability_dict = self.get_DataFile_probabilities_in_folder(output_folder_path, bias=bias)
+        datafiles_probability_dict = self.get_DataFile_probabilities_in_folder(output_folder_path, allow_folder_name_suffix=allow_folder_name_suffix, bias=bias)
 
         return self.plot_probabilities_core(
             output_folder_path,
@@ -2593,7 +2594,7 @@ class NEGFShortcuts(CommonShortcuts):
         plt.show()
 
 
-    def get_DataFile_probabilities_in_folder(self, folder_path, bias=None):
+    def get_DataFile_probabilities_in_folder(self, folder_path, allow_folder_name_suffix=False, bias=None):
         """
         Get single nextnanopy.DataFile of probability_shift data in the specified folder.
 
@@ -2618,7 +2619,7 @@ class NEGFShortcuts(CommonShortcuts):
             probability_dict = {'kp8': list(datafiles)}  # TODO: generalize to cover 1,2,3-band cases
         else:
             # search for biased output
-            datafile = self.get_DataFile_NEGF_atBias("EigenStates.dat", folder_path, bias=bias, is_fullpath=True)
+            datafile = self.get_DataFile_NEGF_atBias("EigenStates.dat", folder_path, allow_folder_name_suffix=allow_folder_name_suffix, bias=bias, is_fullpath=True)
             logging.info("Taking EigenStates from biased folder")
             assert(isinstance(datafile, nn.DataFile))
             probability_dict = {'kp8': datafile}  # TODO: generalize to cover 1,2,3-band cases
