@@ -2327,9 +2327,7 @@ class NEGFShortcuts(CommonShortcuts):
                     else:
                         # ax.annotate(f'n={stateIndex+1}', xy=(xmax, ymax), xytext=(xmax-0.05*simLength, ymax+0.07))
                         ax.annotate(f'{stateIndex+1}', xy=(xmax, ymax), xytext=(xmax, ymax+0.07))
-            # ax.legend(loc='lower left')
-            # ax.legend(loc='upper left')
-            ax.legend()
+            
 
         def draw_spinor_pie_charts(gs_spinor, state_indices, model, stateIndex, kIndex, show_state_index):
             num_rows, num_columns = self.get_rowColumn_for_display(len(state_indices))  # determine arrangement of spinor composition plots
@@ -2375,6 +2373,10 @@ class NEGFShortcuts(CommonShortcuts):
                     cbar.ax.tick_params(labelsize=ticksize)
 
                 draw_probabilities(self, ax_probability, state_indices, model, kIndex, show_state_index, color_by_fraction_of)
+
+                # ax_probability.legend(loc='lower left')
+                # ax_probability.legend(loc='upper left')
+                ax_probability.legend(framealpha=1.)
 
                 if show_spinor and (model == 'kp6' or model == 'kp8'):
                     draw_spinor_pie_charts(grid_spinor, state_indices, model, stateIndex, kIndex, show_state_index)
@@ -2556,8 +2558,6 @@ class NEGFShortcuts(CommonShortcuts):
                     else:
                         # ax.annotate(f'n={stateIndex+1}', xy=(xmax, ymax), xytext=(xmax-0.05*simLength, ymax+0.07))
                         ax.annotate(f'{stateIndex+1}', xy=(xmax, ymax), xytext=(xmax, ymax+0.07))
-            # ax.legend(loc='lower left')
-            ax.legend(loc='upper left')
 
 
         # instantiate matplotlib subplot objects for bandedge & probability distribution & spinor pie charts
@@ -2576,6 +2576,9 @@ class NEGFShortcuts(CommonShortcuts):
         #     cbar.ax.tick_params(labelsize=ticksize)
 
         draw_probabilities(self, ax_probability, np.arange(nStates), model, show_state_index, color_by_fraction_of)
+
+        # ax_probability.legend(loc='lower left')
+        ax_probability.legend(loc='upper left', framealpha=1.)
 
         fig.tight_layout()
 
