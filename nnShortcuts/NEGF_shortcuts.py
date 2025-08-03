@@ -975,8 +975,8 @@ class NEGFShortcuts(CommonShortcuts):
             else:
                 E_FermiElectron_shift = +0.03
                 E_FermiHole_shift = +0.03
-            ax.annotate("$E_F^e$", color=color, fontsize=labelsize, xy=(pos_align_right, E_FermiElectron), xytext=(pos_align_right, E_FermiElectron + E_FermiElectron_shift))
-            ax.annotate("$E_F^h$", color=color, fontsize=labelsize, xy=(pos_align_left, E_FermiHole), xytext=(pos_align_left, E_FermiHole + E_FermiHole_shift))
+            ax.annotate("$E_\mathrm{F}^\mathrm{e}$", color=color, fontsize=labelsize, xy=(pos_align_right, E_FermiElectron), xytext=(pos_align_right, E_FermiElectron + E_FermiElectron_shift))
+            ax.annotate("$E_\mathrm{F}^\mathrm{h}$", color=color, fontsize=labelsize, xy=(pos_align_left, E_FermiHole), xytext=(pos_align_left, E_FermiHole + E_FermiHole_shift))
             # if ElectronHoleBorder != CommonShortcuts.DUMMYVALUE:
             #     ax.annotate("e-h border", color=color, fontsize=labelsize, xy=(0.9 * zmax, ElectronHoleBorder), xytext=(0.9 * zmax, E_border + 0.03))
         return E_FermiElectron, E_FermiHole
