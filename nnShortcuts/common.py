@@ -868,6 +868,9 @@ class CommonShortcuts:
             if not CommonShortcuts.has_folder_starting_with(rest, parent_folder):
                 raise ValueError(f"Specified path {folder_path}* does not exist")
             candidate_folder_paths = CommonShortcuts.get_folders_starting_with(parent_folder, rest)
+            print("There are multiple candidates for the output folder paths.")
+            choice = CommonShortcuts.ask_user_to_choose_one(candidate_folder_paths)
+            folder_path = candidate_folder_paths[choice]
         else:
             if not os.path.exists(folder_path): 
                 raise ValueError(f"Specified path {folder_path} does not exist")
@@ -900,12 +903,7 @@ class CommonShortcuts:
         logging.info(f'Searching for output data {message}...')
 
         # Search output data using nn.DataFolder.find(). If multiple keywords are provided, find the intersection of files found with each keyword.
-        if allow_folder_name_suffix:
-            list_of_sets = []
-            for candidate_folder in candidate_folder_paths:
-                list_of_sets += [set(nn.DataFolder(candidate_folder).find(keyword, deep=True)) for keyword in keywords]
-        else:
-            list_of_sets = [set(nn.DataFolder(folder_path).find(keyword, deep=True)) for keyword in keywords]
+        list_of_sets = [set(nn.DataFolder(folder_path).find(keyword, deep=True)) for keyword in keywords]
         candidates = list_of_sets[0]
         for s in list_of_sets:
             candidates = s.intersection(candidates)
@@ -934,25 +932,7 @@ class CommonShortcuts:
             file = list_of_files[0]
         else:
             logging.warning(f"More than one output files found!")
-            for count, file in enumerate(list_of_files):
-                # filename = os.path.split(file)[1]
-                print(f"Choice {count}: {file}")
-            determined = False
-            while not determined:
-                choice = input('Enter the index of data you need: ')
-                if choice == 'q':
-                    raise RuntimeError('Terminated nextnanopy.') from None
-                try:
-                    choice = int(choice)
-                except ValueError:
-                    print("Invalid input. (Type 'q' to quit)")
-                    continue
-                else:
-                    if choice < 0 or choice >= len(list_of_files):
-                        print("Index out of bounds. Type 'q' to quit")
-                        continue
-                    else:
-                        determined = True
+            choice = CommonShortcuts.ask_user_to_choose_one(list_of_files)
             file = list_of_files[choice]
 
         logging.debug(f"Found:\n{file}")
@@ -962,6 +942,30 @@ class CommonShortcuts:
         except NotImplementedError as e:
             raise Exception(f'Nextnanopy does not support datafile for {file}') from e
 
+
+    @staticmethod
+    def ask_user_to_choose_one(list_of_str) -> int:
+        for count, file in enumerate(list_of_str):
+            # filename = os.path.split(file)[1]
+            print(f"Choice {count}: {file}")
+        determined = False
+        while not determined:
+            choice = input('Enter the index of data you need: ')
+            if choice == 'q':
+                raise RuntimeError('Terminated nextnanopy.') from None
+            try:
+                choice = int(choice)
+            except ValueError:
+                print("Invalid input. (Type 'q' to quit)")
+                continue
+            else:
+                if choice < 0 or choice >= len(list_of_str):
+                    print("Index out of bounds. Type 'q' to quit")
+                    continue
+                else:
+                    determined = True
+        return choice
+    
 
     def get_DataFiles(self, keywords, name, exclude_keywords=None):
         """
