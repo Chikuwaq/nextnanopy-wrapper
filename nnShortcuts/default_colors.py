@@ -100,3 +100,21 @@ class DefaultColors:
                 return self.colormap['linear_dark_bg']
             else:
                 return self.colormap['linear_bright_bg']
+            
+
+    def get_linecolor_bandedges(self, CVD_aware, dark_mode):
+        if CVD_aware:
+            color_CB = self.lines_on_colormap['bright_bg'][0]
+            color_HH = self.lines_on_colormap['bright_bg'][0]
+            color_LH = color_HH
+        else:
+            if dark_mode:
+                color_CB = self.bands_dark_background['CB']
+                color_HH = self.bands_dark_background['HH']
+                color_LH = self.bands_dark_background['LH']
+            else:
+                color_CB = self.bands['CB']
+                color_HH = self.bands['HH']
+                color_LH = self.bands['LH']
+        return color_CB, color_HH, color_LH
+    

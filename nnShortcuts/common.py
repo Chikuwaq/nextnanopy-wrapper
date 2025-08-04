@@ -1550,12 +1550,18 @@ class CommonShortcuts:
             if True, invert the x axis.
         labelsize : float
         """
+        CVD_aware = True
         ax.set_xlabel("$k_x$ ($\mathrm{nm}^{-1}$)", fontsize=labelsize)
         kmin = np.amin(kPoints)
         kmax = np.amax(kPoints)
         ax.set_xlim(kmin, kmax)
+
+        if CVD_aware:
+            color = 'black'
+        else:
+            color = 'orange'
         for index in states_toBePlotted:
-            ax.plot(kPoints, dispersions[index, ], linewidth=0.7, marker='.', label=f'Band_{index+1}', color='orange')
+            ax.plot(kPoints, dispersions[index, ], linestyle='', marker='.', markersize=3, label=f'Band_{index+1}', color=color) #linewidth=0.7
         if flip_xAxis:
             ax.invert_xaxis()
             ax.grid(axis='y')
@@ -1565,17 +1571,88 @@ class CommonShortcuts:
             kBT = CommonShortcuts.Boltzmann * lattice_temperature * CommonShortcuts.scale_J_to_eV
             
             ymin, ymax = ax.get_ylim()
-            relative_position = 0.1
-            x = (1-relative_position)*kmin + relative_position*kmax
-            y_from = (1-relative_position)*ymin + relative_position*ymax
+            relative_position_k = 0.1
+            x = (1-relative_position_k)*kmin + relative_position_k*kmax
+            relative_position_y = 0.5
+            y_from = (1-relative_position_y)*ymin + relative_position_y*ymax
             y_to = y_from + kBT
 
-            relative_position_text = relative_position + 0.3
-            x_text = (1-relative_position_text)*kmin + relative_position_text*kmax
+            relative_position_k_text = relative_position_k + 0.25
+            x_text = (1-relative_position_k_text)*kmin + relative_position_k_text*kmax
             ax.vlines(x, y_from, y_to, colors='black')
             ax.annotate("$k_\mathrm{B}T$", xy=(x, (y_to + y_from)/2.0), xytext=(x_text, (y_to + y_from)/2.0))
         # ax.legend(labels=states_toBePlotted+1, bbox_to_anchor=(1.05, 1))
         ax.set_title(title, fontsize=labelsize)
+
+
+    def draw_bandedges(self, ax, plot_title, model, x, CBBandedge, want_valence_band, HHBandedge, LHBandedge):
+        self.set_plot_labels(ax, 'Position (nm)', 'Energy (eV)', plot_title)
+
+        CVD_aware = True
+        color_CB, color_HH, color_LH = self.default_colors.get_linecolor_bandedges(CVD_aware)
+        linestyle_CB, linestyle_HH, linestyle_LH = CommonShortcuts.get_linestyle_bandedges(CVD_aware)
+
+        if model == 'Gamma' or model == 'kp8':
+            ax.plot(x, CBBandedge, label='conduction band', linewidth=0.6, color=color_CB, linestyle=linestyle_CB)
+        if want_valence_band:
+            if model == 'HH' or model == 'kp6' or model == 'kp8':
+                ax.plot(x, HHBandedge, label='heavy hole', linewidth=0.6, color=color_HH, linestyle=linestyle_HH)
+            if model == 'LH' or model == 'kp6' or model == 'kp8':
+                ax.plot(x, LHBandedge, label='light hole', linewidth=0.6, color=color_LH, linestyle=linestyle_LH)
+            # if model == 'SO' or model == 'kp6' or model == 'kp8':
+            #     ax.plot(x, SOBandedge, label='split-off hole', linewidth=0.6, color=self.default_colors.bands['SO'])
+            # if model == 'LH' or model == 'kp6' or model == 'kp8':
+            #     ax.plot(x, VBTop, label='VB top without strain', linewidth=0.6, color=self.default_colors.bands['LH'])
+
+
+    @staticmethod
+    def get_linestyle_bandedges(CVD_aware):
+        if CVD_aware:
+            linestyle_CB = 'dashed'
+            linestyle_HH = 'solid'
+            linestyle_LH = 'dotted'
+        else:
+            linestyle_CB = 'dashed'
+            linestyle_HH = 'solid'
+            linestyle_LH = 'solid'
+        return linestyle_CB, linestyle_HH, linestyle_LH
+    
+
+    def draw_probabilities(self, ax, state_indices, x, psiSquared, model, kIndex, show_state_index, color_by_fraction_of, scalarmappable, compositions):
+        if model != 'kp8' and color_by_fraction_of:
+            warnings.warn(f"Option 'color_by_fraction_of' is only effective in 8kp simulations, but {model} results are being used")
+        if model == 'kp8' and not color_by_fraction_of:
+            color_by_fraction_of = 'conduction_band'  # default
+        skip_annotation = False
+        for cnt, stateIndex in enumerate(state_indices):
+            if model == 'kp8':
+                # color according to spinor compositions
+                if color_by_fraction_of == 'conduction_band':
+                    plot_color = scalarmappable.to_rgba(compositions['kp8'][stateIndex, kIndex, 0])
+                elif color_by_fraction_of == 'heavy_hole':
+                    plot_color = scalarmappable.to_rgba(compositions['kp8'][stateIndex, kIndex, 1])
+            else:
+                # color according to the quantum model that yielded the solution
+                plot_color = self.default_colors.bands[model]
+            ax.plot(x, psiSquared[model][cnt][kIndex], color=plot_color)
+
+            if show_state_index:
+                xmax, ymax = CommonShortcuts.get_maximum_points(psiSquared[model][cnt][kIndex], x)
+                if skip_annotation:   # if annotation was skipped in the previous iteration, annotate
+                    # ax.annotate(f'n={stateIndex},{stateIndex+1}', xy=(xmax, ymax), xytext=(xmax-0.05*simLength, ymax+0.07))
+                    ax.annotate(f'{stateIndex},{stateIndex+1}', xy=(xmax, ymax), xytext=(xmax, ymax+0.07))
+                    skip_annotation = False   # wavefunction degeneracy is atmost 2
+                elif cnt < len(state_indices)-1:  # if not the last state
+                    xmax_next, ymax_next = CommonShortcuts.get_maximum_points(psiSquared[model][cnt][kIndex], x)
+                    if abs(xmax_next - xmax) < 1.0 and abs(ymax_next - ymax) < 1e-1:
+                        skip_annotation = True
+                    else:
+                        skip_annotation = False
+                        # ax.annotate(f'n={stateIndex+1}', xy=(xmax, ymax), xytext=(xmax-0.05*simLength, ymax+0.07))
+                        ax.annotate(f'{stateIndex+1}', xy=(xmax, ymax), xytext=(xmax, ymax+0.07))
+                else:
+                    # ax.annotate(f'n={stateIndex+1}', xy=(xmax, ymax), xytext=(xmax-0.05*simLength, ymax+0.07))
+                    ax.annotate(f'{stateIndex+1}', xy=(xmax, ymax), xytext=(xmax, ymax+0.07))
 
 
     @staticmethod

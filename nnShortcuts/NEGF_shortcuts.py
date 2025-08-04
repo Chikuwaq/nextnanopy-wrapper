@@ -915,9 +915,15 @@ class NEGFShortcuts(CommonShortcuts):
         except:
             pass
 
-        ax.plot(position.value, CB.value, color=self.default_colors.bands_dark_background['CB'], linewidth=1.0, label=CB.label)
-        if LH is not None: ax.plot(position.value, LH.value, color=self.default_colors.bands_dark_background['LH'], linewidth=1.0, label=LH.label)
-        if HH is not None: ax.plot(position.value, HH.value, color=self.default_colors.bands_dark_background['HH'], linewidth=1.0, linestyle='dotted', label=HH.label)
+        CVD_aware = True
+        color_CB, color_HH, color_LH = self.default_colors.get_linecolor_bandedges(CVD_aware, dark_mode)
+        linestyle_CB, linestyle_HH, linestyle_LH = CommonShortcuts.get_linestyle_bandedges(CVD_aware)
+
+        ax.plot(position.value, CB.value, color=color_CB, linestyle=linestyle_CB, linewidth=1.0, label=CB.label)
+        if LH is not None: 
+            ax.plot(position.value, LH.value, color=color_LH, linestyle=linestyle_HH, linewidth=1.0, label=LH.label)
+        if HH is not None: 
+            ax.plot(position.value, HH.value, color=color_HH, linestyle=linestyle_LH, linewidth=1.0, label=HH.label)
 
         if shadowBandgap:
             # fill the gap
@@ -2275,60 +2281,6 @@ class NEGFShortcuts(CommonShortcuts):
                         compositions[model][stateIndex, kIndex, 2] = datafiles_spinor[model][kIndex].variables[2].value[stateIndex] + datafiles_spinor[model][kIndex].variables[6].value[stateIndex]
                         compositions[model][stateIndex, kIndex, 3] = datafiles_spinor[model][kIndex].variables[3].value[stateIndex] + datafiles_spinor[model][kIndex].variables[7].value[stateIndex]
 
-        # define plot title
-        title = CommonShortcuts.adjust_plot_title(plot_title)
-
-        def draw_bandedges(ax, model, want_valence_band):
-            self.set_plot_labels(ax, 'Position (nm)', 'Energy (eV)', title)
-            if model == 'Gamma' or model == 'kp8':
-                ax.plot(x, CBBandedge, label='conduction band', linewidth=0.6, color=self.default_colors.bands['CB'])
-            if want_valence_band:
-                if model == 'HH' or model == 'kp6' or model == 'kp8':
-                    ax.plot(x, HHBandedge, label='heavy hole', linewidth=0.6, color=self.default_colors.bands['HH'])
-                if model == 'LH' or model == 'kp6' or model == 'kp8':
-                    ax.plot(x, LHBandedge, label='light hole', linewidth=0.6, color=self.default_colors.bands['LH'])
-                # if model == 'SO' or model == 'kp6' or model == 'kp8':
-                #     ax.plot(x, SOBandedge, label='split-off hole', linewidth=0.6, color=self.default_colors.bands['SO'])
-                # if model == 'LH' or model == 'kp6' or model == 'kp8':
-                #     ax.plot(x, VBTop, label='VB top without strain', linewidth=0.6, color=self.default_colors.bands['LH'])
-
-        def draw_probabilities(self, ax, state_indices, model, kIndex, show_state_index, color_by_fraction_of):
-            if model != 'kp8' and color_by_fraction_of:
-                warnings.warn(f"Option 'color_by_fraction_of' is only effective in 8kp simulations, but {model} results are being used")
-            if model == 'kp8' and not color_by_fraction_of:
-                color_by_fraction_of = 'conduction_band'  # default
-            skip_annotation = False
-            for cnt, stateIndex in enumerate(state_indices):
-                if model == 'kp8':
-                    # color according to spinor compositions
-                    if color_by_fraction_of == 'conduction_band':
-                        plot_color = scalarmappable.to_rgba(compositions['kp8'][stateIndex, kIndex, 0])
-                    elif color_by_fraction_of == 'heavy_hole':
-                        plot_color = scalarmappable.to_rgba(compositions['kp8'][stateIndex, kIndex, 1])
-                else:
-                    # color according to the quantum model that yielded the solution
-                    plot_color = self.default_colors.bands[model]
-                ax.plot(x, psiSquared[model][cnt][kIndex], color=plot_color)
-
-                if show_state_index:
-                    xmax, ymax = CommonShortcuts.get_maximum_points(psiSquared[model][cnt][kIndex], x)
-                    if skip_annotation:   # if annotation was skipped in the previous iteration, annotate
-                        # ax.annotate(f'n={stateIndex},{stateIndex+1}', xy=(xmax, ymax), xytext=(xmax-0.05*simLength, ymax+0.07))
-                        ax.annotate(f'{stateIndex},{stateIndex+1}', xy=(xmax, ymax), xytext=(xmax, ymax+0.07))
-                        skip_annotation = False   # wavefunction degeneracy is atmost 2
-                    elif cnt < len(state_indices)-1:  # if not the last state
-                        xmax_next, ymax_next = CommonShortcuts.get_maximum_points(psiSquared[model][cnt+1][kIndex], x)
-                        if abs(xmax_next - xmax) < 1.0 and abs(ymax_next - ymax) < 1e-1:
-                            skip_annotation = True
-                        else:
-                            skip_annotation = False
-                            # ax.annotate(f'n={stateIndex+1}', xy=(xmax, ymax), xytext=(xmax-0.05*simLength, ymax+0.07))
-                            ax.annotate(f'{stateIndex+1}', xy=(xmax, ymax), xytext=(xmax, ymax+0.07))
-                    else:
-                        # ax.annotate(f'n={stateIndex+1}', xy=(xmax, ymax), xytext=(xmax-0.05*simLength, ymax+0.07))
-                        ax.annotate(f'{stateIndex+1}', xy=(xmax, ymax), xytext=(xmax, ymax+0.07))
-            
-
         def draw_spinor_pie_charts(gs_spinor, state_indices, model, stateIndex, kIndex, show_state_index):
             num_rows, num_columns = self.get_rowColumn_for_display(len(state_indices))  # determine arrangement of spinor composition plots
             list_of_colors = [self.default_colors.bands[model] for model in ['CB', 'HH', 'LH', 'SO']]
@@ -2342,6 +2294,7 @@ class NEGFShortcuts(CommonShortcuts):
                     ax.pie(compositions[model][stateIndex, kIndex, :], colors=list_of_colors, normalize=True, startangle=90, counterclock=False)   # compositions[quantum model][eigenvalue index][k index][spinor index]
                     if show_state_index: ax.set_title(f'n={stateIndex+1}', color='grey')
 
+        title = CommonShortcuts.adjust_plot_title(plot_title)
 
         # instantiate matplotlib subplot objects for bandedge & probability distribution & spinor pie charts
         for model, state_indices in states_toBePlotted.items():
@@ -2361,7 +2314,7 @@ class NEGFShortcuts(CommonShortcuts):
                     ax_probability.set_title(f'{title} (quantum model: {model})', color=self.default_colors.bands[model])
                 else:
                     ax_probability.set_title(f'{title} (quantum model: {model}), k index: {kIndex}', color=self.default_colors.bands[model])
-                draw_bandedges(ax_probability, model, want_valence_band)
+                self.draw_bandedges(ax_probability, title, model, x, CBBandedge, want_valence_band, HHBandedge, LHBandedge)
 
 
                 if model == 'kp8':
@@ -2372,7 +2325,7 @@ class NEGFShortcuts(CommonShortcuts):
                     cbar.set_label("Conduction-band fraction", fontsize=labelsize)
                     cbar.ax.tick_params(labelsize=ticksize)
 
-                draw_probabilities(self, ax_probability, state_indices, model, kIndex, show_state_index, color_by_fraction_of)
+                self.draw_probabilities(ax_probability, state_indices, x, psiSquared, model, kIndex, show_state_index, color_by_fraction_of, scalarmappable, compositions)
 
                 # ax_probability.legend(loc='lower left')
                 # ax_probability.legend(loc='upper left')
@@ -2518,52 +2471,12 @@ class NEGFShortcuts(CommonShortcuts):
         # define plot title
         title = CommonShortcuts.adjust_plot_title(plot_title)
 
-        def draw_bandedges(ax, model, want_valence_band):
-            self.set_plot_labels(ax, 'Position (nm)', 'Energy (eV)', title)
-            if model == 'Gamma' or model == 'kp8':
-                ax.plot(x, CBBandedge, label='conduction band', linewidth=0.6, color=self.default_colors.bands['CB'])
-            if want_valence_band:
-                if model == 'HH' or model == 'kp6' or model == 'kp8':
-                    ax.plot(x, HHBandedge, label='heavy hole', linewidth=0.6, color=self.default_colors.bands['HH'])
-                if model == 'LH' or model == 'kp6' or model == 'kp8':
-                    ax.plot(x, LHBandedge, label='light hole', linewidth=0.6, color=self.default_colors.bands['LH'])
-                # if model == 'SO' or model == 'kp6' or model == 'kp8':
-                #     ax.plot(x, SOBandedge, label='split-off hole', linewidth=0.6, color=self.default_colors.bands['SO'])
-                # if model == 'LH' or model == 'kp6' or model == 'kp8':
-                #     ax.plot(x, VBTop, label='VB top without strain', linewidth=0.6, color=self.default_colors.bands['LH'])
-
-        def draw_probabilities(self, ax, state_indices, model, show_state_index, color_by_fraction_of):
-            if model != 'kp8' and color_by_fraction_of:
-                warnings.warn(f"Option 'color_by_fraction_of' is only effective in 8kp simulations, but {model} results are being used")
-            if model == 'kp8' and not color_by_fraction_of:
-                color_by_fraction_of = 'conduction_band'  # default
-            skip_annotation = False
-            for cnt, stateIndex in enumerate(state_indices):
-                ax.plot(x, psiSquared[stateIndex])
-
-                if show_state_index:
-                    xmax, ymax = CommonShortcuts.get_maximum_points(psiSquared[stateIndex], x)
-                    if skip_annotation:   # if annotation was skipped in the previous iteration, annotate
-                        # ax.annotate(f'n={stateIndex},{stateIndex+1}', xy=(xmax, ymax), xytext=(xmax-0.05*simLength, ymax+0.07))
-                        ax.annotate(f'{stateIndex},{stateIndex+1}', xy=(xmax, ymax), xytext=(xmax, ymax+0.07))
-                        skip_annotation = False   # wavefunction degeneracy is atmost 2
-                    elif cnt < len(state_indices)-1:  # if not the last state
-                        xmax_next, ymax_next = CommonShortcuts.get_maximum_points(psiSquared[stateIndex+1], x)
-                        if abs(xmax_next - xmax) < 1.0 and abs(ymax_next - ymax) < 1e-1:
-                            skip_annotation = True
-                        else:
-                            skip_annotation = False
-                            # ax.annotate(f'n={stateIndex+1}', xy=(xmax, ymax), xytext=(xmax-0.05*simLength, ymax+0.07))
-                            ax.annotate(f'{stateIndex+1}', xy=(xmax, ymax), xytext=(xmax, ymax+0.07))
-                    else:
-                        # ax.annotate(f'n={stateIndex+1}', xy=(xmax, ymax), xytext=(xmax-0.05*simLength, ymax+0.07))
-                        ax.annotate(f'{stateIndex+1}', xy=(xmax, ymax), xytext=(xmax, ymax+0.07))
-
+        
 
         # instantiate matplotlib subplot objects for bandedge & probability distribution & spinor pie charts
         fig, ax_probability = plt.subplots()
         model = 'kp8'
-        draw_bandedges(ax_probability, model, want_valence_band)
+        self.draw_bandedges(ax_probability, title, model, x, CBBandedge, want_valence_band, HHBandedge, LHBandedge)
         # ax_probability.set_title(f'{title} (quantum model: {model})', color=self.default_colors.bands[model])
 
 
@@ -2575,7 +2488,11 @@ class NEGFShortcuts(CommonShortcuts):
         #     cbar.set_label("Conduction-band fraction", fontsize=labelsize)
         #     cbar.ax.tick_params(labelsize=ticksize)
 
-        draw_probabilities(self, ax_probability, np.arange(nStates), model, show_state_index, color_by_fraction_of)
+        # TODO: extend
+        kIndex = None
+        scalarmappable = None
+        compositions = None
+        CommonShortcuts.draw_probabilities(ax_probability, np.arange(nStates), x, psiSquared, model, kIndex, show_state_index, color_by_fraction_of, scalarmappable, compositions)
 
         # ax_probability.legend(loc='lower left')
         ax_probability.legend(loc='upper left', framealpha=1.)
