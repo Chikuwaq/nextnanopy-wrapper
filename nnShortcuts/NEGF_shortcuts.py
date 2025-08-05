@@ -961,8 +961,8 @@ class NEGFShortcuts(CommonShortcuts):
         position, FermiElectron, FermiHole, ElectronHoleBorder = self.get_Fermi_levels(input_file_name, output_folder, bias, allow_folder_name_suffix)
         ax.plot(position.value, FermiElectron.value, color=color, linewidth=0.7, label=FermiElectron.label)
         ax.plot(position.value, FermiHole.value, color=color, linewidth=0.7, label=FermiHole.label)
-        if ElectronHoleBorder != CommonShortcuts.DUMMYVALUE:
-            ax.plot(position.value, ElectronHoleBorder.value, color=color, linewidth=0.7, linestyle='dashed')
+        # if ElectronHoleBorder != CommonShortcuts.DUMMYVALUE:
+        #     ax.plot(position.value, ElectronHoleBorder.value, color=color, linewidth=0.7, linestyle='dashed')
 
         E_FermiElectron = FermiElectron.value[0]
         E_FermiHole = FermiHole.value[0]
@@ -970,22 +970,22 @@ class NEGFShortcuts(CommonShortcuts):
         #     E_border = ElectronHoleBorder.value[0]
 
         zmax = np.amax(position.value)
-        pos_align_left = 0.05*zmax
+        pos_align_left = 0.04*zmax
         pos_align_right = 0.85*zmax
 
         isEquilibrium = (np.amin(FermiElectron.value) == np.amin(FermiHole.value)) and (np.amax(FermiElectron.value) == np.amax(FermiHole.value))
         if isEquilibrium:
-            ax.annotate("$E_F$", color=color, fontsize=labelsize, xy=(pos_align_right, E_FermiElectron), xytext=(pos_align_right, E_FermiElectron + 0.05))
+            ax.annotate("$E_\mathrm{F}$", color=color, fontsize=labelsize, xy=(pos_align_right, E_FermiElectron), xytext=(pos_align_right, E_FermiElectron + 0.05))
         else:
             ymin, ymax = ax.get_ylim()
             if (E_FermiElectron - E_FermiHole) < 0.1 * (ymax - ymin):
                 E_FermiElectron_shift = +0.03 * (ymax - ymin)
                 E_FermiHole_shift = -0.08 * (ymax - ymin)
             else:
-                E_FermiElectron_shift = +0.03
-                E_FermiHole_shift = +0.03
+                E_FermiElectron_shift = +0.02 * (ymax - ymin)
+                E_FermiHole_shift = E_FermiElectron_shift
             ax.annotate("$E_\mathrm{F}^\mathrm{e}$", color=color, fontsize=labelsize, xy=(pos_align_right, E_FermiElectron), xytext=(pos_align_right, E_FermiElectron + E_FermiElectron_shift))
-            ax.annotate("$E_\mathrm{F}^\mathrm{h}$", color=color, fontsize=labelsize, xy=(pos_align_left, E_FermiHole), xytext=(pos_align_left, E_FermiHole + E_FermiHole_shift))
+            ax.annotate("$E_\mathrm{F}^\mathrm{h}$", color=color, fontsize=labelsize, xy=(pos_align_right, E_FermiHole), xytext=(pos_align_right, E_FermiHole + E_FermiHole_shift))
             # if ElectronHoleBorder != CommonShortcuts.DUMMYVALUE:
             #     ax.annotate("e-h border", color=color, fontsize=labelsize, xy=(0.9 * zmax, ElectronHoleBorder), xytext=(0.9 * zmax, E_border + 0.03))
         return E_FermiElectron, E_FermiHole

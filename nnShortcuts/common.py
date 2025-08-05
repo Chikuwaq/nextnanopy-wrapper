@@ -1548,7 +1548,7 @@ class CommonShortcuts:
 
 
     @staticmethod
-    def draw_inplane_dispersion(ax, kPoints, dispersions, states_toBePlotted, flip_xAxis, set_ylabel, labelsize, title='Inplane dispersion', lattice_temperature=None):
+    def draw_inplane_dispersion(ax, kPoints, dispersions, states_toBePlotted, flip_xAxis, set_ylabel, labelsize, title='Inplane dispersion', lattice_temperature=None, show_kBT_at_energy=None):
         """
         flip_xAxis : bool
             if True, invert the x axis.
@@ -1575,10 +1575,13 @@ class CommonShortcuts:
             kBT = CommonShortcuts.Boltzmann * lattice_temperature * CommonShortcuts.scale_J_to_eV
             
             ymin, ymax = ax.get_ylim()
-            relative_position_k = 0.1
+            relative_position_k = 0.6
             x = (1-relative_position_k)*kmin + relative_position_k*kmax
-            relative_position_y = 0.5
-            y_from = (1-relative_position_y)*ymin + relative_position_y*ymax
+            if show_kBT_at_energy is None:
+                relative_position_y = 0.4
+                y_from = (1-relative_position_y)*ymin + relative_position_y*ymax
+            else:
+                y_from = show_kBT_at_energy
             y_to = y_from + kBT
 
             relative_position_k_text = relative_position_k + 0.25
@@ -1593,7 +1596,7 @@ class CommonShortcuts:
         self.set_plot_labels(ax, 'Position (nm)', 'Energy (eV)', plot_title)
 
         CVD_aware = True
-        color_CB, color_HH, color_LH = self.default_colors.get_linecolor_bandedges(CVD_aware)
+        color_CB, color_HH, color_LH = self.default_colors.get_linecolor_bandedges(CVD_aware, False)
         linestyle_CB, linestyle_HH, linestyle_LH = CommonShortcuts.get_linestyle_bandedges(CVD_aware)
 
         if model == 'Gamma' or model == 'kp8':
