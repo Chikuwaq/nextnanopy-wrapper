@@ -761,17 +761,19 @@ class SweepManager:
 
     ### Slurm methods #######################################################
     def is_slurm_simulation(self):
-        return self.slurm_data.node is not None
+        return self.slurm_data.partition is not None
 
 
-    def submit_sweep_to_slurm(self, suffix='', node='microcloud', email=None, num_CPU=4, memory_limit='8G', time_limit_hrs=5, exe=None, output_folder=None, database=None):
+    def submit_sweep_to_slurm(self, suffix='', partition='microcloud', nodelist=None, email=None, num_CPU=4, memory_limit='8G', time_limit_hrs=5, exe=None, output_folder=None, database=None):
         """
         Submit sweep simulations to Slurm workload manager.
 
         Parameters
         ----------
-            node : str
-                name of the computer node
+            partition : str
+                name of the computer partition
+            nodelist : str
+                specifies which node of the partition to use
             email : str
                 Email is sent when the last input file in the sweep has finished.
             num_CPU : int
@@ -780,7 +782,7 @@ class SweepManager:
                 Number of threads when hyperthreading = 2 * num_CPU
                 Optimal number of threads for omp parallelism <= (2 * num_CPU) / 2 = num_CPU
         """
-        self.generate_slurm_sbatches(suffix=suffix, node=node, email=email, num_CPU=num_CPU, memory_limit=memory_limit, time_limit_hrs=time_limit_hrs, exe=exe, output_folder=output_folder, database=database)
+        self.generate_slurm_sbatches(suffix=suffix, partition=partition, nodelist=nodelist, email=email, num_CPU=num_CPU, memory_limit=memory_limit, time_limit_hrs=time_limit_hrs, exe=exe, output_folder=output_folder, database=database)
 
         num_sbatch_scripts = len(self.slurm_data.sbatch_script_paths)
         self.save_sweep(num_sbatch_scripts)
@@ -796,11 +798,11 @@ class SweepManager:
 
 
 
-    def generate_slurm_sbatches(self, suffix='', node='microcloud', email=None, num_CPU=4, memory_limit='8G', time_limit_hrs=5, exe=None, output_folder=None, database=None):
+    def generate_slurm_sbatches(self, suffix='', partition='microcloud', nodelist=None, email=None, num_CPU=4, memory_limit='8G', time_limit_hrs=5, exe=None, output_folder=None, database=None):
         """
         Generate sbatch files to be submitted to Slurm workload manager.
         """
-        self.slurm_data.set(node, suffix, email, num_CPU, memory_limit, time_limit_hrs)
+        self.slurm_data.set(partition, nodelist, suffix, email, num_CPU, memory_limit, time_limit_hrs)
 
         # defaults
         if exe is None:           exe, = nn.config.get(self.shortcuts.product_name, 'exe'),
