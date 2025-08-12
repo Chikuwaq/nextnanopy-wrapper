@@ -186,7 +186,7 @@ class SlurmData:
 			f.write("#!/bin/bash\n\n")
 			f.write(f"#SBATCH --partition={self.partition}\n")
 			if self.nodelist is not None:
-				f.write(f"#SBATCH --nodelist={self.nodelist}")
+				f.write(f"#SBATCH --nodelist={self.nodelist}\n")
 			f.write(f"#SBATCH --cpus-per-task={self.num_CPU}\n")
 			f.write(f"#SBATCH --mem={self.memory_limit}\n")
 			f.write("#SBATCH --nodes=1\n")  # multinode parallelism with MPI not implemented in nextnano
