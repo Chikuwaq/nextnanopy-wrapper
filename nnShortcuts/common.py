@@ -1556,8 +1556,9 @@ class CommonShortcuts:
         """
         CVD_aware = True
         ax.set_xlabel("$k_x$ ($\mathrm{nm}^{-1}$)", fontsize=labelsize)
-        kmin = np.amin(kPoints)
-        kmax = np.amax(kPoints)
+        kmargin = 0.05 * (np.amax(kPoints) - np.amin(kPoints))
+        kmin = np.amin(kPoints) - kmargin
+        kmax = np.amax(kPoints) + kmargin
         ax.set_xlim(kmin, kmax)
 
         if CVD_aware:
@@ -1584,10 +1585,10 @@ class CommonShortcuts:
                 y_from = show_kBT_at_energy
             y_to = y_from + kBT
 
-            relative_position_k_text = relative_position_k + 0.25
+            relative_position_k_text = relative_position_k + 0.3
             x_text = (1-relative_position_k_text)*kmin + relative_position_k_text*kmax
             ax.vlines(x, y_from, y_to, colors='black')
-            ax.annotate("$k_\mathrm{B}T$", xy=(x, (y_to + y_from)/2.0), xytext=(x_text, (y_to + y_from)/2.0))
+            ax.annotate("$k_\mathrm{B}T$", xy=(x, (y_to + y_from)/2.0), xytext=(x_text, (y_to + y_from)/2.0), fontsize='large')
         # ax.legend(labels=states_toBePlotted+1, bbox_to_anchor=(1.05, 1))
         ax.set_title(title, fontsize=labelsize)
 

@@ -982,7 +982,7 @@ class NEGFShortcuts(CommonShortcuts):
                 E_FermiElectron_shift = +0.03 * (ymax - ymin)
                 E_FermiHole_shift = -0.08 * (ymax - ymin)
             else:
-                E_FermiElectron_shift = +0.02 * (ymax - ymin)
+                E_FermiElectron_shift = +0.03 * (ymax - ymin)
                 E_FermiHole_shift = E_FermiElectron_shift
             ax.annotate("$E_\mathrm{F}^\mathrm{e}$", color=color, fontsize=labelsize, xy=(pos_align_right, E_FermiElectron), xytext=(pos_align_right, E_FermiElectron + E_FermiElectron_shift))
             ax.annotate("$E_\mathrm{F}^\mathrm{h}$", color=color, fontsize=labelsize, xy=(pos_align_right, E_FermiHole), xytext=(pos_align_right, E_FermiHole + E_FermiHole_shift))
