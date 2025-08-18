@@ -868,9 +868,14 @@ class CommonShortcuts:
             if not CommonShortcuts.has_folder_starting_with(rest, parent_folder):
                 raise ValueError(f"Specified path {folder_path}* does not exist")
             candidate_folder_paths = CommonShortcuts.get_folders_starting_with(parent_folder, rest)
-            print("There are multiple candidates for the output folder paths.")
-            choice = CommonShortcuts.ask_user_to_choose_one(candidate_folder_paths)
-            folder_path = candidate_folder_paths[choice]
+            if len(candidate_folder_paths) > 1:
+                print("There are multiple candidates for the output folder paths.")
+                choice = CommonShortcuts.ask_user_to_choose_one(candidate_folder_paths)
+                folder_path = candidate_folder_paths[choice]
+            elif len(candidate_folder_paths) == 1:
+                folder_path = candidate_folder_paths[0]
+            else:
+                raise FileNotFoundError(f"No folder found starting with '{folder_path}'")
         else:
             if not os.path.exists(folder_path): 
                 raise ValueError(f"Specified path {folder_path} does not exist")
