@@ -182,9 +182,14 @@ class SlurmData:
 
 		# compose jobname which will be used to inquire job status by the commands `sacct` and/or `squeue`
 		words = first_filename.rstrip('_').split('_')
-		sweep_var_initial = words[-2][:1]
-		sweep_val = words[-1][:3]
-		jobname = f"{sweep_var_initial}{sweep_val}x{len(inputpaths)}"
+		if len(inputpaths) == 1:
+			sweep_var_initial = words[-2][:2]
+			sweep_val = words[-1][:6]
+			jobname = f"{sweep_var_initial}{sweep_val}"
+		else:
+			sweep_var_initial = words[-2][:2]
+			sweep_val = words[-1][:3]
+			jobname = f"{sweep_var_initial}{sweep_val}x{len(inputpaths)}"
 		
 		# write sbatch script
 		with open(scriptpath, 'w') as f:
