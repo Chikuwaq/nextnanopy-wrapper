@@ -822,11 +822,13 @@ class SweepManager:
 
     def wait_slurm_jobs(self):
         """
-        Wait until all jobs with the name `SlurmData.jobname` complete or fail.
+        Wait until all jobs in the queue disappear
+        TODO: Will be more useful to identify jobs by jobname composed in SlurmData.write_sbatch_script()
         """
         stopwatch = 0
 
-        while self.slurm_data.slurm_is_running():
+        # while self.slurm_data.slurm_is_running(jobname):
+        while self.slurm_data.job_remaining():
             time.sleep(10)
             stopwatch += 10
             logging.info(f"Slurm job(s) running... ({stopwatch} sec)")

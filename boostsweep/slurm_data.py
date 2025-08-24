@@ -7,7 +7,6 @@ from nnShortcuts.common import CommonShortcuts
 
 class SlurmData:
 	max_num_jobs_per_user = 8  # may be larger (check cluster's policy - also affected by numCPU requested and number of physical cores?)
-	jobname = 'nnSweep'  # used to inquire job status by the commands `sacct` and `squeue`
 	sbatch_file_name = "run_"
 	metascript_name = "submit_jobs.sh"
 
@@ -180,6 +179,12 @@ class SlurmData:
 		logfile = os.path.join(output_folder_path, f"%j_{sbatch_file_count}_{first_filename}.log")  # differentiate log file names to avoid conflicts when multiple SweepHelpers are submitting jobs
 		if os.path.isfile(logfile):
 			os.remove(logfile)
+
+		# compose jobname which will be used to inquire job status by the commands `sacct` and/or `squeue`
+		words = first_filename.split('_')
+		sweep_var_initial = words[-3][:1]
+		sweep_val = words[-2][:3]
+		jobname = f"{sweep_var_initial}{sweep_val}x{len(inputpaths)}"
 		
 		# write sbatch script
 		with open(scriptpath, 'w') as f:
@@ -194,7 +199,7 @@ class SlurmData:
 			f.write(f"#SBATCH --hint=multithread\n")
 			f.write(f"#SBATCH --output={logfile}\n")
 			f.write("\n")
-			f.write(f"#SBATCH --job-name={SlurmData.jobname}\n")
+			f.write(f"#SBATCH --job-name={jobname}\n")
 			f.write(f"#SBATCH --comment='Python Sweep simulation'\n")
 			if self.email is not None and is_last_sbatch_file:
 				f.write("#SBATCH --mail-type=end\n")
@@ -232,18 +237,30 @@ class SlurmData:
 				os.remove(metascript)
 
 
-	def slurm_is_running(self):
-		if SlurmData.jobname is None:
+	def slurm_is_running(self, jobname):
+		if jobname is None:
 			logging.error("Slurm job name is undefined!")
 		if self.partition is None:
 			logging.error("partition is undefined!")
 
 		# get the job status
 		# TODO: maybe `squeue` command is better since jobs aren't deleted from the list at midnight everyday.
-		commands = ['sacct', '|', 'grep', SlurmData.jobname, '|', 'grep', self.partition]
+		commands = ['sacct', '|', 'grep', jobname, '|', 'grep', self.partition]
 		result = subprocess.run(commands, capture_output=True, text=True)
 		if result.stdout == "":
 			logging.error("Could not read output of sacct command. I'm not sure if Slurm is still running.")
 			return False
 		return ('RUNNING' in result.stdout)
             
+
+	def job_remaining(self):
+		commands = ['squeue', '|', 'grep', self.partition, '|', 'grep', 'mug']
+		try:
+			result = subprocess.run(commands, capture_output=True, text=True)
+		except subprocess.CalledProcessError as e:
+			logging.error("Could not read output of squeue command.")
+			raise
+		if not result.stdout.strip():
+			return False
+		else:
+			return True
