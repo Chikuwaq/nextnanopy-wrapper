@@ -619,8 +619,11 @@ class NEGFShortcuts(CommonShortcuts):
             return position, datafile.variables['Electron Fermi level'], datafile.variables['Hole Fermi level'], datafile.variables['Electron-hole border']
         
 
-    def get_carrier_density_deviation(self, input_file_name, bias):
-        datafile = self.get_DataFile_NEGF_atBias("CarrierDensity_ElectronHole.dat", input_file_name, bias=bias)
+    def get_carrier_density_deviation(self, input_file_name, output_folder, bias, allow_folder_name_suffix):
+        if output_folder is None:
+            datafile = self.get_DataFile_NEGF_atBias("CarrierDensity_ElectronHole.dat", input_file_name, bias=bias, allow_folder_name_suffix=allow_folder_name_suffix)
+        else:
+            datafile = self.get_DataFile_NEGF_atBias("CarrierDensity_ElectronHole.dat", output_folder, bias=bias, allow_folder_name_suffix=allow_folder_name_suffix)
         return datafile.coords['Position'], datafile.variables['Electron density'], datafile.variables['Hole density']
 
 
@@ -991,8 +994,8 @@ class NEGFShortcuts(CommonShortcuts):
         return E_FermiElectron, E_FermiHole
         
 
-    def draw_1D_carrier_densities_on_2DPlot(self, ax, input_file_name, bias, labelsize, E_FermiElectron, E_FermiHole, dark_mode, scaling_factor=None):
-        position, electron_density, hole_density = self.get_carrier_density_deviation(input_file_name, bias)
+    def draw_1D_carrier_densities_on_2DPlot(self, ax, input_file_name, output_folder, bias, allow_folder_name_suffix, labelsize, E_FermiElectron, E_FermiHole, dark_mode, scaling_factor=None):
+        position, electron_density, hole_density = self.get_carrier_density_deviation(input_file_name, output_folder, bias, allow_folder_name_suffix)
         # max_density = np.amax(electron_density.value)
         # min_density = np.amin(hole_density.value)
         min_energy, max_energy = ax.get_ylim()
@@ -1153,7 +1156,7 @@ class NEGFShortcuts(CommonShortcuts):
             if showFermiLevel:
                 E_FermiElectron, E_FermiHole = self.draw_Fermi_levels_on_2DPlot(ax2, input_file_name, output_folder, bias, allow_folder_name_suffix, labelsize, is_divergent, dark_mode)
                 if showDensityDeviation:
-                    self.draw_1D_carrier_densities_on_2DPlot(ax2, input_file_name, bias, labelsize, E_FermiElectron, E_FermiHole, dark_mode, scaling_factor)
+                    self.draw_1D_carrier_densities_on_2DPlot(ax2, input_file_name, bias, allow_folder_name_suffix, labelsize, E_FermiElectron, E_FermiHole, dark_mode, scaling_factor)
 
             kPoints, dispersions, states_toBePlotted = self.__get_inplane_dispersion_atBias(input_file_name, output_folder, bias, allow_folder_name_suffix, 0, 0)  # TODO: implement user-defined state index range (see nnpShortcuts.plot_dispersion)
             CommonShortcuts.draw_inplane_dispersion(ax1, kPoints, dispersions, states_toBePlotted, True, True, labelsize, title='Dispersion', lattice_temperature=lattice_temperature, show_kBT_at_energy=(E_FermiElectron + E_FermiHole)/2.)  # dispersions[iState, ik]
@@ -1164,7 +1167,7 @@ class NEGFShortcuts(CommonShortcuts):
             if showFermiLevel:
                 E_FermiElectron, E_FermiHole = self.draw_Fermi_levels_on_2DPlot(ax, input_file_name, output_folder, bias, allow_folder_name_suffix, labelsize, is_divergent, dark_mode)
                 if showDensityDeviation:
-                    self.draw_1D_carrier_densities_on_2DPlot(ax, input_file_name, bias, labelsize, E_FermiElectron, E_FermiHole, dark_mode, scaling_factor)
+                    self.draw_1D_carrier_densities_on_2DPlot(ax, input_file_name, output_folder, bias, allow_folder_name_suffix, labelsize, E_FermiElectron, E_FermiHole, dark_mode, scaling_factor)
 
         fig.tight_layout()
 
@@ -1259,7 +1262,7 @@ class NEGFShortcuts(CommonShortcuts):
             if showFermiLevel:
                 E_FermiElectron, E_FermiHole = self.draw_Fermi_levels_on_2DPlot(ax2, input_file_name, output_folder, bias, allow_folder_name_suffix, labelsize, is_divergent, dark_mode)
                 if showDensityDeviation:
-                    self.draw_1D_carrier_densities_on_2DPlot(ax2, input_file_name, bias, labelsize, E_FermiElectron, E_FermiHole, dark_mode, scaling_factor)
+                    self.draw_1D_carrier_densities_on_2DPlot(ax2, input_file_name, output_folder, bias, allow_folder_name_suffix, labelsize, E_FermiElectron, E_FermiHole, dark_mode, scaling_factor)
             if texts is not None:
                 CommonShortcuts.place_texts(ax2, texts)
                 
@@ -1275,7 +1278,7 @@ class NEGFShortcuts(CommonShortcuts):
             if showFermiLevel:
                 E_FermiElectron, E_FermiHole = self.draw_Fermi_levels_on_2DPlot(ax, input_file_name, output_folder, bias, allow_folder_name_suffix, labelsize, is_divergent, dark_mode)
                 if showDensityDeviation:
-                    self.draw_1D_carrier_densities_on_2DPlot(ax, input_file_name, bias, labelsize, E_FermiElectron, E_FermiHole, dark_mode, scaling_factor)
+                    self.draw_1D_carrier_densities_on_2DPlot(ax, input_file_name, output_folder, bias, allow_folder_name_suffix, labelsize, E_FermiElectron, E_FermiHole, dark_mode, scaling_factor)
             if texts is not None:
                 CommonShortcuts.place_texts(ax, texts)
             
