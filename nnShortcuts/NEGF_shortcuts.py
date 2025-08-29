@@ -1001,16 +1001,18 @@ class NEGFShortcuts(CommonShortcuts):
         # rescale the density deviation so it fits within the energy range of ax
         if scaling_factor is None:
             scaling_factor = 0.05 * (max_energy - min_energy)  # NOTE: important to make it independent of carrier density data when visualizing carrier rebalancing
-        logging.info(f"Scaling deviation by {scaling_factor}")
+        logging.info(f"Scaling carrier density 1D plot by {scaling_factor}")
         electron_density_scaled = electron_density.value * scaling_factor
         hole_density_scaled = hole_density.value * scaling_factor
 
         if dark_mode:
+            # TODO
             linecolor = self.default_colors.lines_on_colormap['dark_bg'][1]
         else:
-            linecolor = self.default_colors.lines_on_colormap['bright_bg'][1]
-        ax.plot(position.value, E_FermiElectron + electron_density_scaled, color=linecolor, linewidth=1.0, label=electron_density.label)
-        ax.plot(position.value, E_FermiHole + hole_density_scaled, color=linecolor, linewidth=1.0, label=hole_density.label)
+            linecolor_e = 'red'
+            linecolor_h = 'blue'
+        ax.plot(position.value, E_FermiElectron + electron_density_scaled, color=linecolor_e, linewidth=1.0, label=electron_density.label)
+        ax.plot(position.value, E_FermiHole + hole_density_scaled, color=linecolor_h, linewidth=1.0, label=hole_density.label)
 
         # zmax = np.amax(position.value)
         # ax.annotate("", color=color, fontsize=labelsize, xy=(0.1*zmax, E_FermiElectron), xytext=(0.1*zmax, E_FermiElectron + 0.2))
@@ -1388,7 +1390,7 @@ class NEGFShortcuts(CommonShortcuts):
         else:
             pcolor = ax.pcolormesh(X, Y, Z.T, vmin=zmin, vmax=zmax, cmap=colormap)
 
-        if np.abs(Z).max() >= 1e3:
+        if np.abs(Z).max() >= 1e4:
             cbar = fig.colorbar(pcolor, format='%.1e')
         else:
             cbar = fig.colorbar(pcolor)
