@@ -346,7 +346,7 @@ class NEGFShortcuts(CommonShortcuts):
         return self.get_DataFiles_in_folder(keywords, search_folder, exclude_keywords)  # TODO: add options available
 
         
-    def get_DataFile_amplitudesK0_in_folder(self, folder_path):
+    def get_DataFile_amplitudesK0_in_folder(self, folder_path, bias):
         """
         Get single nextnanopy.DataFile of zone-center amplitude data in the folder of specified name.
         Shifted data is avoided since non-shifted one is used to calculate overlap and matrix elements.
@@ -357,7 +357,7 @@ class NEGFShortcuts(CommonShortcuts):
         RETURN:
             dictionary { quantum model key: list of nn.DataFile() objects for amplitude data }
         """
-        datafiles = self.get_DataFiles_NEGFInit_in_folder('EigenStates.dat', folder_path, search_raw_solution_folder=True, exclude_keywords=['shift', 'spinor'])   # return a list of nn.DataFile
+        datafiles = self.get_DataFile_NEGF_atBias('WavefunctionsCB1', folder_path, bias, allow_folder_name_suffix=False, is_fullpath=True)
 
         # amplitude_dict = {
         #     'Gamma': list(),
@@ -366,12 +366,10 @@ class NEGFShortcuts(CommonShortcuts):
         # }
         amplitude_dict = {model_name: list() for model_name in self.model_names}
         for df in datafiles:
-            filename = os.path.split(df.fullpath)[1]
-            quantum_model = 'kp8'  # currently, NEGF has amplitude output on in kp8
+            # TODO: exclude non k|| = 0 amplitudes
+            # filename = os.path.split(df.fullpath)[1]
+            quantum_model = 'kp8'  # currently, NEGF has amplitude output in kp8
 
-            if quantum_model == 'kp8' or quantum_model == 'kp6':
-                if '_k0' not in filename:
-                    continue   # exclude non k|| = 0 amplitudes
             amplitude_dict[quantum_model].append(df)
 
         # delete quantum model keys whose probabilities do not exist in output folder
@@ -2592,7 +2590,10 @@ class NEGFShortcuts(CommonShortcuts):
         try:
             datafile = self.get_DataFile_in_folder(['wavefunctions_spinor_composition_AngMom'], output_folder)   # spinor composition at in-plane k = 0
         except FileNotFoundError:
-            raise
+            try:
+                datafile = self.get_DataFile_in_folder(['spinor_composition_AngMom'], output_folder)   # spinor composition at in-plane k = 0
+            except FileNotFoundError:
+                raise
 
         # find the lowest conduction band state
         # nextnanopy.DataFile parses the labels in NEGF++ output file wrongly. But datafile.variables contain the data 'cb1 hh1 lh1 so1 cb2 hh2 lh2 so2 sum' for index 0-8
@@ -2635,7 +2636,10 @@ class NEGFShortcuts(CommonShortcuts):
         try:
             datafile = self.get_DataFile_in_folder(['wavefunctions_spinor_composition_AngMom'], output_folder)   # spinor composition at in-plane k = 0
         except FileNotFoundError:
-            raise
+            try:
+                datafile = self.get_DataFile_in_folder(['spinor_composition_AngMom'], output_folder)   # spinor composition at in-plane k = 0
+            except FileNotFoundError:
+                raise
 
         # find the highest valence band state
         # nextnanopy.DataFile parses the labels in NEGF++ output file wrongly. But datafile.variables contain the data 'cb1 hh1 lh1 so1 cb2 hh2 lh2 so2 sum' for index 0-8
@@ -2677,7 +2681,10 @@ class NEGFShortcuts(CommonShortcuts):
         try:
             datafile = self.get_DataFile_in_folder(['wavefunctions_spinor_composition_AngMom'], output_folder)   # spinor composition at in-plane k = 0
         except FileNotFoundError:
-            raise
+            try:
+                datafile = self.get_DataFile_in_folder(['spinor_composition_AngMom'], output_folder)   # spinor composition at in-plane k = 0
+            except FileNotFoundError:
+                raise
 
         # find the highest heavy-hole state
         # nextnanopy.DataFile parses the labels in NEGF++ output file wrongly. But datafile.variables contain the data 'cb1 hh1 lh1 so1 cb2 hh2 lh2 so2 sum' for index 0-8
@@ -2726,7 +2733,10 @@ class NEGFShortcuts(CommonShortcuts):
         try:
             datafile = self.get_DataFile_in_folder(['wavefunctions_spinor_composition_AngMom'], output_folder)   # spinor composition at in-plane k = 0
         except FileNotFoundError:
-            raise
+            try:
+                datafile = self.get_DataFile_in_folder(['spinor_composition_AngMom'], output_folder)   # spinor composition at in-plane k = 0
+            except FileNotFoundError:
+                raise
 
         # find the highest light-hole state
         # nextnanopy.DataFile parses the labels in NEGF++ output file wrongly. But datafile.variables contain the data 'cb1 hh1 lh1 so1 cb2 hh2 lh2 so2 sum' for index 0-8

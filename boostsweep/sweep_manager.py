@@ -888,8 +888,7 @@ class SweepManager:
 
 
     def __calc_output_data(self, force_lightHole, bias):
-        if self.shortcuts.product_name != 'nextnano.NEGF++':  # TODO: implement overlap calculation for NEGF 8kp
-            self.__calc_overlap(force_lightHole)
+        self.__calc_overlap(force_lightHole)
         self.__calc_transition_energies(force_lightHole)
         self.__calc_HH1_LH1_energy_differences()
         self.__calc_HH1_HH2_energy_differences()

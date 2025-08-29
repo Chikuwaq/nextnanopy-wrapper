@@ -24,7 +24,7 @@ import nextnanopy as nn
 from nextnanopy.utils.misc import mkdir_if_not_exist
 
 # my includes
-from .default_colors import DefaultColors
+from nnShortcuts.default_colors import DefaultColors
 
 
 # -------------------------------------------------------
