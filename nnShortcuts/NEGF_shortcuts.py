@@ -619,9 +619,9 @@ class NEGFShortcuts(CommonShortcuts):
 
     def get_carrier_density_deviation(self, input_file_name, output_folder, bias, allow_folder_name_suffix):
         if output_folder is None:
-            datafile = self.get_DataFile_NEGF_atBias("CarrierDensity_ElectronHole.dat", input_file_name, bias=bias, allow_folder_name_suffix=allow_folder_name_suffix)
+            datafile = self.get_DataFile_NEGF_atBias("CarrierDensity_ElectronHole.dat", input_file_name, bias=bias, allow_folder_name_suffix=allow_folder_name_suffix, is_fullpath=False)
         else:
-            datafile = self.get_DataFile_NEGF_atBias("CarrierDensity_ElectronHole.dat", output_folder, bias=bias, allow_folder_name_suffix=allow_folder_name_suffix)
+            datafile = self.get_DataFile_NEGF_atBias("CarrierDensity_ElectronHole.dat", output_folder, bias=bias, allow_folder_name_suffix=allow_folder_name_suffix, is_fullpath=True)
         return datafile.coords['Position'], datafile.variables['Electron density'], datafile.variables['Hole density']
 
 
