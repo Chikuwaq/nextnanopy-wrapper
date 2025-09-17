@@ -342,24 +342,27 @@ class SweepManager:
         is_float_type = isinstance(number, (float, np.floating))
 
         if is_integer_type or is_float_type:
-            n_digits = SweepManager.__count_nonzero_digits(number)
-            n_decimals = min(round_decimal, n_digits - 1)
-
-            scientific = f"{number:.{n_decimals}e}"
-            use_scientific = (len(scientific) < len(str(number)))  # do not use scientific format if the string would get longer
-
-            if use_scientific:
-                base, exponent = scientific.split('e')
-                base = base.rstrip('0')  # remove trailing zeros
-                exponent = exponent.lstrip('+')  # remove leading plus sign
-                exponent = exponent.lstrip('0')  # remove leading zeros
-                return f"{base}e{exponent}"
+            if number == 0:
+                return '0'
             else:
-                number_str = str(number)
-                if '.' in number_str:
-                    number_str = number_str.rstrip('0')  # remove trailing zeros
-                    number_str = number_str.rstrip('.')  # remove trailing decimal point
-                return number_str
+                n_digits = SweepManager.__count_nonzero_digits(number)
+                n_decimals = min(round_decimal, n_digits - 1)
+                
+                scientific = f"{number:.{n_decimals}e}"
+                use_scientific = (len(scientific) < len(str(number)))  # do not use scientific format if the string would get longer
+
+                if use_scientific:
+                    base, exponent = scientific.split('e')
+                    base = base.rstrip('0')  # remove trailing zeros
+                    exponent = exponent.lstrip('+')  # remove leading plus sign
+                    exponent = exponent.lstrip('0')  # remove leading zeros
+                    return f"{base}e{exponent}"
+                else:
+                    number_str = str(number)
+                    if '.' in number_str:
+                        number_str = number_str.rstrip('0')  # remove trailing zeros
+                        number_str = number_str.rstrip('.')  # remove trailing decimal point
+                    return number_str
         else:
             raise TypeError(f"'number' must be str, int, or float, but is {type(number)}!")
 
