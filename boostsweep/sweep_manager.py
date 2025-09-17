@@ -709,6 +709,9 @@ class SweepManager:
     def recover_original_filenames(self):
         if not self.isFilenameAbbreviated:
             return
+        if not self.__output_subfolders_exist():
+            logging.warning("Cannot recover output folder names because output subfolders do not exist.")
+            return
 
         logging.info(f"Recovering original input file name in output folder names...")
 
