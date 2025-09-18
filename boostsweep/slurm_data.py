@@ -116,7 +116,7 @@ class SlurmData:
 		num_sbatch_scripts = min(self.max_num_jobs_per_user, len(input_file_fullpaths))
 		
 		# unique ID to differentiate sbatch scripts because many SweepManager objects might generate scripts simultaneously.
-		# UUID has 16^n patters, where n is the number of digits of the ID.
+		# UUID has 16^n patterns, where n is the number of digits of the ID.
 		# Here we have (26 + 26 + 10)^n patterns, making the file names shorter
 		# NOTE: Assuming that upper and lower cases are distinguished in the filesystem (will not work on Windows).
 		id = SlurmData.__random_lowercase_letter() + SlurmData.__random_lowercase_letter() + SlurmData.__random_lowercase_letter() + SlurmData.__random_lowercase_letter()
@@ -199,7 +199,7 @@ class SlurmData:
 				f.write(f"#SBATCH --nodelist={self.nodelist}\n")
 			f.write(f"#SBATCH --cpus-per-task={self.num_CPU}\n")
 			f.write(f"#SBATCH --mem={self.memory_limit}\n")
-			f.write("#SBATCH --nodes=1\n")  # multinode parallelism with MPI not implemented in nextnano
+			f.write("#SBATCH --nodes=1\n")  # multi-node parallelism with MPI not implemented in nextnano
 			f.write(f"#SBATCH --time={self.time_limit_hrs}:00:00\n")
 			f.write(f"#SBATCH --hint=multithread\n")
 			f.write(f"#SBATCH --output={logfile}\n")
