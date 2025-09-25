@@ -22,6 +22,8 @@ class SlurmData:
 		self.output_folder = output_folder
 		self.unique_tag = None
 
+		self.job_ids = list()
+
 		self.metascript_paths = list()
 		self.sbatch_script_paths = list()
 
@@ -250,7 +252,7 @@ class SlurmData:
 
 		# get the job status
 		# TODO: maybe `squeue` command is better since jobs aren't deleted from the list at midnight everyday.
-		commands = ['sacct', '|', 'grep', jobname, '|', 'grep', self.partition]
+		commands = ["bash", "-c", "sacct | grep {jobname} | grep {self.partition}"]
 		result = subprocess.run(commands, capture_output=True, text=True)
 		if result.stdout == "":
 			logging.error("Could not read output of sacct command. I'm not sure if Slurm is still running.")
@@ -258,14 +260,24 @@ class SlurmData:
 		return ('RUNNING' in result.stdout)
             
 
-	def job_remaining(self):
-		commands = ['squeue', '|', 'grep', self.partition, '|', 'grep', 'mug']
+	def job_remaining(self, username):
+		# commands = ["bash", "-c", "squeue | grep {self.partition} | grep mug"]
+		job_list = ""
+		for id in self.job_ids:
+			job_list += id + ','
+		job_list.rstrip(',')
+		commands = ["squeue", "-u", username, "-j", job_list]
+
 		try:
-			result = subprocess.run(commands, capture_output=True, text=True)
+			result = subprocess.run(commands, capture_output=True, text=True, check=True)
 		except subprocess.CalledProcessError as e:
 			logging.error("Could not read output of squeue command.")
 			raise
-		if not result.stdout.strip():
-			return False
-		else:
+
+		# squeue output always has a header line even if no jobs,
+		# so check if there's more than one line of output
+		lines = result.stdout.strip().splitlines()
+		if len(lines) > 1:
 			return True
+		else:
+			return False

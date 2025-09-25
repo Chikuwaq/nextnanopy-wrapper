@@ -797,8 +797,14 @@ class SweepManager:
         num_metascripts = len(self.slurm_data.metascript_paths)
         for iMetascript, metascript_path in enumerate(self.slurm_data.metascript_paths):  # Currently, only one metascript is generated.
             logging.info(f"Submitting jobs to Slurm (metascript {metascript_path}, {iMetascript+1} / {num_metascripts})...")
-            subprocess.run(['bash', metascript_path])
-            # self.wait_slurm_jobs()
+            result = subprocess.run(['bash', metascript_path], capture_output=True, text=True, check=True)
+            print(result.stdout)
+
+            # store job ID to monitor status
+            output_lines = result.stdout.strip().split('\n')
+            for line in output_lines:
+                id = line.split()[-1]
+                self.slurm_data.job_ids.append(id)
 
         # point to the new output in case old simulation outputs exist with original file name
         self.isFilenameAbbreviated = (self.master_input_file['short'].fullpath != self.master_input_file['original'].fullpath)
@@ -827,15 +833,14 @@ class SweepManager:
         self.slurm_data.delete_sbatch_scripts()
 
 
-    def wait_slurm_jobs(self):
+    def wait_slurm_jobs(self, username):
         """
-        Wait until all jobs in the queue disappear
-        TODO: Will be more useful to identify jobs by jobname composed in SlurmData.write_sbatch_script()
+        Wait until all jobs in the queue disappear.
         """
         stopwatch = 0
 
         # while self.slurm_data.slurm_is_running(jobname):
-        while self.slurm_data.job_remaining():
+        while self.slurm_data.job_remaining(username):
             time.sleep(10)
             stopwatch += 10
             logging.info(f"Slurm job(s) running... ({stopwatch} sec)")
