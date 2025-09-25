@@ -747,7 +747,8 @@ class SweepManager:
 
         # delete the input file whose name has been abbreviated
         if self.isFilenameAbbreviated:
-            os.remove(self.master_input_file['short'].fullpath)
+            if os.path.exists(self.master_input_file['short'].fullpath):
+                os.remove(self.master_input_file['short'].fullpath)
         logging.info("Sweep (temporary) input files deleted.")
 
 
