@@ -843,7 +843,7 @@ class SweepManager:
         while self.slurm_data.job_remaining(username):
             time.sleep(10)
             stopwatch += 10
-            logging.info(f"Slurm job(s) running... ({stopwatch} sec)")
+            logging.info(f"Slurm job(s) {self.slurm_data.job_ids} running... ({stopwatch} sec)")
 
 
     ### Import methods #######################################################

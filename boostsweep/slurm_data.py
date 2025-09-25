@@ -261,6 +261,9 @@ class SlurmData:
             
 
 	def job_remaining(self, username):
+		"""
+		Return true if any of self.job_ids are still running.
+		"""
 		# commands = ["bash", "-c", "squeue | grep {self.partition} | grep mug"]
 		job_list = ""
 		for id in self.job_ids:
