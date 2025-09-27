@@ -837,13 +837,13 @@ class SweepManager:
         """
         Wait until all jobs in the queue disappear.
         """
+        job_ids = [int(id) for id in self.slurm_data.job_ids]
+        
         stopwatch = 0
-
-        # while self.slurm_data.slurm_is_running(jobname):
         while self.slurm_data.job_remaining(username):
             time.sleep(10)
             stopwatch += 10
-            logging.info(f"Slurm job(s) {self.slurm_data.job_ids} running... ({stopwatch} sec)")
+            logging.info(f"Slurm job(s) {job_ids[:5]} running... ({stopwatch} sec)")
 
 
     ### Import methods #######################################################
