@@ -841,7 +841,7 @@ class SweepManager:
         if len(job_ids) <= 5:
             job_ids_print = [int(id) for id in self.slurm_data.job_ids]
         else:
-            job_ids_print = job_ids[0] + ", " + job_ids[1] + ", ..., " + job_ids[-2] + ", " + job_ids[-1]
+            job_ids_print = "[" + job_ids[0] + ", " + job_ids[1] + ", ..., " + job_ids[-2] + ", " + job_ids[-1] + "]"
         stopwatch = 0
         while self.slurm_data.job_remaining(username):
             time.sleep(10)
