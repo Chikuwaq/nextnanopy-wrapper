@@ -975,18 +975,22 @@ class NEGFShortcuts(CommonShortcuts):
                 i_position_of_steps.append(i_position)
             previous_energy = energy
 
-        i_position_last_step = i_position_of_steps[n_steps - 1]
-        i_position_second_last_step = i_position_of_steps[n_steps - 2]
-        E_FermiElectron = FermiElectron.value[i_position_last_step - 1]
-        E_FermiHole = FermiHole.value[i_position_last_step - 1]
+        if n_steps >= 1:
+            i_position_last_step = i_position_of_steps[n_steps - 1]
+            i_position_second_last_step = i_position_of_steps[n_steps - 2]
+            E_FermiElectron = FermiElectron.value[i_position_last_step - 1]
+            E_FermiHole = FermiHole.value[i_position_last_step - 1]
+            pos_align_left = position.value[i_position_second_last_step + 1]
+            pos_align_right = position.value[i_position_last_step - 1] - 5.
+        else:
+            E_FermiElectron = FermiElectron.value[0]
+            E_FermiHole = FermiHole.value[0]
+            zmax = np.amax(position.value)
+            pos_align_left = 0.04*zmax
+            pos_align_right = 0.85*zmax
         # if ElectronHoleBorder != CommonShortcuts.DUMMYVALUE:
         #     E_border = ElectronHoleBorder.value[0]
 
-        # zmax = np.amax(position.value)
-        # pos_align_left = 0.04*zmax
-        # pos_align_right = 0.85*zmax
-        pos_align_left = position.value[i_position_second_last_step + 1]
-        pos_align_right = position.value[i_position_last_step - 1] - 5.
 
         isEquilibrium = (np.amin(FermiElectron.value) == np.amin(FermiHole.value)) and (np.amax(FermiElectron.value) == np.amax(FermiHole.value))
         if isEquilibrium:
