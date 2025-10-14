@@ -1688,6 +1688,7 @@ class CommonShortcuts:
     def export_figs(self, 
             figFilename, 
             figFormat, 
+            dpi=300,
             output_subfolder_name='nextnanopy', 
             output_folder_path='', 
             fig=None
@@ -1707,6 +1708,10 @@ class CommonShortcuts:
             JPG = lower quality, lossy compression, small size (not recommended)
             SVG = supports animations and image editing for e.g. Adobe Illustrator
 
+        dpi : float, optional
+            DPI value for the image
+            The default is 300.
+            
         output_subfolder_name : str, optional
             subfolder name in the output directory specified in the config
             The default is 'nextnanopy'
@@ -1762,6 +1767,6 @@ class CommonShortcuts:
                 for figure in range(1, plt.gcf().number + 1):
                     pdf.savefig(figure)
         else:
-            fig.savefig(export_fullpath, dpi=300, bbox_inches='tight')  # 'tight' bbox ensures that legends outside of axes frame is included in the image
+            fig.savefig(export_fullpath, dpi=dpi, facecolor='w', bbox_inches='tight')  # 'tight' bbox ensures that legends outside of axes frame is included in the image
 
 
