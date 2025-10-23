@@ -1553,7 +1553,19 @@ class CommonShortcuts:
 
 
     @staticmethod
-    def draw_inplane_dispersion(ax, kPoints, dispersions, states_toBePlotted, flip_xAxis, set_ylabel, labelsize, title='Inplane dispersion', lattice_temperature=None, show_kBT_at_energy=None):
+    def draw_inplane_dispersion(
+            ax, 
+            kPoints, 
+            dispersions, 
+            states_toBePlotted, 
+            flip_xAxis, 
+            set_ylabel, 
+            labelsize, 
+            ticksize, 
+            title='Inplane dispersion', 
+            lattice_temperature=None, 
+            show_kBT_at_energy=None
+            ):
         """
         flip_xAxis : bool
             if True, invert the x axis.
@@ -1572,6 +1584,8 @@ class CommonShortcuts:
             color = 'orange'
         for index in states_toBePlotted:
             ax.plot(kPoints, dispersions[index, ], linestyle='', marker='.', markersize=3, label=f'Band_{index+1}', color=color) #linewidth=0.7
+        ax.tick_params(labelsize=ticksize)
+        
         if flip_xAxis:
             ax.invert_xaxis()
             ax.grid(axis='y')

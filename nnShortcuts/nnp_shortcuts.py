@@ -341,7 +341,7 @@ class nnpShortcuts(CommonShortcuts):
         ax.tick_params(axis='x', labelsize=ticksize)
         ax.tick_params(axis='y', labelsize=ticksize)
         kPoints, dispersions, states_toBePlotted = self.__get_inplane_dispersion(name, startIdx, stopIdx)
-        CommonShortcuts.draw_inplane_dispersion(ax, kPoints, dispersions, states_toBePlotted, lattice_temperature=lattice_temperature)
+        CommonShortcuts.draw_inplane_dispersion(ax, kPoints, dispersions, states_toBePlotted, False, False, labelsize, ticksize, lattice_temperature=lattice_temperature)
         fig.tight_layout()
 
         #-------------------------------------------
