@@ -1067,7 +1067,7 @@ class NEGFShortcuts(CommonShortcuts):
         return self.__get_inplane_dispersion_core(datafiles_dispersion[0], startIdx, stopIdx)
 
 
-    def __get_inplane_dispersion_atBias(self, input_file_name, output_folder, bias, allow_folder_name_suffix, startIdx, stopIdx):
+    def get_inplane_dispersion_atBias(self, input_file_name, output_folder, bias, allow_folder_name_suffix, startIdx, stopIdx):
         """
         Search for in-plane dispersion data at specified bias.
 
@@ -1178,7 +1178,7 @@ class NEGFShortcuts(CommonShortcuts):
                 show_kBT_at_energy = (E_FermiElectron + E_FermiHole)/2.
             else:
                 show_kBT_at_energy = None
-            kPoints, dispersions, states_toBePlotted = self.__get_inplane_dispersion_atBias(input_file_name, output_folder, bias, allow_folder_name_suffix, 0, 0)  # TODO: implement user-defined state index range (see nnpShortcuts.plot_dispersion)
+            kPoints, dispersions, states_toBePlotted = self.get_inplane_dispersion_atBias(input_file_name, output_folder, bias, allow_folder_name_suffix, 0, 0)  # TODO: implement user-defined state index range (see nnpShortcuts.plot_dispersion)
             CommonShortcuts.draw_inplane_dispersion(ax1, kPoints, dispersions, states_toBePlotted, True, True, labelsize, title='Dispersion', lattice_temperature=lattice_temperature, show_kBT_at_energy=show_kBT_at_energy)  # dispersions[iState, ik]
         else:
             fig, ax = plt.subplots()
@@ -1291,7 +1291,7 @@ class NEGFShortcuts(CommonShortcuts):
                 CommonShortcuts.place_texts(ax2, texts)
                 
             # dispersion plot
-            kPoints, dispersions, states_toBePlotted = self.__get_inplane_dispersion_atBias(input_file_name, output_folder, bias, allow_folder_name_suffix, 0, 0)  # TODO: implement user-defined state index range (see nnpShortcuts.plot_dispersion)
+            kPoints, dispersions, states_toBePlotted = self.get_inplane_dispersion_atBias(input_file_name, output_folder, bias, allow_folder_name_suffix, 0, 0)  # TODO: implement user-defined state index range (see nnpShortcuts.plot_dispersion)
             CommonShortcuts.draw_inplane_dispersion(ax1, kPoints, dispersions, states_toBePlotted, True, True, labelsize, title='Dispersion', lattice_temperature=lattice_temperature, show_kBT_at_energy=show_kBT_at_energy)  # dispersions[iState, ik]
         else:
             fig, ax = plt.subplots()
