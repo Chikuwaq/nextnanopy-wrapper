@@ -1562,6 +1562,8 @@ class CommonShortcuts:
             set_ylabel, 
             labelsize, 
             ticksize, 
+            annotatesize,
+            markersize=3,
             title='Inplane dispersion', 
             lattice_temperature=None, 
             show_kBT_at_energy=None
@@ -1583,14 +1585,14 @@ class CommonShortcuts:
         else:
             color = 'orange'
         for index in states_toBePlotted:
-            ax.plot(kPoints, dispersions[index, ], linestyle='', marker='.', markersize=3, label=f'Band_{index+1}', color=color) #linewidth=0.7
+            ax.plot(kPoints, dispersions[index, ], linestyle='', marker='.', markersize=markersize, label=f'Band_{index+1}', color=color) #linewidth=0.7
         ax.tick_params(labelsize=ticksize)
         
         if flip_xAxis:
             ax.invert_xaxis()
             ax.grid(axis='y')
         if set_ylabel:
-            ax.set_ylabel("Energy (eV)", fontsize=labelsize)
+            ax.set_ylabel("Energy ($\mathrm{eV}$)", fontsize=labelsize)
         if lattice_temperature is not None:
             kBT = CommonShortcuts.Boltzmann * lattice_temperature * CommonShortcuts.scale_J_to_eV
             
@@ -1604,10 +1606,10 @@ class CommonShortcuts:
                 y_from = show_kBT_at_energy
             y_to = y_from + kBT
 
-            relative_position_k_text = relative_position_k + 0.3
+            relative_position_k_text = relative_position_k + 0.35
             x_text = (1-relative_position_k_text)*kmin + relative_position_k_text*kmax
             ax.vlines(x, y_from, y_to, colors='black')
-            ax.annotate("$k_\mathrm{B}T$", xy=(x, (y_to + y_from)/2.0), xytext=(x_text, (y_to + y_from)/2.0), fontsize='large')
+            ax.annotate("$k_\mathrm{B}T$", xy=(x, (y_to + y_from)/2.0), xytext=(x_text, (y_to + y_from)/2.0), fontsize=annotatesize)
         # ax.legend(labels=states_toBePlotted+1, bbox_to_anchor=(1.05, 1))
         ax.set_title(title, fontsize=labelsize)
 

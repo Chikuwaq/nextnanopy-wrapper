@@ -706,8 +706,8 @@ class NEGFShortcuts(CommonShortcuts):
         WS_states = [CommonShortcuts.mask_part_of_array(WS_state) for WS_state in WS_states]   # hide flat tails
 
         fig, ax = plt.subplots()
-        ax.set_xlabel("Position $z$ (nm)", fontsize=labelsize)
-        ax.set_ylabel("Energy (eV)", fontsize=labelsize)
+        ax.set_xlabel("Position $z$ ($\mathrm{nm}$)", fontsize=labelsize)
+        ax.set_ylabel("Energy ($\mathrm{eV}$)", fontsize=labelsize)
         ax.set_title('Wannier-Stark states', fontsize=labelsize)
         ax.tick_params(axis='x', labelsize=ticksize)
         ax.tick_params(axis='y', labelsize=ticksize)
@@ -904,7 +904,16 @@ class NEGFShortcuts(CommonShortcuts):
         return x, y, quantity, is_divergent
 
 
-    def draw_bandedges_on_2DPlot(self, ax, bias, allow_folder_name_suffix, shadowBandgap, dark_mode, input_file_name=None, output_folder=None):
+    def draw_bandedges_on_2DPlot(self, 
+                                ax, 
+                                bias, 
+                                allow_folder_name_suffix, 
+                                shadowBandgap, 
+                                dark_mode, 
+                                linewidth=1.0,
+                                input_file_name=None, 
+                                output_folder=None
+                                ):
         CB = None
         LH = None
         HH = None
@@ -923,11 +932,11 @@ class NEGFShortcuts(CommonShortcuts):
         color_CB, color_HH, color_LH = self.default_colors.get_linecolor_bandedges(CVD_aware, dark_mode)
         linestyle_CB, linestyle_HH, linestyle_LH = CommonShortcuts.get_linestyle_bandedges(CVD_aware)
 
-        ax.plot(position.value, CB.value, color=color_CB, linestyle=linestyle_CB, linewidth=1.0, label=CB.label)
+        ax.plot(position.value, CB.value, color=color_CB, linestyle=linestyle_CB, linewidth=linewidth, label=CB.label)
         if LH is not None: 
-            ax.plot(position.value, LH.value, color=color_LH, linestyle=linestyle_HH, linewidth=1.0, label=LH.label)
+            ax.plot(position.value, LH.value, color=color_LH, linestyle=linestyle_HH, linewidth=linewidth, label=LH.label)
         if HH is not None: 
-            ax.plot(position.value, HH.value, color=color_HH, linestyle=linestyle_LH, linewidth=1.0, label=HH.label)
+            ax.plot(position.value, HH.value, color=color_HH, linestyle=linestyle_LH, linewidth=linewidth, label=HH.label)
 
         if shadowBandgap:
             # fill the gap
@@ -939,7 +948,7 @@ class NEGFShortcuts(CommonShortcuts):
                 ax.fill_between(position.value, VBTop, CB.value, color=self.default_colors.bandgap_fill)
             
 
-    def draw_Fermi_levels_on_2DPlot(self, ax, input_file_name, output_folder, bias, allow_folder_name_suffix, labelsize, is_divergent, dark_mode):
+    def draw_Fermi_levels_on_2DPlot(self, ax, input_file_name, output_folder, bias, allow_folder_name_suffix, annotatesize, is_divergent, dark_mode):
         """
         Returns
         -------
@@ -994,7 +1003,7 @@ class NEGFShortcuts(CommonShortcuts):
 
         isEquilibrium = (np.amin(FermiElectron.value) == np.amin(FermiHole.value)) and (np.amax(FermiElectron.value) == np.amax(FermiHole.value))
         if isEquilibrium:
-            ax.annotate("$E_\mathrm{F}$", color=color, fontsize=labelsize, xy=(pos_align_right, E_FermiElectron), xytext=(pos_align_right, E_FermiElectron + 0.05))
+            ax.annotate("$E_\mathrm{F}$", color=color, fontsize=annotatesize, xy=(pos_align_right, E_FermiElectron), xytext=(pos_align_right, E_FermiElectron + 0.05))
         else:
             ymin, ymax = ax.get_ylim()
             if (E_FermiElectron - E_FermiHole) < 0.1 * (ymax - ymin):
@@ -1003,8 +1012,8 @@ class NEGFShortcuts(CommonShortcuts):
             else:
                 E_FermiElectron_shift = +0.03 * (ymax - ymin)
                 E_FermiHole_shift = E_FermiElectron_shift
-            ax.annotate("$E_\mathrm{F}^\mathrm{e}$", color=color, fontsize=labelsize, xy=(pos_align_right, E_FermiElectron), xytext=(pos_align_right, E_FermiElectron + E_FermiElectron_shift))
-            ax.annotate("$E_\mathrm{F}^\mathrm{h}$", color=color, fontsize=labelsize, xy=(pos_align_right, E_FermiHole), xytext=(pos_align_right, E_FermiHole + E_FermiHole_shift))
+            ax.annotate("$E_\mathrm{F}^\mathrm{e}$", color=color, fontsize=annotatesize, xy=(pos_align_right, E_FermiElectron), xytext=(pos_align_right, E_FermiElectron + E_FermiElectron_shift))
+            ax.annotate("$E_\mathrm{F}^\mathrm{h}$", color=color, fontsize=annotatesize, xy=(pos_align_right, E_FermiHole), xytext=(pos_align_right, E_FermiHole + E_FermiHole_shift))
             # if ElectronHoleBorder != CommonShortcuts.DUMMYVALUE:
             #     ax.annotate("e-h border", color=color, fontsize=labelsize, xy=(0.9 * zmax, ElectronHoleBorder), xytext=(0.9 * zmax, E_border + 0.03))
         return E_FermiElectron, E_FermiHole
@@ -1123,6 +1132,8 @@ class NEGFShortcuts(CommonShortcuts):
             output_folder=None,
             labelsize=CommonShortcuts.labelsize_default,
             ticksize=CommonShortcuts.ticksize_default,
+            annotatesize=CommonShortcuts.ticksize_default,
+            markersize=3,
             Emin=None,
             Emax=None,
             zmin=None,
@@ -1162,7 +1173,7 @@ class NEGFShortcuts(CommonShortcuts):
         unit = r'$\mathrm{nm}^{-1} \mathrm{eV}^{-1}$'
         if title is None:
             title = 'Density of states'
-        xlabel = "Position $z$ (nm)"
+        xlabel = "Position $z$ ($\mathrm{nm}$)"
 
         if attachDispersion:
             # Create subplots with shared y-axis and remove spacing
@@ -1170,7 +1181,7 @@ class NEGFShortcuts(CommonShortcuts):
             plt.subplots_adjust(wspace=0)
 
             NEGFShortcuts.draw_2D_color_plot(fig, ax2, x.value, y.value, quantity.value, is_divergent, colormap, title, unit, bias, labelsize, ticksize, Emin, Emax, zmin, zmax, showBias, xlabel=xlabel, ylabel=None)
-            self.draw_bandedges_on_2DPlot(ax2, bias, allow_folder_name_suffix, shadowBandgap, dark_mode, input_file_name=input_file_name, output_folder=output_folder)
+            self.draw_bandedges_on_2DPlot(ax2, bias, allow_folder_name_suffix, shadowBandgap, dark_mode, linewidth=1.0, input_file_name=input_file_name, output_folder=output_folder)
             if showFermiLevel:
                 E_FermiElectron, E_FermiHole = self.draw_Fermi_levels_on_2DPlot(ax2, input_file_name, output_folder, bias, allow_folder_name_suffix, labelsize, is_divergent, dark_mode)
                 if showDensityDeviation:
@@ -1179,11 +1190,11 @@ class NEGFShortcuts(CommonShortcuts):
             else:
                 show_kBT_at_energy = None
             kPoints, dispersions, states_toBePlotted = self.get_inplane_dispersion_atBias(input_file_name, output_folder, bias, allow_folder_name_suffix, 0, 0)  # TODO: implement user-defined state index range (see nnpShortcuts.plot_dispersion)
-            CommonShortcuts.draw_inplane_dispersion(ax1, kPoints, dispersions, states_toBePlotted, True, True, labelsize, ticksize, title='Dispersion', lattice_temperature=lattice_temperature, show_kBT_at_energy=show_kBT_at_energy)  # dispersions[iState, ik]
+            CommonShortcuts.draw_inplane_dispersion(ax1, kPoints, dispersions, states_toBePlotted, True, True, labelsize, ticksize, annotatesize, markersize=markersize, title='Dispersion', lattice_temperature=lattice_temperature, show_kBT_at_energy=show_kBT_at_energy)  # dispersions[iState, ik]
         else:
             fig, ax = plt.subplots()
             NEGFShortcuts.draw_2D_color_plot(fig, ax, x.value, y.value, quantity.value, is_divergent, colormap, title, unit, bias, labelsize, ticksize, Emin, Emax, zmin, zmax, showBias, xlabel=xlabel)
-            self.draw_bandedges_on_2DPlot(ax, bias, allow_folder_name_suffix, shadowBandgap, dark_mode, input_file_name=input_file_name, output_folder=output_folder)
+            self.draw_bandedges_on_2DPlot(ax, bias, allow_folder_name_suffix, shadowBandgap, dark_mode, linewidth=1.0, input_file_name=input_file_name, output_folder=output_folder)
             if showFermiLevel:
                 E_FermiElectron, E_FermiHole = self.draw_Fermi_levels_on_2DPlot(ax, input_file_name, output_folder, bias, allow_folder_name_suffix, labelsize, is_divergent, dark_mode)
                 if showDensityDeviation:
@@ -1211,6 +1222,8 @@ class NEGFShortcuts(CommonShortcuts):
             output_folder=None,
             labelsize=CommonShortcuts.labelsize_default,
             ticksize=CommonShortcuts.ticksize_default,
+            annotatesize=CommonShortcuts.ticksize_default,
+            markersize=3,
             Emin=None,
             Emax=None,
             zmin=None,
@@ -1269,7 +1282,7 @@ class NEGFShortcuts(CommonShortcuts):
             else:
                 title = 'Electron density'
         quantity.value *= 1e-18
-        xlabel = "Position $z$ (nm)"
+        xlabel = "Position $z$ ($\mathrm{nm}$)"
 
         if attachDispersion:
             # Create subplots with shared y-axis and remove spacing
@@ -1278,7 +1291,7 @@ class NEGFShortcuts(CommonShortcuts):
 
             # 2D color plot
             NEGFShortcuts.draw_2D_color_plot(fig, ax2, x.value, y.value, quantity.value, is_divergent, colormap, title, unit, bias, labelsize, ticksize, Emin, Emax, zmin, zmax, showBias, xlabel=xlabel, ylabel=None)
-            self.draw_bandedges_on_2DPlot(ax2, bias, allow_folder_name_suffix, shadowBandgap, dark_mode, input_file_name=input_file_name, output_folder=output_folder)
+            self.draw_bandedges_on_2DPlot(ax2, bias, allow_folder_name_suffix, shadowBandgap, dark_mode, linewidth=1.0, input_file_name=input_file_name, output_folder=output_folder)
             if showFermiLevel:
                 E_FermiElectron, E_FermiHole = self.draw_Fermi_levels_on_2DPlot(ax2, input_file_name, output_folder, bias, allow_folder_name_suffix, labelsize, is_divergent, dark_mode)
                 if showDensityDeviation:
@@ -1292,13 +1305,13 @@ class NEGFShortcuts(CommonShortcuts):
                 
             # dispersion plot
             kPoints, dispersions, states_toBePlotted = self.get_inplane_dispersion_atBias(input_file_name, output_folder, bias, allow_folder_name_suffix, 0, 0)  # TODO: implement user-defined state index range (see nnpShortcuts.plot_dispersion)
-            CommonShortcuts.draw_inplane_dispersion(ax1, kPoints, dispersions, states_toBePlotted, True, True, labelsize, ticksize, title='Dispersion', lattice_temperature=lattice_temperature, show_kBT_at_energy=show_kBT_at_energy)  # dispersions[iState, ik]
+            CommonShortcuts.draw_inplane_dispersion(ax1, kPoints, dispersions, states_toBePlotted, True, True, labelsize, ticksize, annotatesize, markersize=markersize, title='Dispersion', lattice_temperature=lattice_temperature, show_kBT_at_energy=show_kBT_at_energy)  # dispersions[iState, ik]
         else:
             fig, ax = plt.subplots()
 
             # 2D color plot
             NEGFShortcuts.draw_2D_color_plot(fig, ax, x.value, y.value, quantity.value, is_divergent, colormap, title, unit, bias, labelsize, ticksize, Emin, Emax, zmin, zmax, showBias, xlabel=xlabel)
-            self.draw_bandedges_on_2DPlot(ax, bias, allow_folder_name_suffix, shadowBandgap, dark_mode, input_file_name=input_file_name, output_folder=output_folder)
+            self.draw_bandedges_on_2DPlot(ax, bias, allow_folder_name_suffix, shadowBandgap, dark_mode, linewidth=1.0, input_file_name=input_file_name, output_folder=output_folder)
             if showFermiLevel:
                 E_FermiElectron, E_FermiHole = self.draw_Fermi_levels_on_2DPlot(ax, input_file_name, output_folder, bias, allow_folder_name_suffix, labelsize, is_divergent, dark_mode)
                 if showDensityDeviation:
@@ -1368,11 +1381,11 @@ class NEGFShortcuts(CommonShortcuts):
         unit = r'$\mathrm{A}$ $\mathrm{cm}^{-2} \mathrm{eV}^{-1}$'
         label = 'Current density'
         quantity.value *= 1  #1e-3
-        xlabel = "Position $z$ (nm)"
+        xlabel = "Position $z$ ($\mathrm{nm}$)"
 
         fig, ax = plt.subplots()
         NEGFShortcuts.draw_2D_color_plot(fig, ax, x.value, y.value, quantity.value, is_divergent, colormap, label, unit, bias, labelsize, ticksize, Emin, Emax, zmin, zmax, showBias, xlabel=xlabel)
-        self.draw_bandedges_on_2DPlot(ax, bias, allow_folder_name_suffix, shadowBandgap, dark_mode, input_file_name=input_file_name, output_folder=output_folder) # needs to be before drawing the current density not to mask tunneling currents
+        self.draw_bandedges_on_2DPlot(ax, bias, allow_folder_name_suffix, shadowBandgap, dark_mode, linewidth=1.0, input_file_name=input_file_name, output_folder=output_folder) # needs to be before drawing the current density not to mask tunneling currents
 
         if texts is not None:
                 CommonShortcuts.place_texts(ax, texts)
@@ -1393,7 +1406,28 @@ class NEGFShortcuts(CommonShortcuts):
 
 
     @staticmethod
-    def draw_2D_color_plot(fig, ax, X, Y, Z, is_divergent, colormap, label, cbar_unit, bias, labelsize, ticksize, ymin, ymax, zmin, zmax, showBias, xlabel=None, ylabel="Energy (eV)", cbar_label=None):
+    def draw_2D_color_plot(
+            fig, 
+            ax, 
+            X, 
+            Y, 
+            Z, 
+            is_divergent, 
+            colormap, 
+            label, 
+            cbar_unit, 
+            bias, 
+            labelsize, 
+            ticksize, 
+            ymin, 
+            ymax, 
+            zmin, 
+            zmax, 
+            showBias, 
+            xlabel=None, 
+            ylabel="Energy ($\mathrm{eV}$)", 
+            cbar_label=None
+            ):
         """
         ymin : float
             lower bound of y values. If None, it is automatically set to the minimum of the data 'Y'.
@@ -1442,9 +1476,8 @@ class NEGFShortcuts(CommonShortcuts):
             ax.set_title(f'bias={bias}mV', fontsize=labelsize)
         else:
             ax.set_title(label, fontsize=labelsize)
-        ax.tick_params(axis='x', labelsize=ticksize)
-        ax.tick_params(axis='y', labelsize=ticksize)
-
+        ax.tick_params(labelsize=ticksize)
+        
 
     def get_gain(self, input_file_name, xaxis='Energy'):
         """
