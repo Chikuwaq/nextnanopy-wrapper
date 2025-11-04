@@ -1190,7 +1190,7 @@ class NEGFShortcuts(CommonShortcuts):
             else:
                 show_kBT_at_energy = None
             kPoints, dispersions, states_toBePlotted = self.get_inplane_dispersion_atBias(input_file_name, output_folder, bias, allow_folder_name_suffix, 0, 0)  # TODO: implement user-defined state index range (see nnpShortcuts.plot_dispersion)
-            CommonShortcuts.draw_inplane_dispersion(ax1, kPoints, dispersions, states_toBePlotted, True, True, labelsize, ticksize, annotatesize, markersize=markersize, title='Dispersion', lattice_temperature=lattice_temperature, show_kBT_at_energy=show_kBT_at_energy)  # dispersions[iState, ik]
+            CommonShortcuts.draw_inplane_dispersion(ax1, kPoints, dispersions, states_toBePlotted, True, True, labelsize, ticksize, annotatesize, markersize=markersize, Emin=Emin, Emax=Emax, title='Dispersion', lattice_temperature=lattice_temperature, show_kBT_at_energy=show_kBT_at_energy)  # dispersions[iState, ik]
         else:
             fig, ax = plt.subplots()
             NEGFShortcuts.draw_2D_color_plot(fig, ax, x.value, y.value, quantity.value, is_divergent, colormap, title, unit, bias, labelsize, ticksize, Emin, Emax, zmin, zmax, showBias, xlabel=xlabel)
@@ -1305,7 +1305,7 @@ class NEGFShortcuts(CommonShortcuts):
                 
             # dispersion plot
             kPoints, dispersions, states_toBePlotted = self.get_inplane_dispersion_atBias(input_file_name, output_folder, bias, allow_folder_name_suffix, 0, 0)  # TODO: implement user-defined state index range (see nnpShortcuts.plot_dispersion)
-            CommonShortcuts.draw_inplane_dispersion(ax1, kPoints, dispersions, states_toBePlotted, True, True, labelsize, ticksize, annotatesize, markersize=markersize, title='Dispersion', lattice_temperature=lattice_temperature, show_kBT_at_energy=show_kBT_at_energy)  # dispersions[iState, ik]
+            CommonShortcuts.draw_inplane_dispersion(ax1, kPoints, dispersions, states_toBePlotted, True, True, labelsize, ticksize, annotatesize, markersize=markersize, Emin=Emin, Emax=Emax, title='Dispersion', lattice_temperature=lattice_temperature, show_kBT_at_energy=show_kBT_at_energy)  # dispersions[iState, ik]
         else:
             fig, ax = plt.subplots()
 

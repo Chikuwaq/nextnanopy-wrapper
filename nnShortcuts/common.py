@@ -1564,6 +1564,8 @@ class CommonShortcuts:
             ticksize, 
             annotatesize,
             markersize=3,
+            Emin=None,
+            Emax=None,
             title='Inplane dispersion', 
             lattice_temperature=None, 
             show_kBT_at_energy=None
@@ -1579,6 +1581,7 @@ class CommonShortcuts:
         kmin = np.amin(kPoints) - kmargin
         kmax = np.amax(kPoints) + kmargin
         ax.set_xlim(kmin, kmax)
+        ax.set_ylim(Emin, Emax)
 
         if CVD_aware:
             color = 'black'
