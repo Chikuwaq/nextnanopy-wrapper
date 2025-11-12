@@ -948,7 +948,17 @@ class NEGFShortcuts(CommonShortcuts):
                 ax.fill_between(position.value, VBTop, CB.value, color=self.default_colors.bandgap_fill)
             
 
-    def draw_Fermi_levels_on_2DPlot(self, ax, input_file_name, output_folder, bias, allow_folder_name_suffix, annotatesize, is_divergent, dark_mode):
+    def draw_Fermi_levels_on_2DPlot(self, 
+                                    ax, 
+                                    input_file_name, 
+                                    output_folder, 
+                                    bias, 
+                                    allow_folder_name_suffix, 
+                                    annotatesize, 
+                                    is_divergent, 
+                                    dark_mode,
+                                    in_electron_picture
+                                    ):
         """
         Returns
         -------
@@ -1012,8 +1022,14 @@ class NEGFShortcuts(CommonShortcuts):
             else:
                 E_FermiElectron_shift = +0.03 * (ymax - ymin)
                 E_FermiHole_shift = E_FermiElectron_shift
-            ax.annotate("$E_\mathrm{F}^\mathrm{e}$", color=color, fontsize=annotatesize, xy=(pos_align_right, E_FermiElectron), xytext=(pos_align_right, E_FermiElectron + E_FermiElectron_shift))
-            ax.annotate("$E_\mathrm{F}^\mathrm{h}$", color=color, fontsize=annotatesize, xy=(pos_align_right, E_FermiHole), xytext=(pos_align_right, E_FermiHole + E_FermiHole_shift))
+            if in_electron_picture:
+                symbol_electron = "$E_\mathrm{F}^\mathrm{c}$"
+                symbol_hole = "$E_\mathrm{F}^\mathrm{v}$"
+            else:
+                symbol_electron = "$E_\mathrm{F}^\mathrm{e}$"
+                symbol_hole = "$E_\mathrm{F}^\mathrm{h}$"
+            ax.annotate(symbol_electron, color=color, fontsize=annotatesize, xy=(pos_align_right, E_FermiElectron), xytext=(pos_align_right, E_FermiElectron + E_FermiElectron_shift))
+            ax.annotate(symbol_hole, color=color, fontsize=annotatesize, xy=(pos_align_right, E_FermiHole), xytext=(pos_align_right, E_FermiHole + E_FermiHole_shift))
             # if ElectronHoleBorder != CommonShortcuts.DUMMYVALUE:
             #     ax.annotate("e-h border", color=color, fontsize=labelsize, xy=(0.9 * zmax, ElectronHoleBorder), xytext=(0.9 * zmax, E_border + 0.03))
         return E_FermiElectron, E_FermiHole
@@ -1183,7 +1199,7 @@ class NEGFShortcuts(CommonShortcuts):
             NEGFShortcuts.draw_2D_color_plot(fig, ax2, x.value, y.value, quantity.value, is_divergent, colormap, title, unit, bias, labelsize, ticksize, Emin, Emax, zmin, zmax, showBias, xlabel=xlabel, ylabel=None)
             self.draw_bandedges_on_2DPlot(ax2, bias, allow_folder_name_suffix, shadowBandgap, dark_mode, linewidth=1.0, input_file_name=input_file_name, output_folder=output_folder)
             if showFermiLevel:
-                E_FermiElectron, E_FermiHole = self.draw_Fermi_levels_on_2DPlot(ax2, input_file_name, output_folder, bias, allow_folder_name_suffix, labelsize, is_divergent, dark_mode)
+                E_FermiElectron, E_FermiHole = self.draw_Fermi_levels_on_2DPlot(ax2, input_file_name, output_folder, bias, allow_folder_name_suffix, labelsize, is_divergent, dark_mode, False)
                 if showDensityDeviation:
                     self.draw_1D_carrier_densities_on_2DPlot(ax2, input_file_name, bias, allow_folder_name_suffix, labelsize, E_FermiElectron, E_FermiHole, dark_mode, scaling_factor)
                 show_kBT_at_energy = (E_FermiElectron + E_FermiHole)/2.
@@ -1196,7 +1212,7 @@ class NEGFShortcuts(CommonShortcuts):
             NEGFShortcuts.draw_2D_color_plot(fig, ax, x.value, y.value, quantity.value, is_divergent, colormap, title, unit, bias, labelsize, ticksize, Emin, Emax, zmin, zmax, showBias, xlabel=xlabel)
             self.draw_bandedges_on_2DPlot(ax, bias, allow_folder_name_suffix, shadowBandgap, dark_mode, linewidth=1.0, input_file_name=input_file_name, output_folder=output_folder)
             if showFermiLevel:
-                E_FermiElectron, E_FermiHole = self.draw_Fermi_levels_on_2DPlot(ax, input_file_name, output_folder, bias, allow_folder_name_suffix, labelsize, is_divergent, dark_mode)
+                E_FermiElectron, E_FermiHole = self.draw_Fermi_levels_on_2DPlot(ax, input_file_name, output_folder, bias, allow_folder_name_suffix, labelsize, is_divergent, dark_mode, False)
                 if showDensityDeviation:
                     self.draw_1D_carrier_densities_on_2DPlot(ax, input_file_name, output_folder, bias, allow_folder_name_suffix, labelsize, E_FermiElectron, E_FermiHole, dark_mode, scaling_factor)
 
@@ -1293,7 +1309,7 @@ class NEGFShortcuts(CommonShortcuts):
             NEGFShortcuts.draw_2D_color_plot(fig, ax2, x.value, y.value, quantity.value, is_divergent, colormap, title, unit, bias, labelsize, ticksize, Emin, Emax, zmin, zmax, showBias, xlabel=xlabel, ylabel=None)
             self.draw_bandedges_on_2DPlot(ax2, bias, allow_folder_name_suffix, shadowBandgap, dark_mode, linewidth=1.0, input_file_name=input_file_name, output_folder=output_folder)
             if showFermiLevel:
-                E_FermiElectron, E_FermiHole = self.draw_Fermi_levels_on_2DPlot(ax2, input_file_name, output_folder, bias, allow_folder_name_suffix, labelsize, is_divergent, dark_mode)
+                E_FermiElectron, E_FermiHole = self.draw_Fermi_levels_on_2DPlot(ax2, input_file_name, output_folder, bias, allow_folder_name_suffix, labelsize, is_divergent, dark_mode, False)
                 if showDensityDeviation:
                     self.draw_1D_carrier_densities_on_2DPlot(ax2, input_file_name, output_folder, bias, allow_folder_name_suffix, labelsize, E_FermiElectron, E_FermiHole, dark_mode, scaling_factor)
                     show_kBT_at_energy = (E_FermiElectron + E_FermiHole)/2.
@@ -1313,7 +1329,7 @@ class NEGFShortcuts(CommonShortcuts):
             NEGFShortcuts.draw_2D_color_plot(fig, ax, x.value, y.value, quantity.value, is_divergent, colormap, title, unit, bias, labelsize, ticksize, Emin, Emax, zmin, zmax, showBias, xlabel=xlabel)
             self.draw_bandedges_on_2DPlot(ax, bias, allow_folder_name_suffix, shadowBandgap, dark_mode, linewidth=1.0, input_file_name=input_file_name, output_folder=output_folder)
             if showFermiLevel:
-                E_FermiElectron, E_FermiHole = self.draw_Fermi_levels_on_2DPlot(ax, input_file_name, output_folder, bias, allow_folder_name_suffix, labelsize, is_divergent, dark_mode)
+                E_FermiElectron, E_FermiHole = self.draw_Fermi_levels_on_2DPlot(ax, input_file_name, output_folder, bias, allow_folder_name_suffix, labelsize, is_divergent, dark_mode, False)
                 if showDensityDeviation:
                     self.draw_1D_carrier_densities_on_2DPlot(ax, input_file_name, output_folder, bias, allow_folder_name_suffix, labelsize, E_FermiElectron, E_FermiHole, dark_mode, scaling_factor)
             if texts is not None:
