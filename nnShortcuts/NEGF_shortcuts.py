@@ -1147,6 +1147,7 @@ class NEGFShortcuts(CommonShortcuts):
             input_file_name=None,
             output_folder=None,
             labelsize=CommonShortcuts.labelsize_default,
+            titlesize=CommonShortcuts.labelsize_default,
             ticksize=CommonShortcuts.ticksize_default,
             annotatesize=CommonShortcuts.ticksize_default,
             markersize=3,
@@ -1196,7 +1197,7 @@ class NEGFShortcuts(CommonShortcuts):
             fig, (ax1, ax2) = plt.subplots(1, 2, sharey=True, gridspec_kw={'width_ratios': [1, 3]})
             plt.subplots_adjust(wspace=0)
 
-            NEGFShortcuts.draw_2D_color_plot(fig, ax2, x.value, y.value, quantity.value, is_divergent, colormap, title, unit, bias, labelsize, ticksize, Emin, Emax, zmin, zmax, showBias, xlabel=xlabel, ylabel=None)
+            NEGFShortcuts.draw_2D_color_plot(fig, ax2, x.value, y.value, quantity.value, is_divergent, colormap, title, unit, bias, labelsize, titlesize, ticksize, Emin, Emax, zmin, zmax, showBias, xlabel=xlabel, ylabel=None)
             self.draw_bandedges_on_2DPlot(ax2, bias, allow_folder_name_suffix, shadowBandgap, dark_mode, linewidth=1.0, input_file_name=input_file_name, output_folder=output_folder)
             if showFermiLevel:
                 E_FermiElectron, E_FermiHole = self.draw_Fermi_levels_on_2DPlot(ax2, input_file_name, output_folder, bias, allow_folder_name_suffix, labelsize, is_divergent, dark_mode, False)
@@ -1206,10 +1207,10 @@ class NEGFShortcuts(CommonShortcuts):
             else:
                 show_kBT_at_energy = None
             kPoints, dispersions, states_toBePlotted = self.get_inplane_dispersion_atBias(input_file_name, output_folder, bias, allow_folder_name_suffix, 0, 0)  # TODO: implement user-defined state index range (see nnpShortcuts.plot_dispersion)
-            CommonShortcuts.draw_inplane_dispersion(ax1, kPoints, dispersions, states_toBePlotted, True, True, labelsize, ticksize, annotatesize, markersize=markersize, Emin=Emin, Emax=Emax, title='Dispersion', lattice_temperature=lattice_temperature, show_kBT_at_energy=show_kBT_at_energy)  # dispersions[iState, ik]
+            CommonShortcuts.draw_inplane_dispersion(ax1, kPoints, dispersions, states_toBePlotted, True, True, labelsize, titlesize, ticksize, annotatesize, markersize=markersize, Emin=Emin, Emax=Emax, title='Dispersion', lattice_temperature=lattice_temperature, show_kBT_at_energy=show_kBT_at_energy)  # dispersions[iState, ik]
         else:
             fig, ax = plt.subplots()
-            NEGFShortcuts.draw_2D_color_plot(fig, ax, x.value, y.value, quantity.value, is_divergent, colormap, title, unit, bias, labelsize, ticksize, Emin, Emax, zmin, zmax, showBias, xlabel=xlabel)
+            NEGFShortcuts.draw_2D_color_plot(fig, ax, x.value, y.value, quantity.value, is_divergent, colormap, title, unit, bias, labelsize, titlesize, ticksize, Emin, Emax, zmin, zmax, showBias, xlabel=xlabel)
             self.draw_bandedges_on_2DPlot(ax, bias, allow_folder_name_suffix, shadowBandgap, dark_mode, linewidth=1.0, input_file_name=input_file_name, output_folder=output_folder)
             if showFermiLevel:
                 E_FermiElectron, E_FermiHole = self.draw_Fermi_levels_on_2DPlot(ax, input_file_name, output_folder, bias, allow_folder_name_suffix, labelsize, is_divergent, dark_mode, False)
@@ -1237,6 +1238,7 @@ class NEGFShortcuts(CommonShortcuts):
             input_file_name=None,
             output_folder=None,
             labelsize=CommonShortcuts.labelsize_default,
+            titlesize=CommonShortcuts.labelsize_default,
             ticksize=CommonShortcuts.ticksize_default,
             annotatesize=CommonShortcuts.ticksize_default,
             markersize=3,
@@ -1306,7 +1308,7 @@ class NEGFShortcuts(CommonShortcuts):
             plt.subplots_adjust(wspace=0)
 
             # 2D color plot
-            NEGFShortcuts.draw_2D_color_plot(fig, ax2, x.value, y.value, quantity.value, is_divergent, colormap, title, unit, bias, labelsize, ticksize, Emin, Emax, zmin, zmax, showBias, xlabel=xlabel, ylabel=None)
+            NEGFShortcuts.draw_2D_color_plot(fig, ax2, x.value, y.value, quantity.value, is_divergent, colormap, title, unit, bias, labelsize, titlesize, ticksize, Emin, Emax, zmin, zmax, showBias, xlabel=xlabel, ylabel=None)
             self.draw_bandedges_on_2DPlot(ax2, bias, allow_folder_name_suffix, shadowBandgap, dark_mode, linewidth=1.0, input_file_name=input_file_name, output_folder=output_folder)
             if showFermiLevel:
                 E_FermiElectron, E_FermiHole = self.draw_Fermi_levels_on_2DPlot(ax2, input_file_name, output_folder, bias, allow_folder_name_suffix, labelsize, is_divergent, dark_mode, False)
@@ -1321,12 +1323,12 @@ class NEGFShortcuts(CommonShortcuts):
                 
             # dispersion plot
             kPoints, dispersions, states_toBePlotted = self.get_inplane_dispersion_atBias(input_file_name, output_folder, bias, allow_folder_name_suffix, 0, 0)  # TODO: implement user-defined state index range (see nnpShortcuts.plot_dispersion)
-            CommonShortcuts.draw_inplane_dispersion(ax1, kPoints, dispersions, states_toBePlotted, True, True, labelsize, ticksize, annotatesize, markersize=markersize, Emin=Emin, Emax=Emax, title='Dispersion', lattice_temperature=lattice_temperature, show_kBT_at_energy=show_kBT_at_energy)  # dispersions[iState, ik]
+            CommonShortcuts.draw_inplane_dispersion(ax1, kPoints, dispersions, states_toBePlotted, True, True, labelsize, titlesize, ticksize, annotatesize, markersize=markersize, Emin=Emin, Emax=Emax, title='Dispersion', lattice_temperature=lattice_temperature, show_kBT_at_energy=show_kBT_at_energy)  # dispersions[iState, ik]
         else:
             fig, ax = plt.subplots()
 
             # 2D color plot
-            NEGFShortcuts.draw_2D_color_plot(fig, ax, x.value, y.value, quantity.value, is_divergent, colormap, title, unit, bias, labelsize, ticksize, Emin, Emax, zmin, zmax, showBias, xlabel=xlabel)
+            NEGFShortcuts.draw_2D_color_plot(fig, ax, x.value, y.value, quantity.value, is_divergent, colormap, title, unit, bias, labelsize, titlesize, ticksize, Emin, Emax, zmin, zmax, showBias, xlabel=xlabel)
             self.draw_bandedges_on_2DPlot(ax, bias, allow_folder_name_suffix, shadowBandgap, dark_mode, linewidth=1.0, input_file_name=input_file_name, output_folder=output_folder)
             if showFermiLevel:
                 E_FermiElectron, E_FermiHole = self.draw_Fermi_levels_on_2DPlot(ax, input_file_name, output_folder, bias, allow_folder_name_suffix, labelsize, is_divergent, dark_mode, False)
@@ -1356,6 +1358,7 @@ class NEGFShortcuts(CommonShortcuts):
             input_file_name=None,
             output_folder=None,
             labelsize=CommonShortcuts.labelsize_default,
+            titlesize=CommonShortcuts.labelsize_default,
             ticksize=CommonShortcuts.ticksize_default,
             Emin=None,
             Emax=None,
@@ -1400,7 +1403,7 @@ class NEGFShortcuts(CommonShortcuts):
         xlabel = "Position $z$ ($\mathrm{nm}$)"
 
         fig, ax = plt.subplots()
-        NEGFShortcuts.draw_2D_color_plot(fig, ax, x.value, y.value, quantity.value, is_divergent, colormap, label, unit, bias, labelsize, ticksize, Emin, Emax, zmin, zmax, showBias, xlabel=xlabel)
+        NEGFShortcuts.draw_2D_color_plot(fig, ax, x.value, y.value, quantity.value, is_divergent, colormap, label, unit, bias, labelsize, titlesize, ticksize, Emin, Emax, zmin, zmax, showBias, xlabel=xlabel)
         self.draw_bandedges_on_2DPlot(ax, bias, allow_folder_name_suffix, shadowBandgap, dark_mode, linewidth=1.0, input_file_name=input_file_name, output_folder=output_folder) # needs to be before drawing the current density not to mask tunneling currents
 
         if texts is not None:
@@ -1434,6 +1437,7 @@ class NEGFShortcuts(CommonShortcuts):
             cbar_unit, 
             bias, 
             labelsize, 
+            titlesize,
             ticksize, 
             ymin, 
             ymax, 
@@ -1491,9 +1495,9 @@ class NEGFShortcuts(CommonShortcuts):
         ax.set_ylim(ymin, ymax)
 
         if showBias:
-            ax.set_title(f'bias={bias}mV', fontsize=labelsize)
+            ax.set_title(f'bias={bias}mV', fontsize=titlesize)
         else:
-            ax.set_title(label, fontsize=labelsize)
+            ax.set_title(label, fontsize=titlesize)
         ax.tick_params(labelsize=ticksize)
         
 

@@ -277,6 +277,7 @@ class nnpShortcuts(CommonShortcuts):
             lattice_temperature=None,
             plot_title='',
             labelsize=CommonShortcuts.labelsize_default,
+            titlesize=CommonShortcuts.labelsize_default,
             ticksize=CommonShortcuts.ticksize_default,
             annotatesize=CommonShortcuts.ticksize_default,
             markersize=3,
@@ -343,7 +344,7 @@ class nnpShortcuts(CommonShortcuts):
         ax.tick_params(axis='x', labelsize=ticksize)
         ax.tick_params(axis='y', labelsize=ticksize)
         kPoints, dispersions, states_toBePlotted = self.__get_inplane_dispersion(name, startIdx, stopIdx)
-        CommonShortcuts.draw_inplane_dispersion(ax, kPoints, dispersions, states_toBePlotted, False, False, labelsize, ticksize, annotatesize, markersize=markersize, Emin=None, Emax=None, lattice_temperature=lattice_temperature)
+        CommonShortcuts.draw_inplane_dispersion(ax, kPoints, dispersions, states_toBePlotted, False, False, labelsize, titlesize, ticksize, annotatesize, markersize=markersize, Emin=None, Emax=None, lattice_temperature=lattice_temperature)
         fig.tight_layout()
 
         #-------------------------------------------

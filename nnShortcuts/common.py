@@ -1561,6 +1561,7 @@ class CommonShortcuts:
             flip_xAxis, 
             set_ylabel, 
             labelsize, 
+            titlesize,
             ticksize, 
             annotatesize,
             markersize=3,
@@ -1614,7 +1615,7 @@ class CommonShortcuts:
             ax.vlines(x, y_from, y_to, colors='black')
             ax.annotate("$k_\mathrm{B}T$", xy=(x, (y_to + y_from)/2.0), xytext=(x_text, (y_to + y_from)/2.0), fontsize=annotatesize)
         # ax.legend(labels=states_toBePlotted+1, bbox_to_anchor=(1.05, 1))
-        ax.set_title(title, fontsize=labelsize)
+        ax.set_title(title, fontsize=titlesize)
 
 
     def draw_bandedges(self, ax, plot_title, model, x, CBBandedge, want_valence_band, HHBandedge, LHBandedge):
