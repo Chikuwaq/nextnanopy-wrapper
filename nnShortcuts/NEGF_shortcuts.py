@@ -1467,6 +1467,8 @@ class NEGFShortcuts(CommonShortcuts):
                 cbar_label = label + ' (' + cbar_unit + ')'
             else:
                 cbar_label = '(' + cbar_unit + ')'
+        else:
+            cbar_label = cbar_label  + ' (' + cbar_unit + ')'
 
         if len(cbar_label) > 35:
             cbar.set_label(cbar_label, fontsize=labelsize*0.8)
