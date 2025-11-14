@@ -1035,7 +1035,7 @@ class NEGFShortcuts(CommonShortcuts):
         return E_FermiElectron, E_FermiHole
         
 
-    def draw_1D_carrier_densities_on_2DPlot(self, ax, input_file_name, output_folder, bias, allow_folder_name_suffix, labelsize, E_FermiElectron, E_FermiHole, dark_mode, scaling_factor=None):
+    def draw_1D_carrier_densities_on_2DPlot(self, ax, input_file_name, output_folder, bias, allow_folder_name_suffix, E_FermiElectron, E_FermiHole, dark_mode, scaling_factor=None):
         position, electron_density, hole_density = self.get_carrier_density_deviation(input_file_name, output_folder, bias, allow_folder_name_suffix)
         # max_density = np.amax(electron_density.value)
         # min_density = np.amin(hole_density.value)
@@ -1201,7 +1201,7 @@ class NEGFShortcuts(CommonShortcuts):
             if showFermiLevel:
                 E_FermiElectron, E_FermiHole = self.draw_Fermi_levels_on_2DPlot(ax2, input_file_name, output_folder, bias, allow_folder_name_suffix, labelsize, is_divergent, dark_mode, False)
                 if showDensityDeviation:
-                    self.draw_1D_carrier_densities_on_2DPlot(ax2, input_file_name, bias, allow_folder_name_suffix, labelsize, E_FermiElectron, E_FermiHole, dark_mode, scaling_factor)
+                    self.draw_1D_carrier_densities_on_2DPlot(ax2, input_file_name, bias, allow_folder_name_suffix, E_FermiElectron, E_FermiHole, dark_mode, scaling_factor)
                 show_kBT_at_energy = (E_FermiElectron + E_FermiHole)/2.
             else:
                 show_kBT_at_energy = None
@@ -1214,7 +1214,7 @@ class NEGFShortcuts(CommonShortcuts):
             if showFermiLevel:
                 E_FermiElectron, E_FermiHole = self.draw_Fermi_levels_on_2DPlot(ax, input_file_name, output_folder, bias, allow_folder_name_suffix, labelsize, is_divergent, dark_mode, False)
                 if showDensityDeviation:
-                    self.draw_1D_carrier_densities_on_2DPlot(ax, input_file_name, output_folder, bias, allow_folder_name_suffix, labelsize, E_FermiElectron, E_FermiHole, dark_mode, scaling_factor)
+                    self.draw_1D_carrier_densities_on_2DPlot(ax, input_file_name, output_folder, bias, allow_folder_name_suffix, E_FermiElectron, E_FermiHole, dark_mode, scaling_factor)
 
         fig.tight_layout()
 
@@ -1311,7 +1311,7 @@ class NEGFShortcuts(CommonShortcuts):
             if showFermiLevel:
                 E_FermiElectron, E_FermiHole = self.draw_Fermi_levels_on_2DPlot(ax2, input_file_name, output_folder, bias, allow_folder_name_suffix, labelsize, is_divergent, dark_mode, False)
                 if showDensityDeviation:
-                    self.draw_1D_carrier_densities_on_2DPlot(ax2, input_file_name, output_folder, bias, allow_folder_name_suffix, labelsize, E_FermiElectron, E_FermiHole, dark_mode, scaling_factor)
+                    self.draw_1D_carrier_densities_on_2DPlot(ax2, input_file_name, output_folder, bias, allow_folder_name_suffix, E_FermiElectron, E_FermiHole, dark_mode, scaling_factor)
                     show_kBT_at_energy = (E_FermiElectron + E_FermiHole)/2.
                 else:
                     show_kBT_at_energy = None
@@ -1331,7 +1331,7 @@ class NEGFShortcuts(CommonShortcuts):
             if showFermiLevel:
                 E_FermiElectron, E_FermiHole = self.draw_Fermi_levels_on_2DPlot(ax, input_file_name, output_folder, bias, allow_folder_name_suffix, labelsize, is_divergent, dark_mode, False)
                 if showDensityDeviation:
-                    self.draw_1D_carrier_densities_on_2DPlot(ax, input_file_name, output_folder, bias, allow_folder_name_suffix, labelsize, E_FermiElectron, E_FermiHole, dark_mode, scaling_factor)
+                    self.draw_1D_carrier_densities_on_2DPlot(ax, input_file_name, output_folder, bias, allow_folder_name_suffix, E_FermiElectron, E_FermiHole, dark_mode, scaling_factor)
             if texts is not None:
                 CommonShortcuts.place_texts(ax, texts)
             
