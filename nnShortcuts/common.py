@@ -52,14 +52,14 @@ class CommonShortcuts:
 
     # -------------------------------------------------------
     # Fundamental physical constants 
-    # https://physics.nist.gov/cgi-bin/cuu
+    # https://physics.nist.gov/cuu/Constants/index.html
     # -------------------------------------------------------
     Planck = 6.62607015E-34  # Planck constant [J.s]
     hbar = 1.054571817E-34   # Planck constant / 2Pi in [J.s]
-    electron_mass = 9.1093837015E-31   # in [kg]
+    electron_mass = 9.1093837139E-31   # in [kg]
     elementary_charge  = 1.602176634*10**(-19)   # [C] elementary charge
     speed_of_light = 2.99792458E8   # [m/s]
-    vacuum_permittivity = 8.854187e-12   # [F/m] 1F = 1 kg^{-1} m^{-2} s^2 C^2 = 1 C^2 / J
+    vacuum_permittivity = 8.8541878188e-12   # [F/m] 1F = 1 kg^{-1} m^{-2} s^2 C^2 = 1 C^2 / J
     Boltzmann = 1.380649e-23   # [J/K]
 
     DUMMYVALUE = 546578653183735435
