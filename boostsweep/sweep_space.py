@@ -26,6 +26,8 @@ class SweepSpace:
 					dictionary[var] = np.around(np.linspace(bounds[0], bounds[1], num_points), round_decimal)   # round to avoid lengthy filenames
 				elif isinstance(range, list):  # list of values has been given
 					dictionary[var] = np.around(np.array(range), round_decimal)   # round to avoid lengthy filenames
+				else:
+					raise TypeError("Sweep range must be given by a dict of tuples or lists!")
 			assert(len(dictionary.keys()) == len(sweep_ranges.keys()))
 		elif isinstance(sweep_ranges, list):
 			for i_variable, var in enumerate(sweep_ranges[0]):
