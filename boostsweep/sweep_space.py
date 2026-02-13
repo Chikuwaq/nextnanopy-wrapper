@@ -26,12 +26,13 @@ class SweepSpace:
 					dictionary[var] = np.around(np.linspace(bounds[0], bounds[1], num_points), round_decimal)   # round to avoid lengthy filenames
 				elif isinstance(range, list):  # list of values has been given
 					dictionary[var] = np.around(np.array(range), round_decimal)   # round to avoid lengthy filenames
+			assert(len(dictionary.keys()) == len(sweep_ranges.keys()))
 		elif isinstance(sweep_ranges, list):
 			for i_variable, var in enumerate(sweep_ranges[0]):
 				if not isinstance(var, str): 
 					raise TypeError("First tuple of `sweep_ranges` must be str specifying variable names!")
 				dictionary[var] = [sweep_ranges[1][i_variable]]  # tentative: store only the first value
-			assert(len(dictionary.keys()) > 0)
+			assert(len(dictionary.keys()) == 1)
 		elif sweep_ranges is None:
 			pass
 		else:
