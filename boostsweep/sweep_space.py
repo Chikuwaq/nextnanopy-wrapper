@@ -12,6 +12,9 @@ class SweepSpace:
 	def __init__(self, dictionary : dict) -> None:
 		self.data = dictionary
 	
+	def __str__(self) -> None:
+		return str(self.data)
+	
 	# "constructor overloading" in Python
 	@classmethod
 	def create_from_sweep_ranges(cls, sweep_ranges, round_decimal):
