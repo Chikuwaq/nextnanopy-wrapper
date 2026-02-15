@@ -799,18 +799,20 @@ class CommonShortcuts:
         -------
             List[str]: List of full paths to folders starting with the prefix.
         """
-        result = []
+        folders = []
         # List all entries in the given directory
         try:
             for entry in os.listdir(path):
                 full_path = os.path.join(path, entry)
                 if os.path.isdir(full_path) and entry.startswith(prefix):
-                    result.append(full_path)
+                    folders.append(full_path)
         except FileNotFoundError:
             print(f"Directory not found: {path}")
         except PermissionError:
             print(f"Permission denied: {path}")
-        return result
+        if len(folders) == 0:
+            raise FileNotFoundError(f"No folder found starting with {path}/{prefix}")
+        return folders
 
 
     @staticmethod
@@ -836,10 +838,7 @@ class CommonShortcuts:
             Files containing these keywords in the file name are excluded from search.
 
         """
-        outputFolder = nn.config.get(self.product_name, 'outputdirectory')
-        filename_no_extension = CommonShortcuts.separate_extension(name)[0]
-        outputSubfolder = os.path.join(outputFolder, filename_no_extension)
-
+        outputSubfolder = self.__compose_output_subfolder_path(name)
         return self.get_DataFile_in_folder(keywords, outputSubfolder, exclude_keywords=exclude_keywords)
 
 
@@ -866,23 +865,7 @@ class CommonShortcuts:
         nextnanopy.DataFile object of the simulation data
 
         """
-        # validate the path
-        if allow_folder_name_suffix:
-            parent_folder, rest = os.path.split(folder_path)
-            if not CommonShortcuts.has_folder_starting_with(rest, parent_folder):
-                raise ValueError(f"Specified path {folder_path}* does not exist")
-            candidate_folder_paths = CommonShortcuts.get_folders_starting_with(parent_folder, rest)
-            if len(candidate_folder_paths) > 1:
-                print("There are multiple candidates for the output folder paths.")
-                choice = CommonShortcuts.ask_user_to_choose_one(candidate_folder_paths)
-                folder_path = candidate_folder_paths[choice]
-            elif len(candidate_folder_paths) == 1:
-                folder_path = candidate_folder_paths[0]
-            else:
-                raise FileNotFoundError(f"No folder found starting with '{folder_path}'")
-        else:
-            if not os.path.exists(folder_path): 
-                raise ValueError(f"Specified path {folder_path} does not exist")
+        folder_path = CommonShortcuts.expect_single_folder_to_exist(folder_path, allow_folder_name_suffix)
 
         # if only one keyword is provided, make a list with single element to simplify code
         if isinstance(keywords, str):
@@ -976,6 +959,12 @@ class CommonShortcuts:
         return choice
     
 
+    def __compose_output_subfolder_path(self, name):
+        outputFolder = nn.config.get(self.product_name, 'outputdirectory')
+        filename_no_extension = CommonShortcuts.separate_extension(name)[0]
+        return os.path.join(outputFolder, filename_no_extension)
+
+
     def get_DataFiles(self, keywords, name, exclude_keywords=None):
         """
         Get multiple nextnanopy.DataFiles of output data with the given string keyword(s).
@@ -990,14 +979,74 @@ class CommonShortcuts:
             Files containing these keywords in the file name are excluded from search.
 
         """
-        outputFolder = nn.config.get(self.product_name, 'outputdirectory')
-        filename_no_extension = CommonShortcuts.separate_extension(name)[0]
-        outputSubFolder = os.path.join(outputFolder, filename_no_extension)
-
+        outputSubFolder = self.__compose_output_subfolder_path(name)
         return self.get_DataFiles_in_folder(keywords, outputSubFolder, exclude_keywords=exclude_keywords)
 
 
-    def get_DataFiles_in_folder(self, keywords, folder_path, exclude_keywords=None):
+    # TODO: Move this method to appropriate place
+    @staticmethod
+    def __get_candidate_folder_paths(folder_path):
+        parent_folder, rest = os.path.split(folder_path)
+        if not CommonShortcuts.has_folder_starting_with(rest, parent_folder):
+            raise ValueError(f"Specified path {folder_path}* does not exist")
+        candidate_folder_paths = CommonShortcuts.get_folders_starting_with(parent_folder, rest)
+        if len(candidate_folder_paths) == 0:
+            raise FileNotFoundError(f"No folder found starting with '{folder_path}'")
+        return candidate_folder_paths
+    
+
+    # TODO: Move this method to appropriate place
+    @staticmethod
+    # @must_use_result
+    def expect_single_folder_to_exist(folder_path, allow_folder_name_suffix):
+        """
+        Returns
+        -------
+        folder_path : str
+            Unique and existing folder path
+
+        Caution
+        -------
+            Do not forget to receive the return value of this method!
+        """
+        if allow_folder_name_suffix:
+            candidate_folder_paths = CommonShortcuts.__get_candidate_folder_paths(folder_path)
+            if len(candidate_folder_paths) > 1:
+                print("There are multiple candidates for the output folder paths.")
+                choice = CommonShortcuts.ask_user_to_choose_one(candidate_folder_paths)
+                folder_path = candidate_folder_paths[choice]
+            elif len(candidate_folder_paths) == 1:
+                folder_path = candidate_folder_paths[0]
+            else:
+                raise FileNotFoundError(f"No folder found starting with '{folder_path}'")
+        else:
+            if not os.path.exists(folder_path): 
+                raise ValueError(f"Specified path {folder_path} does not exist")
+        return folder_path
+
+
+    # TODO: Move this method to appropriate place
+    @staticmethod
+    # @must_use_result
+    def expect_folders_to_exist(folder_path, allow_folder_name_suffix):
+        """
+        Returns
+        -------
+            List[str]: List of full paths to folders starting with the prefix.
+
+        Caution
+        -------
+            Do not forget to receive the return value of this method!
+        """
+        if allow_folder_name_suffix:
+            candidate_folder_paths = CommonShortcuts.__get_candidate_folder_paths(folder_path)
+        else:
+            if not os.path.exists(folder_path): 
+                raise ValueError(f"Specified path {folder_path} does not exist")
+        return candidate_folder_paths
+
+
+    def get_DataFiles_in_folder(self, keywords, folder_path, exclude_keywords=None, allow_folder_name_suffix=False):
         """
         Get multiple nextnanopy.DataFiles of output data with the given string keyword(s) in the specified folder.
 
@@ -1009,6 +1058,9 @@ class CommonShortcuts:
             absolute path of output folder in which the datafile should be sought
         exclude_keywords : str or list of str, optional
             Files containing these keywords in the file name are excluded from search.
+        allow_folder_name_suffix : bool, optional
+            If True, search for the folder name starting with 'folder_path'.
+            If False, search for exact match of the folder name with 'folder_path'.
 
         Returns
         -------
@@ -1016,7 +1068,7 @@ class CommonShortcuts:
 
         """
         # validate the path
-        if not os.path.exists(folder_path): raise ValueError(f"Specified path {folder_path} does not exist")
+        folder_path = CommonShortcuts.expect_single_folder_to_exist(folder_path, allow_folder_name_suffix)
 
         # if only one keyword is provided, make a list with single element to simplify code
         if isinstance(keywords, str):
@@ -1079,10 +1131,7 @@ class CommonShortcuts:
         RETURN:
             dictionary { quantum model key: corresponding list of nn.DataFile() objects for probability_shift }
         """
-        filename_no_extension = CommonShortcuts.separate_extension(name)[0]
-        outputFolder = nn.config.get(self.product_name, 'outputdirectory')
-        outputSubFolder = os.path.join(outputFolder, filename_no_extension)
-
+        outputSubFolder = self.__compose_output_subfolder_path(name)
         return self.get_DataFile_probabilities_in_folder(outputSubFolder, bias=bias)
         
 

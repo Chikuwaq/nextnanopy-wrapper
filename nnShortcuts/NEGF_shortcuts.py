@@ -2117,9 +2117,10 @@ class NEGFShortcuts(CommonShortcuts):
         """
         # load output data files
         datafiles_probability_dict = self.get_DataFile_probabilities_with_name(input_file.fullpath, bias=bias)
+        outputSubFolder = self.__compose_output_subfolder_path(input_file.fullpath)
 
         return self.plot_probabilities_core(
-            input_file.fullpath,
+            outputSubFolder,
             datafiles_probability_dict,
             states_range_dict,
             states_list_dict,
@@ -2136,6 +2137,7 @@ class NEGFShortcuts(CommonShortcuts):
             ticksize,
             savePDF,
             savePNG,
+            bias=None
         )
 
     def plot_probabilities_by_folderpath(self,
@@ -2194,10 +2196,11 @@ class NEGFShortcuts(CommonShortcuts):
             ticksize,
             savePDF,
             savePNG,
+            bias=bias
         )
 
     def plot_probabilities_core(self,
-            name,
+            output_folder_path,
             datafiles_probability_dict,
             states_range_dict,
             states_list_dict,
@@ -2214,12 +2217,13 @@ class NEGFShortcuts(CommonShortcuts):
             ticksize,
             savePDF,
             savePNG,
+            bias=None
         ):
         """
         Parameters
         ----------
-        name : str
-            Specifies the output subfolder name
+        output_folder_path : str
+            Specifies the path to the output subfolder
         states_range_dict : dict, optional
             range of state indices to be plotted for each quantum model. The default is None.
         states_list_dict : dict, optional
@@ -2252,6 +2256,9 @@ class NEGFShortcuts(CommonShortcuts):
             save the plot in the PDF format. The default is False.
         savePNG : str, optional
             save the plot in the PNG format. The default is False.
+        bias : float, optional
+            If set, spinor composition data is sought in this bias folder. 
+            # TODO: I guess plot_probabilities_core() should receive spinor data in the form of nextnanopy datafile like datafiles_probability_dict
 
         Returns
         -------
@@ -2269,7 +2276,6 @@ class NEGFShortcuts(CommonShortcuts):
                 if len(datafiles) == 0:
                     continue
                 datafile_probability = datafiles[0]
-                # print(type(datafile_probability))
             elif isinstance(datafiles, nn.DataFile):
                 datafile_probability = datafiles
             else:
@@ -2307,7 +2313,7 @@ class NEGFShortcuts(CommonShortcuts):
         # dictionary containing quantum model keys and 2-dimensional list for each key that stores psi^2 for all (eigenstate, kIndex)
         psiSquared = dict.fromkeys(datafiles_probability_dict.keys())
         for model in states_toBePlotted:
-            psiSquared[model] = [ [ 0 for kIndex in range(num_kPoints[model]) ] for stateIndex in range(num_evs[model]) ]  # stateIndex in states_toBePlotted[model] would give a list of the same size
+            psiSquared[model] = [ [ 0 for _ in range(num_kPoints[model]) ] for stateIndex in range(num_evs[model]) ]  # stateIndex in states_toBePlotted[model] would give a list of the same size
 
         nBandEdgeOutputs = 5
 
@@ -2363,7 +2369,12 @@ class NEGFShortcuts(CommonShortcuts):
                 'kp6': list(),
                 'kp8': list()
             }
-            datafiles = self.get_DataFiles(['spinor_composition_AngMom'], name)
+            if bias is not None:
+                output_folder_path_at_bias = os.path.join(output_folder_path, str(bias))
+                print(f"Looking for spinor_composition in {output_folder_path_at_bias}")
+                datafiles = self.get_DataFiles_in_folder(['spinor_composition_AngMom'], output_folder_path_at_bias, allow_folder_name_suffix=True)
+            else: # TODO: Does this case happen?
+                datafiles = self.get_DataFiles_in_folder(['spinor_composition_AngMom'], output_folder_path, allow_folder_name_suffix=False)
             # datafiles = [df for cnt in range(len(datafiles)) for df in datafiles if str(cnt).zfill(5) + '_CbHhLhSo' in os.path.split(df.fullpath)[1]]   # sort spinor composition datafiles in ascending kIndex  # TODO: C++ doesn't have multiple in-plane k output
             for df in datafiles:
                 datafiles_spinor['kp8'].append(df)
@@ -2447,11 +2458,10 @@ class NEGFShortcuts(CommonShortcuts):
         #-------------------------------------------
         # Plots --- save all the figures to one PDF
         #-------------------------------------------
+        export_filename = f'{CommonShortcuts.separate_extension(output_folder_path)[0]}_probabilities'
         if savePDF:
-            export_filename = f'{CommonShortcuts.separate_extension(name)[0]}_probabilities'
             self.export_figs(export_filename, 'pdf')
         if savePNG:
-            export_filename = f'{CommonShortcuts.separate_extension(name)[0]}_probabilities'
             self.export_figs(export_filename, 'png', fig=fig)   # NOTE: presumably only the last fig instance is exported
 
         # --- display in the GUI
