@@ -315,57 +315,6 @@ class SweepManager:
         print("\tOutput data exists: ", self.__output_subfolders_exist())
         return ""
 
-    @staticmethod
-    def __count_nonzero_digits(number):
-        flat_string = f"{number:.20f}"  # 20 decimal digits should be large enough for practical usage
-        flat_string = flat_string.rstrip('0').rstrip('.')  # remove trailing zeros and decimal point
-        flat_string = flat_string.lstrip('-')  # remove leading negative sign
-        # flat_string = flat_string.lstrip('0').lstrip('.')  # remove leading zeros and decimal point
-        # return len(flat_string.split('.')[-1])
-        integers = list()
-        for digit in flat_string:
-            if digit == '.':
-                continue
-            integers.append(int(digit))
-        return np.count_nonzero(integers)
-
-    @staticmethod
-    def __format_number(number, round_decimal) -> str:
-        """
-        Return concise string expression of a sweep value.
-        Avoids lengthy file name (Windows cannot handle deeply-nested output files if nextnano input file name is too long).
-        """
-        if isinstance(number, str):
-            number = float(number)
-
-        is_integer_type = isinstance(number, (int, np.integer))
-        is_float_type = isinstance(number, (float, np.floating))
-
-        if is_integer_type or is_float_type:
-            if number == 0:
-                return '0'
-            else:
-                n_digits = SweepManager.__count_nonzero_digits(number)
-                n_decimals = min(round_decimal, n_digits - 1)
-                
-                scientific = f"{number:.{n_decimals}e}"
-                use_scientific = (len(scientific) < len(str(number)))  # do not use scientific format if the string would get longer
-
-                if use_scientific:
-                    base, exponent = scientific.split('e')
-                    base = base.rstrip('0')  # remove trailing zeros
-                    exponent = exponent.lstrip('+')  # remove leading plus sign
-                    exponent = exponent.lstrip('0')  # remove leading zeros
-                    return f"{base}e{exponent}"
-                else:
-                    number_str = str(number)
-                    if '.' in number_str:
-                        number_str = number_str.rstrip('0')  # remove trailing zeros
-                        number_str = number_str.rstrip('.')  # remove trailing decimal point
-                    return number_str
-        else:
-            raise TypeError(f"'number' must be str, int, or float, but is {type(number)}!")
-
 
     def __create_input_file_fullpaths(self, master_input_file):
         """
@@ -388,7 +337,7 @@ class SweepManager:
                 # filename_end = '__'  # code following nextnanopy > inputs.py > Sweep.create_input_files()
                 filename_end = ''
                 for var_name, var_value in zip(var_names, combination):
-                    var_value_string = SweepManager.__format_number(var_value, self.round_decimal)
+                    var_value_string = SweepManager.format_number(var_value, self.round_decimal)
                     filename_end += '{}_{}_'.format(var_name, var_value_string)
                 # input_file_fullpaths[i] = filename_path + filename_end + filename_extension  # code following nextnanopy > inputs.py > Sweep.create_input_files()
                 input_file_fullpaths[i] = os.path.join(folder, filename_end + filename_extension)
