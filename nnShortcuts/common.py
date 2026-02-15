@@ -73,6 +73,10 @@ class CommonShortcuts:
     labelsize_default = 16
     ticksize_default = 14
 
+    axis_label_position = "Position $z$ ($\mathrm{nm}$)"
+    axis_label_energy = "Energy ($\mathrm{eV}$)"
+    axis_label_temperature = "Temperature ($\mathrm{K}$)"
+
     # -------------------------------------------------------
     # Constructor
     # -------------------------------------------------------
@@ -1619,7 +1623,7 @@ class CommonShortcuts:
 
 
     def draw_bandedges(self, ax, plot_title, model, x, CBBandedge, want_valence_band, HHBandedge, LHBandedge):
-        self.set_plot_labels(ax, 'Position (nm)', 'Energy (eV)', plot_title)
+        self.set_plot_labels(ax, CommonShortcuts.axis_label_position, CommonShortcuts.axis_label_energy, plot_title)
 
         CVD_aware = True
         color_CB, color_HH, color_LH = self.default_colors.get_linecolor_bandedges(CVD_aware, False)

@@ -211,7 +211,7 @@ class NEGFShortcuts(CommonShortcuts):
             return 1e3 / T
 
         inv_temperatures = [backward_conversion(T) for T in temperatures]
-        ax.set_xlabel("1000 / T [K$^{-1}$]", fontsize=labelsize)
+        ax.set_xlabel("1000 / T [$\mathrm{K}^{-1}$]", fontsize=labelsize)
 
         for bias in biases:
             # list of data for sweeping temperature
@@ -296,7 +296,7 @@ class NEGFShortcuts(CommonShortcuts):
             # ax.plot(inv_temperatures, LOPhonon_induced_diffusive_dark_currents, '--', color='grey', label="LO-phonon diffusive transport")
 
         ax3 = ax.secondary_xaxis('top', functions=(forward_conversion, backward_conversion))
-        ax3.set_xlabel('Temperature [K]', fontsize=labelsize)
+        ax3.set_xlabel(CommonShortcuts.axis_label_temperature, fontsize=labelsize)
         ax3.set_xticks(temperatures)
         ax3.tick_params(axis='x', labelsize=ticksize*0.75) # avoid overlapping
 
@@ -706,8 +706,8 @@ class NEGFShortcuts(CommonShortcuts):
         WS_states = [CommonShortcuts.mask_part_of_array(WS_state) for WS_state in WS_states]   # hide flat tails
 
         fig, ax = plt.subplots()
-        ax.set_xlabel("Position $z$ ($\mathrm{nm}$)", fontsize=labelsize)
-        ax.set_ylabel("Energy ($\mathrm{eV}$)", fontsize=labelsize)
+        ax.set_xlabel(CommonShortcuts.axis_label_position, fontsize=labelsize)
+        ax.set_ylabel(CommonShortcuts.axis_label_energy, fontsize=labelsize)
         ax.set_title('Wannier-Stark states', fontsize=labelsize)
         ax.tick_params(axis='x', labelsize=ticksize)
         ax.tick_params(axis='y', labelsize=ticksize)
@@ -1189,8 +1189,8 @@ class NEGFShortcuts(CommonShortcuts):
         logging.info("Plotting DOS...")
         unit = r'$\mathrm{nm}^{-1} \mathrm{eV}^{-1}$'
         if title is None:
-            title = 'Density of states'
-        xlabel = "Position $z$ ($\mathrm{nm}$)"
+            title = 'LDOS' #'Density of states'
+        xlabel = CommonShortcuts.axis_label_position
 
         if attachDispersion:
             # Create subplots with shared y-axis and remove spacing
@@ -1300,7 +1300,7 @@ class NEGFShortcuts(CommonShortcuts):
             else:
                 title = 'Electron density'
         quantity.value *= 1e-18
-        xlabel = "Position $z$ ($\mathrm{nm}$)"
+        xlabel = CommonShortcuts.axis_label_position
 
         if attachDispersion:
             # Create subplots with shared y-axis and remove spacing
@@ -1400,7 +1400,7 @@ class NEGFShortcuts(CommonShortcuts):
         unit = r'$\mathrm{A}$ $\mathrm{cm}^{-2} \mathrm{eV}^{-1}$'
         label = 'Current density'
         quantity.value *= 1  #1e-3
-        xlabel = "Position $z$ ($\mathrm{nm}$)"
+        xlabel = CommonShortcuts.axis_label_position
 
         fig, ax = plt.subplots()
         NEGFShortcuts.draw_2D_color_plot(fig, ax, x.value, y.value, quantity.value, is_divergent, colormap, label, unit, bias, labelsize, titlesize, ticksize, Emin, Emax, zmin, zmax, showBias, xlabel=xlabel)
@@ -1725,7 +1725,7 @@ class NEGFShortcuts(CommonShortcuts):
 
         fig, ax = plt.subplots()
         ax.plot(temperatures, responsivity, 'o-', color=self.default_colors.responsivity)
-        ax.set_xlabel('Temperature [K]', fontsize=labelsize)
+        ax.set_xlabel(CommonShortcuts.axis_label_temperature, fontsize=labelsize)
         ax.set_ylabel('Responsivity [$\mathrm{A/W}$]', color=self.default_colors.responsivity, fontsize=labelsize)
         ax.tick_params(axis='x', labelsize=ticksize)
         ax.tick_params(axis='y', labelcolor=self.default_colors.responsivity, labelsize=ticksize)
