@@ -74,9 +74,13 @@ class CommonShortcuts:
     labelsize_default = 16
     ticksize_default = 14
 
+    units_LDOS = r'$\mathrm{nm}^{-1}\,\mathrm{eV}^{-1}$'
+    units_2d_carrier_density = r'$10^{18}\,\mathrm{cm}^{-3}\,\mathrm{eV}^{-1}$'
+    units_2d_inplane_resolved_carrier_density= r'$10^{18}\mathrm{cm}^{-3}\,\mathrm{nm}^{2}\,\mathrm{eV}^{-1}$'
     axis_label_position = "Position $z$ ($\mathrm{nm}$)"
     axis_label_energy = "Energy ($\mathrm{eV}$)"
     axis_label_temperature = "Temperature ($\mathrm{K}$)"
+    axis_label_inplane_k = "$k_x$ ($\mathrm{nm}^{-1}$)"
 
     # -------------------------------------------------------
     # Constructor
@@ -1832,7 +1836,7 @@ class CommonShortcuts:
         labelsize : float
         """
         CVD_aware = True
-        ax.set_xlabel("$k_x$ ($\mathrm{nm}^{-1}$)", fontsize=labelsize)
+        ax.set_xlabel(CommonShortcuts.axis_label_inplane_k, fontsize=labelsize)
         kmargin = 0.05 * (np.amax(kPoints) - np.amin(kPoints))
         kmin = np.amin(kPoints) - kmargin
         kmax = np.amax(kPoints) + kmargin
@@ -1851,7 +1855,7 @@ class CommonShortcuts:
             ax.invert_xaxis()
             ax.grid(axis='y')
         if set_ylabel:
-            ax.set_ylabel("Energy ($\mathrm{eV}$)", fontsize=labelsize)
+            ax.set_ylabel(CommonShortcuts.axis_label_energy, fontsize=labelsize)
         if lattice_temperature is not None:
             kBT = CommonShortcuts.Boltzmann * lattice_temperature * CommonShortcuts.scale_J_to_eV
             
