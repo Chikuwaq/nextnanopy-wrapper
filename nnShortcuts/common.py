@@ -74,6 +74,7 @@ class CommonShortcuts:
     labelsize_default = 16
     ticksize_default = 14
 
+    units_LDOS = r'$\mathrm{nm}^{-1}\,\mathrm{eV}^{-1}$'
     units_2d_carrier_density = r'$10^{18}\,\mathrm{cm}^{-3}\,\mathrm{eV}^{-1}$'
     units_2d_inplane_resolved_carrier_density= r'$10^{18}\mathrm{cm}^{-3}\,\mathrm{nm}^{2}\,\mathrm{eV}^{-1}$'
     axis_label_position = "Position $z$ ($\mathrm{nm}$)"

@@ -1187,7 +1187,7 @@ class NEGFShortcuts(CommonShortcuts):
             colormap = self.default_colors.colormap['linear_bright_bg']
 
         logging.info("Plotting DOS...")
-        unit = r'$\mathrm{nm}^{-1} \mathrm{eV}^{-1}$'
+        unit = CommonShortcuts.units_LDOS
         if title is None:
             title = 'LDOS' #'Density of states'
         xlabel = CommonShortcuts.axis_label_position
