@@ -1453,6 +1453,10 @@ class NEGFShortcuts(CommonShortcuts):
             lower bound of y values. If None, it is automatically set to the minimum of the data 'Y'.
         ymax : float
             upper bound of y values. If None, it is automatically set to the maximum of the data 'Y'.
+        zmin : float
+            lower bound of y values. If None, it is automatically set to the minimum of the data 'Z'.
+        zmax : float
+            upper bound of y values. If None, it is automatically set to the maximum of the data 'Z'.
         cbar_label : str, optional
             If not None, this overwrites the colorbar label.
         """
@@ -1467,17 +1471,21 @@ class NEGFShortcuts(CommonShortcuts):
         else:
             cbar = fig.colorbar(pcolor)
         if cbar_label is None:
-            if showBias:
-                cbar_label = label + ' (' + cbar_unit + ')'
+            if cbar_unit is None:
+                cbar_label = None
             else:
-                cbar_label = '(' + cbar_unit + ')'
+                if showBias:
+                    cbar_label = label + ' (' + cbar_unit + ')'
+                else:
+                    cbar_label = '(' + cbar_unit + ')'
         else:
             cbar_label = cbar_label  + ' (' + cbar_unit + ')'
 
-        if len(cbar_label) > 35:
-            cbar.set_label(cbar_label, fontsize=labelsize*0.8)
-        else:
-            cbar.set_label(cbar_label, fontsize=labelsize)
+        if cbar_label is not None:
+            if len(cbar_label) > 35:
+                cbar.set_label(cbar_label, fontsize=labelsize*0.8)
+            else:
+                cbar.set_label(cbar_label, fontsize=labelsize)
         cbar.ax.tick_params(labelsize=ticksize * 0.9)
 
         if not isinstance(xlabel, str):
