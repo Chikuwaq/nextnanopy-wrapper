@@ -1292,7 +1292,7 @@ class NEGFShortcuts(CommonShortcuts):
                 colormap = self.default_colors.colormap['linear_bright_bg']
 
         logging.info("Plotting electron density...")
-        unit = r'$10^{18} \mathrm{cm}^{-3} \mathrm{eV}^{-1}$'
+        unit = CommonShortcuts.units_2d_carrier_density
         # label = 'Electron-hole density (' + unit + ')'
         if title is None:
             if in_electron_hole_picture:
@@ -1348,6 +1348,114 @@ class NEGFShortcuts(CommonShortcuts):
             filename_no_extension = None
             outputSubfolder = outputFolder
         self.export_figs("CarrierDensity", fig_format, output_folder_path=outputSubfolder, fig=fig)
+
+        return fig
+
+
+    def plot_carrier_inplane_resolved(self,
+            bias,
+            allow_folder_name_suffix=False,
+            input_file_name=None,
+            output_folder=None,
+            labelsize=CommonShortcuts.labelsize_default,
+            titlesize=CommonShortcuts.labelsize_default,
+            ticksize=CommonShortcuts.ticksize_default,
+            annotatesize=CommonShortcuts.ticksize_default,
+            markersize=3,
+            Emin=None,
+            Emax=None,
+            zmin=None,
+            zmax=None,
+            attachDispersion=False,
+            dark_mode=True,
+            scaling_factor=None,
+            showBias=True,
+            showFermiLevel=True,
+            lattice_temperature=None,
+            texts=None,
+            in_electron_hole_picture=False,
+            title=None,
+            fig_format="png"
+            ):
+        """
+        Plot energy- and in-plane k-resolved carrier density. Loads the following output data:
+        ElectronHoleDensity_InPlaneResolved.vtr
+
+        The plot is saved as a png image file.
+
+        Parameters
+        ----------
+        lattice_temperature : float
+            If not None, the energy kBT is indicated inside the dispersion plot.
+        texts : list of list of str
+            Display first list on the left and the second on the right of the plot.
+        """
+        if in_electron_hole_picture:
+            data_name = 'carrier_inplane_resolved'
+        else:
+            raise NotImplementedError()
+        if output_folder is None:
+            x, y, quantity, is_divergent = self.get_2Ddata_atBias(bias, data_name, allow_folder_name_suffix=False, input_file_name=input_file_name)
+        else:
+            x, y, quantity, is_divergent = self.get_2Ddata_atBias(bias, data_name, allow_folder_name_suffix=allow_folder_name_suffix, output_folder=output_folder)
+        if is_divergent:
+            if dark_mode:
+                colormap = self.default_colors.colormap['divergent_dark']
+            else:
+                colormap = self.default_colors.colormap['divergent_bright']
+        else:
+            if dark_mode:
+                colormap = self.default_colors.colormap['linear_dark_bg']
+            else:
+                colormap = self.default_colors.colormap['linear_bright_bg']
+
+        logging.info("Plotting electron density...")
+        unit = CommonShortcuts.units_2d_inplane_resolved_carrier_density
+        # label = 'Electron-hole density (' + unit + ')'
+        if title is None:
+            if in_electron_hole_picture:
+                title = 'Electron-hole density'
+            else:
+                title = 'Electron density'
+        quantity.value *= 1e-18
+        xlabel = CommonShortcuts.axis_label_inplane_k
+
+        if attachDispersion:
+            raise NotImplementedError()
+            # # Create subplots with shared y-axis and remove spacing
+            # fig, (ax1, ax2) = plt.subplots(1, 2, sharey=True, gridspec_kw={'width_ratios': [1, 3]})
+            # plt.subplots_adjust(wspace=0)
+
+            # # 2D color plot
+            # NEGFShortcuts.draw_2D_color_plot(fig, ax2, x.value, y.value, quantity.value, is_divergent, colormap, title, unit, bias, labelsize, titlesize, ticksize, Emin, Emax, zmin, zmax, showBias, xlabel=xlabel, ylabel=None)
+            # if showFermiLevel:
+            #     show_kBT_at_energy = None
+
+            # if texts is not None:
+            #     CommonShortcuts.place_texts(ax2, texts)
+                
+            # # dispersion plot
+            # kPoints, dispersions, states_toBePlotted = self.get_inplane_dispersion_atBias(input_file_name, output_folder, bias, allow_folder_name_suffix, 0, 0)  # TODO: implement user-defined state index range (see nnpShortcuts.plot_dispersion)
+            # CommonShortcuts.draw_inplane_dispersion(ax1, kPoints, dispersions, states_toBePlotted, True, True, labelsize, titlesize, ticksize, annotatesize, markersize=markersize, Emin=Emin, Emax=Emax, title='Dispersion', lattice_temperature=lattice_temperature, show_kBT_at_energy=show_kBT_at_energy)  # dispersions[iState, ik]
+        else:
+            fig, ax = plt.subplots()
+
+            # 2D color plot
+            NEGFShortcuts.draw_2D_color_plot(fig, ax, x.value, y.value, quantity.value, is_divergent, colormap, title, unit, bias, labelsize, titlesize, ticksize, Emin, Emax, zmin, zmax, showBias, xlabel=xlabel)
+            if texts is not None:
+                CommonShortcuts.place_texts(ax, texts)
+            
+        fig.tight_layout()
+
+        # export to an image file
+        outputFolder = nn.config.get(self.product_name, 'outputdirectory')
+        if input_file_name is not None:
+            filename_no_extension = CommonShortcuts.separate_extension(input_file_name)[0]
+            outputSubfolder = os.path.join(outputFolder, filename_no_extension)
+        else:
+            filename_no_extension = None
+            outputSubfolder = outputFolder
+        self.export_figs("CarrierDensity_InPlaneResolved", fig_format, output_folder_path=outputSubfolder, fig=fig)
 
         return fig
 
