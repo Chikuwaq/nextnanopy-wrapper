@@ -1812,6 +1812,115 @@ class CommonShortcuts:
 
 
     @staticmethod
+    def draw_contour(
+            ax, 
+            X,
+            Y,
+            Z,
+            contour_value,
+            color,
+            should_annotate=True,
+            contour_symbol=None
+            ):
+        contour = ax.contour(X, Y, Z, levels=[contour_value], colors=color)
+        if not should_annotate:
+            return
+        if contour_symbol is None:
+            ax.clabel(contour, inline=True)
+        else:
+            ax.clabel(contour, inline=True, fmt=lambda x: f"{contour_symbol}={x}")
+
+
+    @staticmethod
+    def draw_2D_color_plot(
+            fig, 
+            ax, 
+            X, 
+            Y, 
+            Z, 
+            is_divergent, 
+            colormap, 
+            label, 
+            cbar_unit, 
+            bias, 
+            labelsize, 
+            titlesize,
+            ticksize, 
+            ymin, 
+            ymax, 
+            zmin, 
+            zmax, 
+            showBias, 
+            xlabel, 
+            ylabel="Energy ($\mathrm{eV}$)", 
+            cbar_label=None
+            ):
+        """
+        ymin : float
+            lower bound of y values. If None, it is automatically set to the minimum of the data 'Y'.
+        ymax : float
+            upper bound of y values. If None, it is automatically set to the maximum of the data 'Y'.
+        zmin : float
+            lower bound of y values. If None, it is automatically set to the minimum of the data 'Z'.
+        zmax : float
+            upper bound of y values. If None, it is automatically set to the maximum of the data 'Z'.
+        cbar_label : str, optional
+            If not None, this overwrites the colorbar label.
+        """
+        # TODO: Add proper assertion about the shapes of X, Y, Z. It depends on 'shading' option of pcolormesh(). See https://matplotlib.org/stable/gallery/images_contours_and_fields/pcolormesh_grids.html
+        from matplotlib import colors
+        if is_divergent:
+            pcolor = ax.pcolormesh(X, Y, Z.T, cmap=colormap, norm=colors.CenteredNorm(vcenter=0, halfrange=zmax), shading='auto')
+        else:
+            pcolor = ax.pcolormesh(X, Y, Z.T, vmin=zmin, vmax=zmax, cmap=colormap, shading='auto')
+
+        if np.abs(Z).max() >= 1e4:
+            cbar = fig.colorbar(pcolor, format='%.1e')
+        else:
+            cbar = fig.colorbar(pcolor)
+        if cbar_label is None:
+            if cbar_unit is None:
+                cbar_label = None
+            else:
+                if showBias:
+                    cbar_label = label + ' (' + cbar_unit + ')'
+                else:
+                    cbar_label = '(' + cbar_unit + ')'
+        else:
+            if cbar_unit is None:
+                cbar_label = cbar_label
+            else:
+                cbar_label = cbar_label  + ' (' + cbar_unit + ')'
+
+        if cbar_label is not None:
+            if len(cbar_label) > 35:
+                cbar.set_label(cbar_label, fontsize=labelsize*0.8)
+            else:
+                cbar.set_label(cbar_label, fontsize=labelsize)
+        cbar.ax.tick_params(labelsize=ticksize * 0.9)
+
+        if not isinstance(xlabel, str):
+            raise TypeError(f"'xlabel' must be str, not {type(xlabel)}")
+        if xlabel is not None:
+            ax.set_xlabel(xlabel, fontsize=labelsize)
+        if ylabel is not None:
+            ax.set_ylabel(ylabel, fontsize=labelsize, labelpad=10)
+
+        ax.set_xlim(np.amin(X), np.amax(X))
+        if ymin is None:
+            ymin = np.amin(Y)
+        if ymax is None:
+            ymax = np.amax(Y)
+        ax.set_ylim(ymin, ymax)
+
+        if showBias:
+            ax.set_title(f'bias={bias}mV', fontsize=titlesize)
+        else:
+            ax.set_title(label, fontsize=titlesize)
+        ax.tick_params(labelsize=ticksize)
+        
+
+    @staticmethod
     def draw_inplane_dispersion(
             ax, 
             kPoints, 
