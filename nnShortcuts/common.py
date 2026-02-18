@@ -1855,7 +1855,7 @@ class CommonShortcuts:
             ax.invert_xaxis()
             ax.grid(axis='y')
         if set_ylabel:
-            ax.set_ylabel("Energy ($\mathrm{eV}$)", fontsize=labelsize)
+            ax.set_ylabel(CommonShortcuts.axis_label_energy, fontsize=labelsize)
         if lattice_temperature is not None:
             kBT = CommonShortcuts.Boltzmann * lattice_temperature * CommonShortcuts.scale_J_to_eV
             
