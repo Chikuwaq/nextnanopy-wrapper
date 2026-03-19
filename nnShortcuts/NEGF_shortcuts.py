@@ -930,13 +930,13 @@ class NEGFShortcuts(CommonShortcuts):
 
         CVD_aware = True
         color_CB, color_HH, color_LH = self.default_colors.get_linecolor_bandedges(CVD_aware, dark_mode)
-        linestyle_CB, linestyle_HH, linestyle_LH = CommonShortcuts.get_linestyle_bandedges(CVD_aware)
+        linestyle_CB, linestyle_HH, linestyle_LH = CommonShortcuts.get_linestyle_bandedges()
 
         ax.plot(position.value, CB.value, color=color_CB, linestyle=linestyle_CB, linewidth=linewidth, label=CB.label)
         if LH is not None: 
             ax.plot(position.value, LH.value, color=color_LH, linestyle=linestyle_HH, linewidth=linewidth, label=LH.label)
         if HH is not None: 
-            ax.plot(position.value, HH.value, color=color_HH, linestyle=linestyle_LH, linewidth=linewidth, label=HH.label)
+            ax.plot(position.value, HH.value, color=color_HH, linestyle=linestyle_LH, linewidth=2*linewidth, label=HH.label)
 
         if shadowBandgap:
             # fill the gap

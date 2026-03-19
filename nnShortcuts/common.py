@@ -1991,7 +1991,7 @@ class CommonShortcuts:
 
         CVD_aware = True
         color_CB, color_HH, color_LH = self.default_colors.get_linecolor_bandedges(CVD_aware, False)
-        linestyle_CB, linestyle_HH, linestyle_LH = CommonShortcuts.get_linestyle_bandedges(CVD_aware)
+        linestyle_CB, linestyle_HH, linestyle_LH = CommonShortcuts.get_linestyle_bandedges()
 
         if model == 'Gamma' or model == 'kp8':
             ax.plot(x, CBBandedge, label='conduction band', linewidth=0.6, color=color_CB, linestyle=linestyle_CB)
@@ -2007,15 +2007,10 @@ class CommonShortcuts:
 
 
     @staticmethod
-    def get_linestyle_bandedges(CVD_aware):
-        if CVD_aware:
-            linestyle_CB = 'dashed'
-            linestyle_HH = 'solid'
-            linestyle_LH = 'dotted'
-        else:
-            linestyle_CB = 'dashed'
-            linestyle_HH = 'solid'
-            linestyle_LH = 'solid'
+    def get_linestyle_bandedges():
+        linestyle_CB = (0, (5, 8)) # more distinguishable than 'dashed' from 'solid'
+        linestyle_HH = 'solid'
+        linestyle_LH = 'solid' # 'dotted' is indistinguishable from 'solid' in small figures --> distinguish by thickness
         return linestyle_CB, linestyle_HH, linestyle_LH
     
 
