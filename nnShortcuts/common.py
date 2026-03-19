@@ -63,6 +63,9 @@ class CommonShortcuts:
     vacuum_permittivity = 8.8541878188e-12   # [F/m] 1F = 1 kg^{-1} m^{-2} s^2 C^2 = 1 C^2 / J
     Boltzmann = 1.380649e-23   # [J/K]
 
+    position_min = -10000.
+    position_max = 10000.
+
     DUMMYVALUE = 546578653183735435
 
     # -------------------------------------------------------
@@ -1992,14 +1995,15 @@ class CommonShortcuts:
         CVD_aware = True
         color_CB, color_HH, color_LH = self.default_colors.get_linecolor_bandedges(CVD_aware, False)
         linestyle_CB, linestyle_HH, linestyle_LH = CommonShortcuts.get_linestyle_bandedges()
+        lw_CB, lw_HH, lw_LH = CommonShortcuts.get_linewidths_bandedges(0.6)
 
         if model == 'Gamma' or model == 'kp8':
-            ax.plot(x, CBBandedge, label='conduction band', linewidth=0.6, color=color_CB, linestyle=linestyle_CB)
+            ax.plot(x, CBBandedge, label='conduction band', linewidth=lw_CB, color=color_CB, linestyle=linestyle_CB)
         if want_valence_band:
             if model == 'HH' or model == 'kp6' or model == 'kp8':
-                ax.plot(x, HHBandedge, label='heavy hole', linewidth=0.6, color=color_HH, linestyle=linestyle_HH)
+                ax.plot(x, HHBandedge, label='heavy hole', linewidth=lw_HH, color=color_HH, linestyle=linestyle_HH)
             if model == 'LH' or model == 'kp6' or model == 'kp8':
-                ax.plot(x, LHBandedge, label='light hole', linewidth=0.6, color=color_LH, linestyle=linestyle_LH)
+                ax.plot(x, LHBandedge, label='light hole', linewidth=lw_LH, color=color_LH, linestyle=linestyle_LH)
             # if model == 'SO' or model == 'kp6' or model == 'kp8':
             #     ax.plot(x, SOBandedge, label='split-off hole', linewidth=0.6, color=self.default_colors.bands['SO'])
             # if model == 'LH' or model == 'kp6' or model == 'kp8':
@@ -2008,11 +2012,18 @@ class CommonShortcuts:
 
     @staticmethod
     def get_linestyle_bandedges():
-        linestyle_CB = (0, (5, 8)) # more distinguishable than 'dashed' from 'solid'
+        linestyle_CB = (0, (3, 3)) # (offset, (on_off_seq)) # more distinguishable than 'dashed' from 'solid'
         linestyle_HH = 'solid'
         linestyle_LH = 'solid' # 'dotted' is indistinguishable from 'solid' in small figures --> distinguish by thickness
         return linestyle_CB, linestyle_HH, linestyle_LH
-    
+        
+    @staticmethod
+    def get_linewidths_bandedges(linewidth):
+        """ 
+        Returns magnificed linewidths for CB, HH, and LH edges.
+        'dotted' is indistinguishable from 'solid' in small figures --> distinguish by thickness
+        """
+        return linewidth, 3*linewidth, linewidth
 
     def draw_probabilities(self, ax, state_indices, x, psiSquared, model, kIndex, show_state_index, color_by_fraction_of, scalarmappable, compositions):
         if model != 'kp8' and color_by_fraction_of:
@@ -2030,7 +2041,7 @@ class CommonShortcuts:
             else:
                 # color according to the quantum model that yielded the solution
                 plot_color = self.default_colors.bands[model]
-            ax.plot(x, psiSquared[model][cnt][kIndex], color=plot_color)
+            ax.plot(x, psiSquared[model][cnt][kIndex], color=plot_color, lw=0.8)
 
             if show_state_index:
                 xmax, ymax = CommonShortcuts.get_maximum_points(psiSquared[model][cnt][kIndex], x)

@@ -931,12 +931,13 @@ class NEGFShortcuts(CommonShortcuts):
         CVD_aware = True
         color_CB, color_HH, color_LH = self.default_colors.get_linecolor_bandedges(CVD_aware, dark_mode)
         linestyle_CB, linestyle_HH, linestyle_LH = CommonShortcuts.get_linestyle_bandedges()
+        lw_CB, lw_HH, lw_LH = CommonShortcuts.get_linewidths_bandedges(linewidth)
 
-        ax.plot(position.value, CB.value, color=color_CB, linestyle=linestyle_CB, linewidth=linewidth, label=CB.label)
-        if LH is not None: 
-            ax.plot(position.value, LH.value, color=color_LH, linestyle=linestyle_HH, linewidth=linewidth, label=LH.label)
+        ax.plot(position.value, CB.value, color=color_CB, linestyle=linestyle_CB, linewidth=lw_CB, label=CB.label)
         if HH is not None: 
-            ax.plot(position.value, HH.value, color=color_HH, linestyle=linestyle_LH, linewidth=2*linewidth, label=HH.label)
+            ax.plot(position.value, HH.value, color=color_HH, linestyle=linestyle_HH, linewidth=lw_HH, label=HH.label)
+        if LH is not None: 
+            ax.plot(position.value, LH.value, color=color_LH, linestyle=linestyle_LH, linewidth=lw_LH, label=LH.label)
 
         if shadowBandgap:
             # fill the gap
@@ -2177,8 +2178,10 @@ class NEGFShortcuts(CommonShortcuts):
             bias                = None,
             states_range_dict   = None,
             states_list_dict    = None,
-            start_position      = -10000.,
-            end_position        = 10000.,
+            start_position      = CommonShortcuts.position_min,
+            end_position        = CommonShortcuts.position_max,
+            Emin                = None,
+            Emax                = None,
             hide_tails          = False,
             only_k0             = True,
             show_spinor         = False,
@@ -2216,6 +2219,8 @@ class NEGFShortcuts(CommonShortcuts):
             states_list_dict,
             start_position,
             end_position,
+            Emin,
+            Emax,
             hide_tails,
             only_k0,
             show_spinor,
@@ -2237,6 +2242,8 @@ class NEGFShortcuts(CommonShortcuts):
             states_list_dict,
             start_position,
             end_position,
+            Emin,
+            Emax,
             hide_tails,
             only_k0,
             show_spinor,
@@ -2419,7 +2426,7 @@ class NEGFShortcuts(CommonShortcuts):
                     continue
 
                 compositions[model] = np.zeros((num_evs[model], num_kPoints[model], 4))   # compositions[quantum model][eigenvalue index][k index][spinor index]
-                print(datafiles_spinor[model][0])  # TODO: nextnanopy negf parser or InputFile class has a bug, or, my output from NEGF++ is not optimal
+                # print(datafiles_spinor[model][0])  # TODO: nextnanopy negf parser or InputFile class has a bug, or, my output from NEGF++ is not optimal
                 for stateIndex in state_indices:
                     for kIndex in range(num_kPoints[model]):
                         # store spinor composition data
@@ -2463,6 +2470,16 @@ class NEGFShortcuts(CommonShortcuts):
                     ax_probability.set_title(f'{title} (quantum model: {model})', color=self.default_colors.bands[model])
                 else:
                     ax_probability.set_title(f'{title} (quantum model: {model}), k index: {kIndex}', color=self.default_colors.bands[model])
+                
+                if start_position != CommonShortcuts.position_min:
+                    xmin = start_position
+                else:
+                    xmin = None
+                if end_position != CommonShortcuts.position_max:
+                    xmax = end_position
+                else:
+                    xmax = None
+                ax_probability.set_xlim(xmin, xmax)
                 self.draw_bandedges(ax_probability, title, model, x, CBBandedge, want_valence_band, HHBandedge, LHBandedge)
 
 
@@ -2474,6 +2491,7 @@ class NEGFShortcuts(CommonShortcuts):
                     cbar.set_label("Conduction-band fraction", fontsize=labelsize)
                     cbar.ax.tick_params(labelsize=ticksize)
 
+                ax_probability.set_ylim(Emin, Emax)
                 self.draw_probabilities(ax_probability, state_indices, x, psiSquared, model, kIndex, show_state_index, color_by_fraction_of, scalarmappable, compositions)
 
                 # ax_probability.legend(loc='lower left')
