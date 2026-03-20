@@ -2,7 +2,7 @@ import os
 import shutil
 import logging
 
-from nnShortcuts.common import CommonShortcuts
+from nnShortcuts.path_handler import PathHandler
 
 class SlurmData:
 	max_num_jobs_per_user = 5  # may be larger (check cluster's policy - also affected by numCPU requested and number of physical cores?)
@@ -64,7 +64,7 @@ class SlurmData:
 		logging.info("Writing sbatch scripts...")
 		
 		for iInputFile, input_file_fullpath in enumerate(input_file_fullpaths):
-			filename, extension = CommonShortcuts.separate_extension(input_file_fullpath)
+			filename, extension = PathHandler.separate_extension(input_file_fullpath)
 			scriptpath = os.path.join(sbatch_scripts_folder, "run_" + filename + ".sh")
 			self.sbatch_script_paths.append(scriptpath)
 			output_subfolder_path = os.path.join(output_folder, filename)  # TODO: may be replaced by SweepHelper.data['output_subfolder'] or its short version
@@ -97,7 +97,7 @@ class SlurmData:
 		if not isinstance(inputpath, str): TypeError(f"Input file path must be a string, not {type(inputpath)}")
 		
 		# prepare paths
-		filename, extension = CommonShortcuts.separate_extension(inputpath)
+		filename, extension = PathHandler.separate_extension(inputpath)
 		unique_name = filename + self.unique_tag
 		if not os.path.exists(output_subfolder_path): 
 			os.makedirs(output_subfolder_path)

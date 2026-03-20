@@ -3,7 +3,7 @@ import shutil
 import logging
 import subprocess
 
-from nnShortcuts.common import CommonShortcuts
+from nnShortcuts.path_handler import PathHandler
 
 class SlurmData:
 	max_num_jobs_per_user = 8  # may be larger (check cluster's policy - also affected by numCPU requested and number of physical cores?)
@@ -177,7 +177,7 @@ class SlurmData:
 			logging.error("partition is undefined!")
 		
 		# initialize log file
-		first_filename, extension = CommonShortcuts.separate_extension(inputpaths[0])
+		first_filename, extension = PathHandler.separate_extension(inputpaths[0])
 		logfile = os.path.join(output_folder_path, f"%j_{sbatch_file_count}_{first_filename}.log")  # differentiate log file names to avoid conflicts when multiple SweepHelpers are submitting jobs
 		if os.path.isfile(logfile):
 			os.remove(logfile)
@@ -216,7 +216,7 @@ class SlurmData:
 			f.write("\n")
 
 			for inputpath in inputpaths:
-				filename, extension = CommonShortcuts.separate_extension(inputpath)
+				filename, extension = PathHandler.separate_extension(inputpath)
 				
 				output_subfolder_path = os.path.join(output_folder_path, filename)
 				if not os.path.exists(output_subfolder_path): 

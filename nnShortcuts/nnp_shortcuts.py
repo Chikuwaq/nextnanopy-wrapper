@@ -17,6 +17,7 @@ import logging
 import nextnanopy as nn
 from nnShortcuts.common import CommonShortcuts, NextnanopyScriptError, NextnanoInputFileError, NextnanoInputFileWarning
 from nnShortcuts.scientific_plotter import ScientificPlotter
+from nnShortcuts.path_handler import PathHandler
 
 
 class nnpShortcuts(CommonShortcuts):
@@ -80,7 +81,7 @@ class nnpShortcuts(CommonShortcuts):
         """
 
         outputFolder = nn.config.get(self.product_name, 'outputdirectory')
-        filename_no_extension = CommonShortcuts.separate_extension(input_file.fullpath)[0]
+        filename_no_extension = PathHandler.separate_extension(input_file.fullpath)[0]
         outputSubfolder = os.path.join(outputFolder, filename_no_extension)
         return self.getKPointsData1D_in_folder(outputSubfolder)
 
@@ -242,7 +243,7 @@ class nnpShortcuts(CommonShortcuts):
     #     dictionary with keys interband, intraband, and dipole, each consisting of list of file paths for matrix_elements
     #     """
     #     name = os.path.split(name)[1]   # remove paths if present
-    #     filename_no_extension = CommonShortcuts.separate_extension(name)[0]
+    #     filename_no_extension = PathHandler.separate_extension(name)[0]
     #     outputFolder = nn.config.get(self.product_name, 'outputdirectory')
     #     outputSubFolder = os.path.join(outputFolder, filename_no_extension)
     #     datafiles = self.get_DataFiles_in_folder(['matrix_elements', '.txt'], outputSubFolder)
@@ -329,7 +330,7 @@ class nnpShortcuts(CommonShortcuts):
         if labelsize is None: labelsize = self.labelsize_default
         if ticksize is None: ticksize = self.ticksize_default
 
-        filename_no_extension = CommonShortcuts.separate_extension(name)[0]
+        filename_no_extension = PathHandler.separate_extension(name)[0]
 
         # define plot title
         if plot_title:
@@ -503,7 +504,7 @@ class nnpShortcuts(CommonShortcuts):
         #-------------------------------------------
         # Plots - save all the figures to one PDF
         #-------------------------------------------
-        filename_no_extension = CommonShortcuts.separate_extension(name)[0]
+        filename_no_extension = PathHandler.separate_extension(name)[0]
         export_filename = f'{filename_no_extension}_patched_dispersion'
 
         if savePDF: self.export_figs(export_filename, 'pdf')
@@ -531,12 +532,12 @@ class nnpShortcuts(CommonShortcuts):
             states_toBePlotted      list of eigenstate numbers to be plotted
 
         """
-        inputfile_name = CommonShortcuts.separate_extension(master_input_file.fullpath)[0]
+        inputfile_name = PathHandler.separate_extension(master_input_file.fullpath)[0]
         output_folder_path = self.compose_sweep_output_folder_path(inputfile_name, sweep_variable)
         logging.info(f'output folder path: {output_folder_path}')
 
         for value in list_of_values:
-            output_subfolderName = self.compose_sweep_output_subfolder_name(inputfile_name, {sweep_variable: value})
+            output_subfolderName = PathHandler.compose_sweep_output_subfolder_name(inputfile_name, {sweep_variable: value})
             output_folder = os.path.join(output_folder_path, output_subfolderName)
 
             # load output data files
@@ -560,7 +561,7 @@ class nnpShortcuts(CommonShortcuts):
             ax.legend(loc='upper left')
 
         # save all the figures to one PDF
-        PDFfilename = CommonShortcuts.separate_extension(inputfile_name)[0]
+        PDFfilename = PathHandler.separate_extension(inputfile_name)[0]
         self.export_figs(PDFfilename, 'pdf', output_folder_path=output_folder_path)
 
 
@@ -581,11 +582,11 @@ class nnpShortcuts(CommonShortcuts):
             states_toBePlotted      list of eigenstate numbers to be plotted
 
         """
-        inputfile_name = CommonShortcuts.separate_extension(master_input_file.fullpath)[0]
+        inputfile_name = PathHandler.separate_extension(master_input_file.fullpath)[0]
         output_folder_path = self.compose_sweep_output_folder_path(inputfile_name, sweep_variable)
 
         # determine optimal plot range - x-axis
-        output_subfolderName = self.compose_sweep_output_subfolder_name(inputfile_name, {sweep_variable: list_of_values[0]})
+        output_subfolderName = PathHandler.compose_sweep_output_subfolder_name(inputfile_name, {sweep_variable: list_of_values[0]})
         output_folder        = os.path.join(output_folder_path, output_subfolderName)
         datafile_dispersion  = self.get_DataFile_in_folder('dispersion_', output_folder)
         kPoints              = datafile_dispersion.coords['|k|'].value
@@ -608,7 +609,7 @@ class nnpShortcuts(CommonShortcuts):
         num_kPoints = len(kPoints)
 
         def plotDispersions(iSweep):
-            output_subfolderName = self.compose_sweep_output_subfolder_name(inputfile_name, {sweep_variable: list_of_values[iSweep]})
+            output_subfolderName = PathHandler.compose_sweep_output_subfolder_name(inputfile_name, {sweep_variable: list_of_values[iSweep]})
             output_folder = os.path.join(output_folder_path, output_subfolderName)
 
             # load output data files
@@ -970,10 +971,10 @@ class nnpShortcuts(CommonShortcuts):
         # Plots --- save all the figures to one PDF
         #-------------------------------------------
         if savePDF:
-            export_filename = f'{CommonShortcuts.separate_extension(input_file.fullpath)[0]}_probabilities'
+            export_filename = f'{PathHandler.separate_extension(input_file.fullpath)[0]}_probabilities'
             self.export_figs(export_filename, 'pdf')
         if savePNG:
-            export_filename = f'{CommonShortcuts.separate_extension(input_file.fullpath)[0]}_probabilities'
+            export_filename = f'{PathHandler.separate_extension(input_file.fullpath)[0]}_probabilities'
             self.export_figs(export_filename, 'png', fig=fig)   # NOTE: presumably only the last fig instance is exported
 
         # --- display in the GUI

@@ -30,6 +30,7 @@ import nextnanopy as nn
 from nnShortcuts.common import CommonShortcuts
 from slurm_data import SlurmData
 from sweep_space import SweepSpace
+from nnShortcuts.path_handler import PathHandler
 
 
 
@@ -185,7 +186,7 @@ class SweepManager:
         self.master_input_file['original'] = copy.copy(master_input_file)
         outfolder = self.shortcuts.compose_sweep_output_folder_path(self.master_input_file['original'].fullpath, *self.sweep_space.get_variable_names())
         initSweepCoords = {key: arr[0] for key, arr in self.sweep_space.get_items()}
-        subfolder = self.shortcuts.compose_sweep_output_subfolder_name(self.master_input_file['original'].fullpath, initSweepCoords)
+        subfolder = PathHandler.compose_sweep_output_subfolder_name(self.master_input_file['original'].fullpath, initSweepCoords)
         outpath = os.path.join(outfolder, subfolder)
         if len(outpath) + 100 > 260:
             import uuid

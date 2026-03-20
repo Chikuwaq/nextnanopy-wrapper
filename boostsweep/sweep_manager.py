@@ -32,6 +32,7 @@ from nnShortcuts.common import CommonShortcuts
 from boostsweep.slurm_data import SlurmData
 from boostsweep.sweep_space import SweepSpace
 from nnShortcuts.default_colors import DefaultColors
+from nnShortcuts.path_handler import PathHandler
 
 
 class SweepManager:
@@ -231,7 +232,7 @@ class SweepManager:
         else:
             outfolder = self.shortcuts.compose_sweep_output_folder_path(self.master_input_file['original'].fullpath, *self.sweep_space.get_variable_names())
             initSweepCoords = {key: arr[0] for key, arr in self.sweep_space.get_items()}
-            subfolder = self.shortcuts.compose_sweep_output_subfolder_name(self.master_input_file['original'].fullpath, initSweepCoords)
+            subfolder = PathHandler.compose_sweep_output_subfolder_name(self.master_input_file['original'].fullpath, initSweepCoords)
             outpath = os.path.join(outfolder, subfolder)
         max_path_length = 260
         if platform.system() == 'Linux':
@@ -300,7 +301,7 @@ class SweepManager:
         for input_path in input_fullpaths:
             sweep_input_name = os.path.split(input_path)[1]   # remove directory
             sweep_var_string = sweep_input_name[n_characters_to_remove:]  # remove master input file name to shorten the paths
-            subfolder_paths.append(CommonShortcuts.get_output_subfolder_path(output_folder_path, sweep_var_string))
+            subfolder_paths.append(PathHandler.get_output_subfolder_path(output_folder_path, sweep_var_string))
         return subfolder_paths
 
     def __str__(self):

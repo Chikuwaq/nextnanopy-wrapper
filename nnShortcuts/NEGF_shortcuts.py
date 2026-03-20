@@ -1,6 +1,6 @@
 """
 Created: 2022/03/22
-Updated: 2023/02/21
+Updated: 2026/03/20
 
 Useful shortcut functions for nextnano.NEGF postprocessing.
 get_* methods return nn.DataFile() attribute (output data)
@@ -20,6 +20,7 @@ import logging
 import nextnanopy as nn
 from nnShortcuts.common import CommonShortcuts, NextnanopyScriptError, NextnanoInputFileError, NextnanoInputFileWarning
 from nnShortcuts.scientific_plotter import ScientificPlotter
+from nnShortcuts.path_handler import PathHandler
 
 
 class NEGFShortcuts(CommonShortcuts):
@@ -130,7 +131,7 @@ class NEGFShortcuts(CommonShortcuts):
 
         # export to an image file
         outputFolder = nn.config.get(self.product_name, 'outputdirectory')
-        filename_no_extension = CommonShortcuts.separate_extension(input_file_names[0])[0]
+        filename_no_extension = PathHandler.separate_extension(input_file_names[0])[0]
         outputSubfolder = os.path.join(outputFolder, filename_no_extension)
         self.export_figs("IV", "png", output_folder_path=outputSubfolder, fig=fig)
 
@@ -408,7 +409,7 @@ class NEGFShortcuts(CommonShortcuts):
             bias_subfolder = os.path.join(name, str(bias) + 'mV')
         else:
             output_folder = nn.config.get(self.product_name, 'outputdirectory')
-            filename_no_extension = CommonShortcuts.separate_extension(name)[0]
+            filename_no_extension = PathHandler.separate_extension(name)[0]
             bias_subfolder = os.path.join(output_folder, filename_no_extension, str(bias) + 'mV')
 
         return self.get_DataFile_in_folder(keywords, bias_subfolder, exclude_keywords, exclude_folders=exclude_folders, allow_folder_name_suffix=allow_folder_name_suffix)
@@ -606,7 +607,7 @@ class NEGFShortcuts(CommonShortcuts):
         if input_file_name is not None:
             datafile = self.get_DataFile_NEGF_atBias("FermiLevel.dat", input_file_name, bias=bias, allow_folder_name_suffix=False)
         elif output_folder is not None:
-            datafile = self.get_DataFile_in_folder("FermiLevel.dat", CommonShortcuts.append_bias_to_path(output_folder, bias), allow_folder_name_suffix=allow_folder_name_suffix)
+            datafile = self.get_DataFile_in_folder("FermiLevel.dat", PathHandler.append_bias_to_path(output_folder, bias), allow_folder_name_suffix=allow_folder_name_suffix)
         else:
             raise ValueError("Either 'input_file_name' or 'output_folder' must be specified!")
         
@@ -1079,7 +1080,7 @@ class NEGFShortcuts(CommonShortcuts):
         """
         # load output data files
         if input_file_name is not None:
-            filename_no_extension = CommonShortcuts.separate_extension(input_file_name)[0]
+            filename_no_extension = PathHandler.separate_extension(input_file_name)[0]
             datafiles_dispersion = self.get_DataFiles_NEGFInit_in_folder('InplaneDispersionReduced_Corrected', filename_no_extension, search_raw_solution_folder=True)
         elif output_folder is not None:
             datafiles_dispersion = self.get_DataFiles_NEGFInit_in_folder('InplaneDispersionReduced_Corrected', output_folder, search_raw_solution_folder=True)
@@ -1110,10 +1111,10 @@ class NEGFShortcuts(CommonShortcuts):
         """
         # load output data files
         if input_file_name is not None:
-            filename_no_extension = CommonShortcuts.separate_extension(input_file_name)[0]
+            filename_no_extension = PathHandler.separate_extension(input_file_name)[0]
             datafile_dispersion = self.get_DataFile_NEGF_atBias('InplaneDispersion', filename_no_extension, bias, allow_folder_name_suffix=False, is_fullpath=False, exclude_keywords=[])
         elif output_folder is not None:
-            datafile_dispersion = self.get_DataFile_in_folder('InplaneDispersion', CommonShortcuts.append_bias_to_path(output_folder, bias), exclude_keywords=[], allow_folder_name_suffix=allow_folder_name_suffix)
+            datafile_dispersion = self.get_DataFile_in_folder('InplaneDispersion', PathHandler.append_bias_to_path(output_folder, bias), exclude_keywords=[], allow_folder_name_suffix=allow_folder_name_suffix)
         else:
             raise ValueError("Either 'input_file_name' or 'output_folder' must be specified!")
         
@@ -1223,7 +1224,7 @@ class NEGFShortcuts(CommonShortcuts):
         # export to an image file
         outputFolder = nn.config.get(self.product_name, 'outputdirectory')
         if input_file_name is not None:
-            filename_no_extension = CommonShortcuts.separate_extension(input_file_name)[0]
+            filename_no_extension = PathHandler.separate_extension(input_file_name)[0]
             outputSubfolder = os.path.join(outputFolder, filename_no_extension)
         else:
             filename_no_extension = None
@@ -1343,7 +1344,7 @@ class NEGFShortcuts(CommonShortcuts):
         # export to an image file
         outputFolder = nn.config.get(self.product_name, 'outputdirectory')
         if input_file_name is not None:
-            filename_no_extension = CommonShortcuts.separate_extension(input_file_name)[0]
+            filename_no_extension = PathHandler.separate_extension(input_file_name)[0]
             outputSubfolder = os.path.join(outputFolder, filename_no_extension)
         else:
             filename_no_extension = None
@@ -1451,7 +1452,7 @@ class NEGFShortcuts(CommonShortcuts):
         # export to an image file
         outputFolder = nn.config.get(self.product_name, 'outputdirectory')
         if input_file_name is not None:
-            filename_no_extension = CommonShortcuts.separate_extension(input_file_name)[0]
+            filename_no_extension = PathHandler.separate_extension(input_file_name)[0]
             outputSubfolder = os.path.join(outputFolder, filename_no_extension)
         else:
             filename_no_extension = None
@@ -1523,7 +1524,7 @@ class NEGFShortcuts(CommonShortcuts):
         # export to an image file
         outputFolder = nn.config.get(self.product_name, 'outputdirectory')
         if input_file_name is not None:
-            filename_no_extension = CommonShortcuts.separate_extension(input_file_name)[0]
+            filename_no_extension = PathHandler.separate_extension(input_file_name)[0]
             outputSubfolder = os.path.join(outputFolder, filename_no_extension)
         else:
             filename_no_extension = None
@@ -1829,7 +1830,7 @@ class NEGFShortcuts(CommonShortcuts):
 
         """
         output_folder = nn.config.get(self.product_name, 'outputdirectory')
-        filename_no_extension = CommonShortcuts.separate_extension(name)[0]
+        filename_no_extension = PathHandler.separate_extension(name)[0]
         datafolder = nn.DataFolder(os.path.join(output_folder, filename_no_extension))
 
         biases = [int(folder_name.replace('mV', '')) for folder_name in datafolder.folders.keys() if ('mV' in folder_name) and ('Init' not in folder_name)]
@@ -1858,7 +1859,7 @@ class NEGFShortcuts(CommonShortcuts):
         if rightFig not in quantity_names:
             raise KeyError(f"Entry must be {quantity_names}!")
 
-        input_file_name = CommonShortcuts.separate_extension(input_file_name)[0]
+        input_file_name = PathHandler.separate_extension(input_file_name)[0]
 
         array_of_biases = np.array(self.get_biases(input_file_name))
 
@@ -1938,7 +1939,7 @@ class NEGFShortcuts(CommonShortcuts):
         """
         # find the output file
         outputFolder = nn.config.get(self.product_name, 'outputdirectory')
-        filename_no_extension = CommonShortcuts.separate_extension(name)[0]
+        filename_no_extension = PathHandler.separate_extension(name)[0]
         outputSubfolder = os.path.join(outputFolder, filename_no_extension)
         df = self.get_DataFile_in_folder('L-I-V.dat', outputSubfolder)
         
@@ -2507,7 +2508,7 @@ class NEGFShortcuts(CommonShortcuts):
         #-------------------------------------------
         # Plots --- save all the figures to one PDF
         #-------------------------------------------
-        export_filename = f'{CommonShortcuts.separate_extension(output_folder_path)[0]}_probabilities'
+        export_filename = f'{PathHandler.separate_extension(output_folder_path)[0]}_probabilities'
         if savePDF:
             self.export_figs(export_filename, 'pdf')
         if savePNG:
@@ -2670,10 +2671,10 @@ class NEGFShortcuts(CommonShortcuts):
         # Plots --- save all the figures to one PDF
         #-------------------------------------------
         if savePDF:
-            export_filename = f'{CommonShortcuts.separate_extension(input_file.fullpath)[0]}_RRSModes'
+            export_filename = f'{PathHandler.separate_extension(input_file.fullpath)[0]}_RRSModes'
             self.export_figs(export_filename, 'pdf')
         if savePNG:
-            export_filename = f'{CommonShortcuts.separate_extension(input_file.fullpath)[0]}_RRSModes'
+            export_filename = f'{PathHandler.separate_extension(input_file.fullpath)[0]}_RRSModes'
             self.export_figs(export_filename, 'png', fig=fig)   # NOTE: presumably only the last fig instance is exported
 
         # --- display in the GUI

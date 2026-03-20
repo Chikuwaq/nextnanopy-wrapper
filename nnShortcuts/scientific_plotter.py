@@ -5,6 +5,11 @@ import logging
 import warnings
 
 class ScientificPlotter:
+	"""
+	We make methods static because:
+	- these utility functions do not depend on the class state but makes sense that they belong to the class
+	- we want to make this method available without instantiation of an object.
+	"""
 
 	# -------------------------------------------------------
 	# Constructor
