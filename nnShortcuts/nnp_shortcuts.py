@@ -16,6 +16,7 @@ import logging
 # nextnanopy includes
 import nextnanopy as nn
 from nnShortcuts.common import CommonShortcuts, NextnanopyScriptError, NextnanoInputFileError, NextnanoInputFileWarning
+from nnShortcuts.scientific_plotter import ScientificPlotter
 
 
 class nnpShortcuts(CommonShortcuts):
@@ -34,14 +35,14 @@ class nnpShortcuts(CommonShortcuts):
         df = self.get_DataFile('bandgap.dat', filename)
         bandgap = df.variables['Bandgap_Gamma'].value
         x = df.coords['x'].value
-        Eg = self.get_value_at_position(bandgap, x, position)
+        Eg = ScientificPlotter.get_value_at_position(bandgap, x, position)
         return Eg
 
     def get_deltaSO_atPosition(self, filename, position):
         df = self.get_DataFile('spin_orbit_coupling', filename)
         spin_orbit_coupling = df.variables['Delta_so'].value
         x = df.coords['x'].value
-        deltaSO = self.get_value_at_position(spin_orbit_coupling, x, position)
+        deltaSO = ScientificPlotter.get_value_at_position(spin_orbit_coupling, x, position)
         return deltaSO
 
 

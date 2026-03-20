@@ -14,12 +14,12 @@ animate_NEGF method generates animation
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-import warnings
 import logging
 
 # nextnanopy includes
 import nextnanopy as nn
 from nnShortcuts.common import CommonShortcuts, NextnanopyScriptError, NextnanoInputFileError, NextnanoInputFileWarning
+from nnShortcuts.scientific_plotter import ScientificPlotter
 
 
 class NEGFShortcuts(CommonShortcuts):
@@ -1320,7 +1320,7 @@ class NEGFShortcuts(CommonShortcuts):
                     show_kBT_at_energy = None
 
             if texts is not None:
-                CommonShortcuts.place_texts(ax2, texts)
+                ScientificPlotter.place_texts(ax2, texts)
                 
             # dispersion plot
             kPoints, dispersions, states_toBePlotted = self.get_inplane_dispersion_atBias(input_file_name, output_folder, bias, allow_folder_name_suffix, 0, 0)  # TODO: implement user-defined state index range (see nnpShortcuts.plot_dispersion)
@@ -1336,7 +1336,7 @@ class NEGFShortcuts(CommonShortcuts):
                 if showDensityDeviation:
                     self.draw_1D_carrier_densities_on_2DPlot(ax, input_file_name, output_folder, bias, allow_folder_name_suffix, E_FermiElectron, E_FermiHole, dark_mode, scaling_factor)
             if texts is not None:
-                CommonShortcuts.place_texts(ax, texts)
+                ScientificPlotter.place_texts(ax, texts)
             
         fig.tight_layout()
 
@@ -1433,7 +1433,7 @@ class NEGFShortcuts(CommonShortcuts):
             #     show_kBT_at_energy = None
 
             # if texts is not None:
-            #     CommonShortcuts.place_texts(ax2, texts)
+            #     ScientificPlotter.place_texts(ax2, texts)
                 
             # # dispersion plot
             # kPoints, dispersions, states_toBePlotted = self.get_inplane_dispersion_atBias(input_file_name, output_folder, bias, allow_folder_name_suffix, 0, 0)  # TODO: implement user-defined state index range (see nnpShortcuts.plot_dispersion)
@@ -1444,7 +1444,7 @@ class NEGFShortcuts(CommonShortcuts):
             # 2D color plot
             NEGFShortcuts.draw_2D_color_plot(fig, ax, x.value, y.value, quantity.value, is_divergent, colormap, title, unit, bias, labelsize, titlesize, ticksize, Emin, Emax, zmin, zmax, showBias, xlabel=xlabel)
             if texts is not None:
-                CommonShortcuts.place_texts(ax, texts)
+                ScientificPlotter.place_texts(ax, texts)
             
         fig.tight_layout()
 
@@ -1516,7 +1516,7 @@ class NEGFShortcuts(CommonShortcuts):
         self.draw_bandedges_on_2DPlot(ax, bias, allow_folder_name_suffix, shadowBandgap, dark_mode, linewidth=1.0, input_file_name=input_file_name, output_folder=output_folder) # needs to be before drawing the current density not to mask tunneling currents
 
         if texts is not None:
-                CommonShortcuts.place_texts(ax, texts)
+            ScientificPlotter.place_texts(ax, texts)
 
         fig.tight_layout()
 
