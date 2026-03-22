@@ -32,6 +32,7 @@ from nnShortcuts.common import CommonShortcuts
 from boostsweep.slurm_data import SlurmData
 from boostsweep.sweep_space import SweepSpace
 from nnShortcuts.default_colors import DefaultColors
+from nnShortcuts.scientific_plotter import ScientificPlotter
 from nnShortcuts.path_handler import PathHandler
 
 
@@ -1055,7 +1056,7 @@ class SweepManager:
         cbar.set_label("Envelope overlap")
 
         if contour_value is not None:
-            CommonShortcuts.draw_contour(ax, x_values, y_values, overlap_squared, contour_value, contour_color)
+            ScientificPlotter.draw_contour(ax, x_values, y_values, overlap_squared, contour_value, contour_color)
             
         fig.tight_layout()
         plt.show()
@@ -1204,7 +1205,7 @@ class SweepManager:
             pcolor = ax.pcolormesh(x_values, y_values, transition_energies_scaled, cmap=colormap, shading='auto')
 
         if contour_energy is not None:
-            CommonShortcuts.draw_contour(ax, x_values, y_values, transition_energies_scaled, contour_energy, contour_color)
+            ScientificPlotter.draw_contour(ax, x_values, y_values, transition_energies_scaled, contour_energy, contour_color)
 
         cbar = fig.colorbar(pcolor, ax=ax)
         if unit == 'meV':
@@ -1337,7 +1338,7 @@ class SweepManager:
             pcolor = ax.pcolormesh(x_values, y_values, EDifference * CommonShortcuts.scale1ToMilli, cmap=colormap, shading='auto')
 
         if contour_energy_meV is not None:
-            CommonShortcuts.draw_contour(ax, x_values, y_values, EDifference * CommonShortcuts.scale1ToMilli, contour_energy_meV, contour_color)
+            ScientificPlotter.draw_contour(ax, x_values, y_values, EDifference * CommonShortcuts.scale1ToMilli, contour_energy_meV, contour_color)
             
         cbar = fig.colorbar(pcolor, ax=ax)
         cbar.set_label("Hole energy difference HH1-LH1 ($\mathrm{meV}$)")
@@ -1422,7 +1423,7 @@ class SweepManager:
             pcolor = ax.pcolormesh(x_values, y_values, EDifference * CommonShortcuts.scale1ToMilli, cmap=colormap, shading='auto')
 
         if contour_energy_meV is not None:
-            CommonShortcuts.draw_contour(ax, x_values, y_values, EDifference * CommonShortcuts.scale1ToMilli, contour_energy_meV, contour_color)
+            ScientificPlotter.draw_contour(ax, x_values, y_values, EDifference * CommonShortcuts.scale1ToMilli, contour_energy_meV, contour_color)
             
         cbar = fig.colorbar(pcolor, ax=ax)
         cbar.set_label("Hole energy difference HH1-HH2 ($\mathrm{meV}$)")
