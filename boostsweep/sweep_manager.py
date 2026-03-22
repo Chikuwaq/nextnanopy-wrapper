@@ -1211,7 +1211,7 @@ class SweepManager:
         if unit == 'meV':
             cbar.set_label("Transition energy ($\mathrm{meV}$)")
         elif unit == 'micron' or unit == 'um':
-            cbar.set_label("Wavelength ($\mu\mathrm{m}$)")
+            cbar.set_label("Wavelength ($\mathrm{μm}$)")
         elif unit == 'nm':
             cbar.set_label("Wavelength ($\mathrm{nm}$)")
         fig.tight_layout()
@@ -1257,7 +1257,7 @@ class SweepManager:
         if unit == 'meV':
             ax.set_ylabel("Transition energy ($\mathrm{meV}$)")
         elif unit == 'micron' or unit == 'um':
-            ax.set_ylabel("Wavelength ($\mu\mathrm{m}$)")
+            ax.set_ylabel("Wavelength ($\mathrm{μm}$)")
         elif unit == 'nm':
             ax.set_ylabel("Wavelength ($\mathrm{nm}$)")
         ax.plot(x_values, transition_energies_scaled)
