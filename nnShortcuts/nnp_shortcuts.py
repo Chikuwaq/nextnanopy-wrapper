@@ -847,17 +847,6 @@ class nnpShortcuts(CommonShortcuts):
         # define plot title
         title = CommonShortcuts.adjust_plot_title(plot_title)
 
-        def draw_bandedges(ax, model):
-            self.set_plot_labels(ax, 'Position [nm]', 'Energy [eV]', title)
-            if model == 'Gamma' or model == 'kp8':
-                ax.plot(x, CBBandedge, label='CB', linewidth=0.6, color=self.default_colors.bands['CB'])
-            if model == 'HH' or model == 'kp6' or model == 'kp8':
-                ax.plot(x, HHBandedge, label='HH', linewidth=0.6, color=self.default_colors.bands['HH'])
-            if model == 'LH' or model == 'kp6' or model == 'kp8':
-                ax.plot(x, LHBandedge, label='LH', linewidth=0.6, color=self.default_colors.bands['LH'])
-            if model == 'SO' or model == 'kp6' or model == 'kp8':
-                ax.plot(x, SOBandedge, label='SO', linewidth=0.6, color=self.default_colors.bands['SO'])
-
         def draw_probabilities(self, ax, state_indices, model, kIndex, show_state_index, color_by_fraction_of):
             if model != 'kp8' and color_by_fraction_of:
                 warnings.warn(f"Option 'color_by_fraction_of' is only effective in 8kp simulations, but {model} results are being used")
@@ -927,7 +916,8 @@ class nnpShortcuts(CommonShortcuts):
                     ax_probability.set_title(f'{title} (quantum model: {model})', color=self.default_colors.bands[model])
                 else:
                     ax_probability.set_title(f'{title} (quantum model: {model}), k index: {kIndex}', color=self.default_colors.bands[model])
-                draw_bandedges(ax_probability, model)
+                want_valence_band = (model != 'Gamma')
+                self.draw_bandedges(ax_probability, title, model, x, CBBandedge, want_valence_band, HHBandedge, LHBandedge)
 
 
                 if model == 'kp8':
@@ -957,10 +947,9 @@ class nnpShortcuts(CommonShortcuts):
         if len(calculated_e_models) >= 1 and len(calculated_h_models) >= 1:
             fig, ax_combi = plt.subplots()
             ax_combi.set_title(f"{title} ({calculated_e_models}+{calculated_h_models}), zone-center")
-            draw_bandedges(ax_combi, 'Gamma')
-            draw_bandedges(ax_combi, 'HH')
-            draw_bandedges(ax_combi, 'LH')
-            draw_bandedges(ax_combi, 'SO')
+            want_valence_band = True
+            self.draw_bandedges(ax_probability, title, model, x, CBBandedge, want_valence_band, HHBandedge, LHBandedge)
+            # TODO: Do we need to draw SO band edge?
 
             for model in calculated_e_models + calculated_h_models:
                 draw_probabilities(self, ax_combi, states_toBePlotted[model], model, 0, show_state_index, color_by_fraction_of)

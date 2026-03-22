@@ -1284,15 +1284,16 @@ class CommonShortcuts:
         return new_arr
 
 
-    def set_plot_labels(self, ax, x_label, y_label, title):
+    @staticmethod
+    def set_plot_labels(ax, x_label, y_label, title):
         """
         Set the labels and optimize their sizes (matplotlib default of font size is too small!)
         """
-        ax.set_xlabel(x_label, fontsize=self.labelsize_default)  # r with superscript works
-        ax.set_ylabel(y_label, fontsize=self.labelsize_default)
-        ax.set_title(title, fontsize=self.labelsize_default)
-        ax.tick_params(axis='x', labelsize=self.ticksize_default)
-        ax.tick_params(axis='y', labelsize=self.ticksize_default)
+        ax.set_xlabel(x_label, fontsize=CommonShortcuts.labelsize_default)  # r with superscript works
+        ax.set_ylabel(y_label, fontsize=CommonShortcuts.labelsize_default)
+        ax.set_title(title, fontsize=CommonShortcuts.labelsize_default)
+        ax.tick_params(axis='x', labelsize=CommonShortcuts.ticksize_default)
+        ax.tick_params(axis='y', labelsize=CommonShortcuts.ticksize_default)
         return ax
 
 
@@ -1377,8 +1378,8 @@ class CommonShortcuts:
         ax.set_title(title, fontsize=titlesize)
 
 
-    def draw_bandedges(self, ax, plot_title, model, x, CBBandedge, want_valence_band, HHBandedge, LHBandedge):
-        self.set_plot_labels(ax, CommonShortcuts.axis_label_position, CommonShortcuts.axis_label_energy, plot_title)
+    def draw_bandedges(self, ax, plot_title, model, x, CBBandedge, want_valence_band, HHBandedge, LHBandedge, shorten_data_label):
+        CommonShortcuts.set_plot_labels(ax, CommonShortcuts.axis_label_position, CommonShortcuts.axis_label_energy, plot_title)
 
         CVD_aware = True
         color_CB, color_HH, color_LH = self.default_colors.get_linecolor_bandedges(CVD_aware, False)
@@ -1386,12 +1387,24 @@ class CommonShortcuts:
         lw_CB, lw_HH, lw_LH = CommonShortcuts.get_linewidths_bandedges(0.6)
 
         if model == 'Gamma' or model == 'kp8':
-            ax.plot(x, CBBandedge, label='conduction band', linewidth=lw_CB, color=color_CB, linestyle=linestyle_CB)
+            if shorten_data_label:
+                CBLabel = 'CB'
+            else:
+                CBLabel = 'Conduction band'
+            ax.plot(x, CBBandedge, label=CBLabel, linewidth=lw_CB, color=color_CB, linestyle=linestyle_CB)
         if want_valence_band:
             if model == 'HH' or model == 'kp6' or model == 'kp8':
-                ax.plot(x, HHBandedge, label='heavy hole', linewidth=lw_HH, color=color_HH, linestyle=linestyle_HH)
+                if shorten_data_label:
+                    HHLabel = 'HH'
+                else:
+                    HHLabel = 'Heavy hole'
+                ax.plot(x, HHBandedge, label=HHLabel, linewidth=lw_HH, color=color_HH, linestyle=linestyle_HH)
             if model == 'LH' or model == 'kp6' or model == 'kp8':
-                ax.plot(x, LHBandedge, label='light hole', linewidth=lw_LH, color=color_LH, linestyle=linestyle_LH)
+                if shorten_data_label:
+                    LHLabel = 'HH'
+                else:
+                    LHLabel = 'Light hole'
+                ax.plot(x, LHBandedge, label=LHLabel, linewidth=lw_LH, color=color_LH, linestyle=linestyle_LH)
             # if model == 'SO' or model == 'kp6' or model == 'kp8':
             #     ax.plot(x, SOBandedge, label='split-off hole', linewidth=0.6, color=self.default_colors.bands['SO'])
             # if model == 'LH' or model == 'kp6' or model == 'kp8':
@@ -1440,7 +1453,7 @@ class CommonShortcuts:
                     ax.annotate(f'{stateIndex},{stateIndex+1}', xy=(xmax, ymax), xytext=(xmax, ymax+0.07))
                     skip_annotation = False   # wavefunction degeneracy is atmost 2
                 elif cnt < len(state_indices)-1:  # if not the last state
-                    xmax_next, ymax_next = ScientificPlotter.get_maximum_points(psiSquared[model][cnt][kIndex], x)
+                    xmax_next, ymax_next = ScientificPlotter.get_maximum_points(psiSquared[model][cnt][kIndex], x)  # TODO: should 'cnt' be 'cnt+1'?
                     if abs(xmax_next - xmax) < 1.0 and abs(ymax_next - ymax) < 1e-1:
                         skip_annotation = True
                     else:
