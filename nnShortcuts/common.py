@@ -1465,6 +1465,272 @@ class CommonShortcuts:
                     ax.annotate(f'{stateIndex+1}', xy=(xmax, ymax), xytext=(xmax, ymax+0.07))
 
 
+############### plot probabilities ##################################
+    def plot_probabilities(self, 
+            input_file,
+            states_range_dict   = None,
+            states_list_dict    = None,
+            start_position      = -10000.,
+            end_position        = 10000.,
+            hide_tails          = False,
+            only_k0             = True,
+            show_spinor         = False,
+            show_state_index    = False,
+            color_by_fraction_of = '',
+            plot_title          = '',
+            labelsize           = None,
+            ticksize            = None,
+            savePDF             = False,
+            savePNG             = False,
+            ):
+        """
+        Plot probability distribution on top of bandedges.
+        Properly distinguishes the results from the single band effective mass model, 6- and 8-band k.p models.
+        If both electrons and holes have been simulated, also plot both probabilities in one figure.
+
+        The probability distributions are coloured according to
+        quantum model that yielded the solution (for single-band effective mass and kp6 models) or
+        electron fraction (for kp8 model).
+
+        Parameters
+        ----------
+        input_file : nextnanopy.InputFile object
+            nextnano3 input file.
+        states_range_dict : dict, optional
+            range of state indices to be plotted for each quantum model. The default is None.
+        states_list_dict : dict, optional
+            list of state indices to be plotted for each quantum model.
+            Alternatively, strings 'lowestElectron', 'highestHole' and 'occupied' are accepted. For 'occupied', another key 'cutoff_occupation' must be set in this dict.
+            The default is None.
+        start_position : real, optional
+            left edge of the plotting region. The default is -10000.
+        end_position : real, optional
+            right edge of the plotting region. The default is 10000.
+        hide_tails : bool, optional
+            hide the probability tails. The default is False.
+        only_k0 : bool, optional
+            suppress the output of nonzero in-plane k states. The default is True.
+        show_spinor : bool, optional
+            plot pie chart of spinor composition for all eigenvalues and k points. The default is False.
+        show_state_index : bool, optional
+            indicate eigenstate indices on top of probability plot. The default is False.
+        color_by_fraction_of : str, optional
+            If 8-band k.p simulation, colour the probabilities by the spinor fraction of the specified band. The default is 'conduction_band'.
+        plot_title : str, optional
+            title of the probability plot. The default is ''.
+        labelsize : int, optional
+            font size of xlabel, ylabel and colorbar label
+        ticksize : int, optional
+            font size of xtics, ytics and colorbar tics
+        savePDF : str, optional
+            save the plot in the PDF format. The default is False.
+        savePNG : str, optional
+            save the plot in the PNG format. The default is False.
+
+        Returns
+        -------
+        None.
+
+        """
+        if labelsize is None: labelsize = self.labelsize_default
+        if ticksize is None: ticksize = self.ticksize_default
+        if color_by_fraction_of not in ['conduction_band', 'heavy_hole']:
+            raise ValueError(f"color_by_fraction_of '{color_by_fraction_of}' is not supported")
+
+        from matplotlib import colors
+        from matplotlib.gridspec import GridSpec
+
+        # load output data files
+        datafile_bandedge = self.get_DataFile('bandedges', input_file.fullpath)
+        datafiles_probability_dict = self.get_DataFile_probabilities_with_name(input_file.fullpath)
+
+        for model, datafiles in datafiles_probability_dict.items():
+            if len(datafiles) == 0: 
+                continue
+
+            datafile_probability = datafiles[0]
+            x_probability  = datafile_probability.coords['x'].value
+        if not datafile_probability:
+            raise NextnanoInputFileError('Probabilities are not output! Modify the input file.')
+
+
+        # store data in arrays (independent of quantum models)
+        x             = datafile_bandedge.coords['x'].value
+        CBBandedge    = datafile_bandedge.variables['Gamma'].value
+        LHBandedge    = datafile_bandedge.variables['LH'].value
+        HHBandedge    = datafile_bandedge.variables['HH'].value
+        SOBandedge    = datafile_bandedge.variables['SO'].value
+
+        states_toBePlotted, num_evs = self.get_states_to_be_plotted(datafiles_probability_dict, states_range_dict=states_range_dict, states_list_dict=states_list_dict)
+
+
+        # visualize the in-plane k point_maxts at which Schroedinger eq. has been solved
+        if only_k0:
+            num_kPoints = dict()
+            for model in states_toBePlotted:
+                num_kPoints[model] = 1
+        else:
+            inplaneK_dict = self.getKPointsData1D(input_file)
+            self.plot_inplaneK(inplaneK_dict)
+            num_kPoints = self.get_num_kPoints(inplaneK_dict)
+
+
+        # dictionary containing quantum model keys and 2-dimensional list for each key that stores psi^2 for all (eigenstate, kIndex)
+        psiSquared = dict.fromkeys(datafiles_probability_dict.keys())
+        for model in states_toBePlotted:
+            psiSquared[model] = [ [ 0 for kIndex in range(num_kPoints[model]) ] for stateIndex in range(num_evs[model]) ]  # stateIndex in states_toBePlotted[model] would give a list of the same size
+
+        for model, dfs in datafiles_probability_dict.items():
+            if len(dfs) == 0: 
+                continue
+
+            for cnt, stateIndex in enumerate(states_toBePlotted[model]):
+                for kIndex in range(num_kPoints[model]):
+                    psiSquared_oldgrid = dfs[kIndex].variables[f'Psi^2_{stateIndex+1}'].value
+                    psiSquared[model][cnt][kIndex] = CommonShortcuts.convert_grid(psiSquared_oldgrid, x_probability, x)   # grid interpolation needed because of 'output_bandedges{ averaged=no }'
+
+
+        # chop off edges of the simulation region
+        CBBandedge = CommonShortcuts.cutOff_edges1D(CBBandedge, x, start_position, end_position)
+        HHBandedge = CommonShortcuts.cutOff_edges1D(HHBandedge, x, start_position, end_position)
+        LHBandedge = CommonShortcuts.cutOff_edges1D(LHBandedge, x, start_position, end_position)
+        SOBandedge = CommonShortcuts.cutOff_edges1D(SOBandedge, x, start_position, end_position)
+
+
+        for model in states_toBePlotted:
+            for cnt, stateIndex in enumerate(states_toBePlotted[model]):
+                for kIndex in range(num_kPoints[model]):
+                    psiSquared[model][cnt][kIndex] = CommonShortcuts.cutOff_edges1D(psiSquared[model][cnt][kIndex], x, start_position, end_position)   # chop off edges of the simulation region
+
+        x = CommonShortcuts.cutOff_edges1D(x, x, start_position, end_position)
+        # simLength = x[-1]-x[0]   # [nm]
+
+
+        # mask psiSquared data where it is flat
+        if hide_tails:
+            for model in states_toBePlotted:
+                for cnt, stateIndex in enumerate(states_toBePlotted[model]):
+                    for kIndex in range(num_kPoints[model]):
+                        psiSquared[model][cnt][kIndex] = CommonShortcuts.mask_part_of_array(psiSquared[model][cnt][kIndex], 'flat', 1e-3)
+
+
+        if 'kp6' in datafiles_probability_dict.keys() or 'kp8' in datafiles_probability_dict.keys():
+            # output data of spinor composition at all in-plane k
+            datafiles_spinor = {
+                'kp6': list(),
+                'kp8': list()
+            }
+            datafiles = self.get_DataFiles(['spinor_composition', 'CbHhLhSo'], input_file.fullpath)
+            datafiles = [df for cnt in range(len(datafiles)) for df in datafiles if str(cnt).zfill(5) + '_CbHhLhSo' in os.path.split(df.fullpath)[1]]   # sort spinor composition datafiles in ascending kIndex
+            for df in datafiles:
+                filename = os.path.split(df.fullpath)[1]
+                quantum_model = self.detect_quantum_model(filename)
+                if quantum_model == 'kp6':
+                    datafiles_spinor['kp6'].append(df)
+                elif quantum_model == 'kp8':
+                    datafiles_spinor['kp8'].append(df)
+                else:
+                    raise RuntimeError("Unknown quantum model in spinor composition!")
+            del datafiles
+
+            # dictionary containing quantum model keys and 1-dimensional np.ndarrays for each key that stores spinor composition for all (eigenstate, kIndex)
+            compositions = dict()
+
+            for model, state_indices in states_toBePlotted.items():
+                if model not in ['kp6', 'kp8']: 
+                    continue
+
+                compositions[model] = np.zeros((num_evs[model], num_kPoints[model], 4))   # compositions[quantum model][eigenvalue index][k index][spinor index]
+
+                for stateIndex in state_indices:
+                    for kIndex in range(num_kPoints[model]):
+                        assert model in os.path.split(datafiles_spinor[model][kIndex].fullpath)[1]  # filename contains correct quantum model
+                        assert str(kIndex) in os.path.split(datafiles_spinor[model][kIndex].fullpath)[1]  # filename contains correct kIndex
+                        # store spinor composition data
+                        if model == 'kp8':
+                            compositions[model][stateIndex, kIndex, 0] = datafiles_spinor[model][kIndex].variables['cb1'].value[stateIndex] + datafiles_spinor[model][kIndex].variables['cb2'].value[stateIndex]
+
+                        compositions[model][stateIndex, kIndex, 1] = datafiles_spinor[model][kIndex].variables['hh1'].value[stateIndex] + datafiles_spinor[model][kIndex].variables['hh2'].value[stateIndex]
+                        compositions[model][stateIndex, kIndex, 2] = datafiles_spinor[model][kIndex].variables['lh1'].value[stateIndex] + datafiles_spinor[model][kIndex].variables['lh2'].value[stateIndex]
+                        compositions[model][stateIndex, kIndex, 3] = datafiles_spinor[model][kIndex].variables['so1'].value[stateIndex] + datafiles_spinor[model][kIndex].variables['so2'].value[stateIndex]
+
+        # define plot title
+        title = CommonShortcuts.adjust_plot_title(plot_title)
+
+        def draw_spinor_pie_charts(gs_spinor, state_indices, model, stateIndex, kIndex, show_state_index):
+            num_rows, num_columns = self.get_rowColumn_for_display(len(state_indices))  # determine arrangement of spinor composition plots
+            list_of_colors = [self.default_colors.bands[model] for model in ['CB', 'HH', 'LH', 'SO']]
+            for i in range(num_rows):
+                for j in range(num_columns):
+                    subplotIndex = j + num_columns * i
+                    if subplotIndex >= len(state_indices): break
+
+                    ax = fig.add_subplot(gs_spinor[i, j])
+                    stateIndex = state_indices[subplotIndex]
+                    ax.pie(compositions[model][stateIndex, kIndex, :], colors=list_of_colors, normalize=True, startangle=90, counterclock=False)   # compositions[quantum model][eigenvalue index][k index][spinor index]
+                    if show_state_index: ax.set_title(f'n={stateIndex+1}', color='grey')
+
+
+        # instantiate matplotlib subplot objects for bandedge & probability distribution & spinor pie charts
+        for model, state_indices in states_toBePlotted.items():
+            for kIndex in range(num_kPoints[model]):
+                if only_k0 and kIndex > 0: break
+
+                if show_spinor and (model == 'kp6' or model == 'kp8'):
+                    num_rows, num_columns = self.get_rowColumn_for_display(len(state_indices))
+
+                    fig = plt.figure(figsize=plt.figaspect(0.4))
+                    grid_probability = GridSpec(1, 1, figure=fig, left=0.10, right=0.48, bottom=0.15, wspace=0.05)
+                    grid_spinor = GridSpec(num_rows, num_columns, figure=fig, left=0.55, right=0.98, bottom=0.15, hspace=0.2)
+                    ax_probability = fig.add_subplot(grid_probability[0,0])
+                else:
+                    fig, ax_probability = plt.subplots()
+                if only_k0:
+                    ax_probability.set_title(f'{title} (quantum model: {model})', color=self.default_colors.bands[model])
+                else:
+                    ax_probability.set_title(f'{title} (quantum model: {model}), k index: {kIndex}', color=self.default_colors.bands[model])
+                want_valence_band = (model != 'Gamma')
+                self.draw_bandedges(ax_probability, title, model, x, CBBandedge, want_valence_band, HHBandedge, LHBandedge)
+
+
+                if model == 'kp8':
+                    # define colorbar representing electron fraction
+                    divnorm = colors.TwoSlopeNorm(vcenter=0.5, vmin=0.0, vmax=1.0)
+                    scalarmappable = plt.cm.ScalarMappable(cmap=self.colormap['divergent'], norm=divnorm)
+                    cbar = fig.colorbar(scalarmappable)
+                    cbar.set_label("Electron fraction", fontsize=labelsize)
+                    cbar.ax.tick_params(labelsize=ticksize)
+
+                self.draw_probabilities(ax_probability, state_indices, model, kIndex, show_state_index, color_by_fraction_of)
+
+                if show_spinor and (model == 'kp6' or model == 'kp8'):
+                    draw_spinor_pie_charts(grid_spinor, state_indices, model, stateIndex, kIndex, show_state_index)
+                else:
+                    fig.tight_layout()
+
+
+        # if both electrons and holes have been calculated separately (but not by kp8),
+        # plot bandedge and probabilities at k|| = 0
+        calculated_e_models = [model for model in states_toBePlotted if model in self.model_names_conduction]
+        calculated_h_models = [model for model in states_toBePlotted if model in self.model_names_valence]
+
+        models = [model in self.model_names_conduction for model in states_toBePlotted]
+        models.append([model in self.model_names_conduction for model in states_toBePlotted])
+
+        if len(calculated_e_models) >= 1 and len(calculated_h_models) >= 1:
+            fig, ax_combi = plt.subplots()
+            ax_combi.set_title(f"{title} ({calculated_e_models}+{calculated_h_models}), zone-center")
+            want_valence_band = True
+            self.draw_bandedges(ax_probability, title, model, x, CBBandedge, want_valence_band, HHBandedge, LHBandedge)
+            # TODO: Do we need to draw SO band edge?
+
+            for model in calculated_e_models + calculated_h_models:
+                self.draw_probabilities(ax_combi, states_toBePlotted[model], model, 0, show_state_index, color_by_fraction_of)
+            fig.tight_layout()
+
+        return fig
+    
+
     def export_figs(self, 
             figFilename, 
             figFormat, 

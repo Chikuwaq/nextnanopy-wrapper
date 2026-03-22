@@ -186,10 +186,6 @@ class nn3Shortcuts(CommonShortcuts):
         return amplitude_dict_trimmed
 
 
-
-    ############### plot probabilities ##################################
-
-
     ############### find ground states from kp8 result ############################
     def find_lowest_conduction_state_atK0(self, output_folder, threshold=0.5):
         """

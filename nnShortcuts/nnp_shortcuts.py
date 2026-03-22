@@ -682,6 +682,8 @@ class nnpShortcuts(CommonShortcuts):
         quantum model that yielded the solution (for single-band effective mass and kp6 models) or
         electron fraction (for kp8 model).
 
+        TODO: This method is almost identical to CommonShortcuts.plot_probabilities(). Delete this?
+
         Parameters
         ----------
         input_file : nextnanopy.InputFile object
@@ -968,6 +970,7 @@ class nnpShortcuts(CommonShortcuts):
 
         # --- display in the GUI
         plt.show()
+        return fig
 
 
 
