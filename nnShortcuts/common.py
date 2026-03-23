@@ -1138,9 +1138,6 @@ class CommonShortcuts:
     # - these utility functions do not depend on the class state but makes sense that they belong to the class
     # - we want to make this method available without instantiation of an object.
     # -------------------------------------------------------
-    def plot_probabilities(self):
-        raise NotImplementedError("There is no common implementation")
-    
     def plot_IV(self):
         raise NotImplementedError("There is no common implementation")
 
@@ -1466,22 +1463,108 @@ class CommonShortcuts:
 
 
 ############### plot probabilities ##################################
-    def plot_probabilities(self, 
-            input_file,
-            states_range_dict   = None,
-            states_list_dict    = None,
-            start_position      = -10000.,
-            end_position        = 10000.,
-            hide_tails          = False,
-            only_k0             = True,
-            show_spinor         = False,
-            show_state_index    = False,
-            color_by_fraction_of = '',
-            plot_title          = '',
-            labelsize           = None,
-            ticksize            = None,
-            savePDF             = False,
-            savePNG             = False,
+    def plot_probabilities(self,
+                input_file,
+                states_range_dict   = None,
+                states_list_dict    = None,
+                start_position      = None,
+                end_position        = None,
+                hide_tails          = False,
+                only_k0             = True,
+                show_spinor         = False,
+                show_state_index    = False,
+                color_by_fraction_of = '',
+                plot_title          = '',
+                labelsize           = None,
+                ticksize            = None,
+            ):
+        if start_position is None:
+            start_position = CommonShortcuts.position_min
+        if end_position is None:
+            end_position = CommonShortcuts.position_max
+
+        # load output data files
+        datafiles_probability_dict = self.get_DataFile_probabilities_with_name(input_file.fullpath)
+        output_subfolder = self.__compose_output_subfolder_path(input_file.fullpath)
+
+        return self.plot_probabilities_core(
+                output_subfolder,
+                datafiles_probability_dict,
+                states_range_dict,
+                states_list_dict,
+                start_position,
+                end_position,
+                hide_tails,
+                only_k0,
+                show_spinor,
+                show_state_index,
+                color_by_fraction_of,
+                plot_title,
+                labelsize,
+                ticksize,
+            )
+    
+
+    def plot_probabilities_by_folderpath(self,
+                output_folder_path,
+                states_range_dict   = None,
+                states_list_dict    = None,
+                start_position      = None,
+                end_position        = None,
+                hide_tails          = False,
+                only_k0             = True,
+                show_spinor         = False,
+                show_state_index    = False,
+                color_by_fraction_of = '',
+                plot_title          = '',
+                labelsize           = None,
+                ticksize            = None,
+            ):
+        """
+        output_folder_path : str
+            Location of simulation outputs.
+        """
+        if start_position is None:
+            start_position = CommonShortcuts.position_min
+        if end_position is None:
+            end_position = CommonShortcuts.position_max
+            
+        # load output data files
+        datafiles_probability_dict = self.get_DataFile_probabilities_in_folder(output_folder_path, bias=None)  # TODO: 'allow_folder_name_suffix' option not yet supported by derived classes 'nnpShortcuts' and 'nn3Shortcuts'
+        
+        return self.plot_probabilities_core(
+                output_folder_path,
+                datafiles_probability_dict,
+                states_range_dict,
+                states_list_dict,
+                start_position,
+                end_position,
+                hide_tails,
+                only_k0,
+                show_spinor,
+                show_state_index,
+                color_by_fraction_of,
+                plot_title,
+                labelsize,
+                ticksize,
+            )
+    
+
+    def plot_probabilities_core(self, 
+            output_folder_path,
+            datafiles_probability_dict,
+            states_range_dict,
+            states_list_dict,
+            start_position,
+            end_position,
+            hide_tails,
+            only_k0,
+            show_spinor,
+            show_state_index,
+            color_by_fraction_of,
+            plot_title,
+            labelsize,
+            ticksize,
             ):
         """
         Plot probability distribution on top of bandedges.
@@ -1522,14 +1605,10 @@ class CommonShortcuts:
             font size of xlabel, ylabel and colorbar label
         ticksize : int, optional
             font size of xtics, ytics and colorbar tics
-        savePDF : str, optional
-            save the plot in the PDF format. The default is False.
-        savePNG : str, optional
-            save the plot in the PNG format. The default is False.
-
+        
         Returns
         -------
-        None.
+        matplotlib Figure object
 
         """
         if labelsize is None: labelsize = self.labelsize_default
@@ -1540,10 +1619,7 @@ class CommonShortcuts:
         from matplotlib import colors
         from matplotlib.gridspec import GridSpec
 
-        # load output data files
-        datafile_bandedge = self.get_DataFile('bandedges', input_file.fullpath)
-        datafiles_probability_dict = self.get_DataFile_probabilities_with_name(input_file.fullpath)
-
+        
         for model, datafiles in datafiles_probability_dict.items():
             if len(datafiles) == 0: 
                 continue
@@ -1555,6 +1631,7 @@ class CommonShortcuts:
 
 
         # store data in arrays (independent of quantum models)
+        datafile_bandedge = self.get_DataFile('bandedges', output_folder_path)  # TODO: is the path correct?
         x             = datafile_bandedge.coords['x'].value
         CBBandedge    = datafile_bandedge.variables['Gamma'].value
         LHBandedge    = datafile_bandedge.variables['LH'].value
