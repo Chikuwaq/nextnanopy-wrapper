@@ -693,8 +693,8 @@ class CommonShortcuts:
             Files containing these keywords in the file name are excluded from search.
 
         """
-        outputSubfolder = self.__compose_output_subfolder_path(name)
-        return self.get_DataFile_in_folder(keywords, outputSubfolder, exclude_keywords=exclude_keywords)
+        output_subfolder = self.__compose_output_subfolder_path(name)
+        return self.get_DataFile_in_folder(keywords, output_subfolder, exclude_keywords=exclude_keywords)
 
 
     def get_DataFile_in_folder(self, keywords, folder_path, exclude_keywords=None, exclude_folders=None, allow_folder_name_suffix=False):
@@ -720,7 +720,7 @@ class CommonShortcuts:
         nextnanopy.DataFile object of the simulation data
 
         """
-        folder_path = CommonShortcuts.expect_single_folder_to_exist(folder_path, allow_folder_name_suffix)
+        folder_path = PathHandler.expect_single_folder_to_exist(folder_path, allow_folder_name_suffix)
 
         # if only one keyword is provided, make a list with single element to simplify code
         if isinstance(keywords, str):
@@ -810,8 +810,8 @@ class CommonShortcuts:
             Files containing these keywords in the file name are excluded from search.
 
         """
-        outputSubFolder = self.__compose_output_subfolder_path(name)
-        return self.get_DataFiles_in_folder(keywords, outputSubFolder, exclude_keywords=exclude_keywords)
+        output_subfolder = self.__compose_output_subfolder_path(name)
+        return self.get_DataFiles_in_folder(keywords, output_subfolder, exclude_keywords=exclude_keywords)
 
 
     def get_DataFiles_in_folder(self, keywords, folder_path, exclude_keywords=None, allow_folder_name_suffix=False):
@@ -836,7 +836,7 @@ class CommonShortcuts:
 
         """
         # validate the path
-        folder_path = CommonShortcuts.expect_single_folder_to_exist(folder_path, allow_folder_name_suffix)
+        folder_path = PathHandler.expect_single_folder_to_exist(folder_path, allow_folder_name_suffix)
 
         # if only one keyword is provided, make a list with single element to simplify code
         if isinstance(keywords, str):
@@ -899,8 +899,8 @@ class CommonShortcuts:
         RETURN:
             dictionary { quantum model key: corresponding list of nn.DataFile() objects for probability_shift }
         """
-        outputSubFolder = self.__compose_output_subfolder_path(name)
-        return self.get_DataFile_probabilities_in_folder(outputSubFolder, bias=bias)
+        output_subfolder = self.__compose_output_subfolder_path(name)
+        return self.get_DataFile_probabilities_in_folder(output_subfolder, bias=bias)
         
 
     def get_DataFile_probabilities_in_folder(self):
@@ -1799,13 +1799,13 @@ class CommonShortcuts:
 
         # prepare output subfolder path
         if output_folder_path:
-            outputSubfolder = os.path.join(output_folder_path, "nextnanopy")
+            output_subfolder = os.path.join(output_folder_path, "nextnanopy")
         else:
             output_subfolder_name = PathHandler.separate_extension(output_subfolder_name)[0]   # chop off file extension if any
-            outputSubfolder = os.path.join(nn.config.get(self.product_name, 'outputdirectory'), output_subfolder_name)
+            output_subfolder = os.path.join(nn.config.get(self.product_name, 'outputdirectory'), output_subfolder_name)
 
-        mkdir_if_not_exist(outputSubfolder)
-        export_fullpath = os.path.join(outputSubfolder, figFilename + figFormat)
+        mkdir_if_not_exist(output_subfolder)
+        export_fullpath = os.path.join(output_subfolder, figFilename + figFormat)
         logging.info(f'Exporting figure to: \n{export_fullpath}\n')
 
         if figFormat == '.pdf':
