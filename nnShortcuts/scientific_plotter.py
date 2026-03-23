@@ -200,11 +200,20 @@ class ScientificPlotter:
 
 
     @staticmethod
-    def format_number_for_filename(number, round_decimal) -> str:
+    def format_number_for_filename(
+            number, 
+            round_decimal,
+            should_polish=True
+            ) -> str:
         """
         Return concise string expression of a value.
         Avoids lengthy file name (Windows cannot handle deeply-nested output files if nextnano input file name is too long).
         Unlike format_number_for_axis(), this method avoids the power notation.
+
+        Parameters
+        ----------
+        should_polish : bool, optional
+            Determines whether trailing characters should be removed.
         """
         if isinstance(number, str):
             number = float(number)
@@ -222,7 +231,10 @@ class ScientificPlotter:
                 if use_scientific:
                     return ScientificPlotter.__polish_scientific_number(scientific)
                 else:
-                    return ScientificPlotter.__polish_nonscientific_number(number)
+                    if should_polish:
+                        return ScientificPlotter.__polish_nonscientific_number(number)
+                    else:
+                        return number
         else:
             raise TypeError(f"'number' must be str, int, or float, but is {type(number)}!")
 

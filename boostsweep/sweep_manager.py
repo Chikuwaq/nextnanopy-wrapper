@@ -339,7 +339,7 @@ class SweepManager:
                 # filename_end = '__'  # code following nextnanopy > inputs.py > Sweep.create_input_files()
                 filename_end = ''
                 for var_name, var_value in zip(var_names, combination):
-                    var_value_string = ScientificPlotter.format_number_for_filename(var_value, self.round_decimal)
+                    var_value_string = ScientificPlotter.format_number_for_filename(var_value, self.round_decimal, should_polish=False)  # skipping polishing to avoid inconsistent number of digits in file/folder names
                     filename_end += '{}_{}_'.format(var_name, var_value_string)
                 # input_file_fullpaths[i] = filename_path + filename_end + filename_extension  # code following nextnanopy > inputs.py > Sweep.create_input_files()
                 input_file_fullpaths[i] = os.path.join(folder, filename_end + filename_extension)
