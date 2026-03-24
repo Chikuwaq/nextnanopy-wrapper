@@ -112,7 +112,10 @@ class CommonShortcuts:
         print("loglevel = ", loglevel)
         # log setting
         fmt = '[%(levelname)s] %(message)s'
-        logging.basicConfig(level=loglevel, format=fmt)
+        logging.basicConfig(
+            level=loglevel, 
+            format=fmt
+        )
         logging.captureWarnings(True)
 
         # customize warning format
@@ -590,7 +593,7 @@ class CommonShortcuts:
     
 
     @staticmethod
-    def get_shortcut(inputfile):
+    def get_shortcut(inputfile, loglevel=logging.INFO):
         """
         Detect software from nextnanopy.InputFile() object and returns corresponding shortcut object.
 
@@ -608,16 +611,16 @@ class CommonShortcuts:
                 for line in file:
                     if 'simulation-flow-control' in line:
                         from nnShortcuts.nn3_shortcuts import nn3Shortcuts
-                        return nn3Shortcuts()
+                        return nn3Shortcuts(loglevel=loglevel)
                     elif 'run{' in line:
                         from nnShortcuts.nnp_shortcuts import nnpShortcuts
-                        return nnpShortcuts()
+                        return nnpShortcuts(loglevel=loglevel)
                     elif '<nextnano.NEGF' in line:
                         from nnShortcuts.NEGF_shortcuts import NEGFShortcuts
-                        return NEGFShortcuts(True)
+                        return NEGFShortcuts(True, loglevel=loglevel)
                     elif 'nextnano.NEGF{' in line:
                         from nnShortcuts.NEGF_shortcuts import NEGFShortcuts
-                        return NEGFShortcuts(False)
+                        return NEGFShortcuts(False, loglevel=loglevel)
                     elif '<nextnano.MSB' in line or 'nextnano.MSB{' in line:
                         raise NotImplementedError("MSB shortcuts are not implemented")
                 raise NextnanoInputFileError('Software cannot be detected! Please check your input file.')
@@ -935,7 +938,8 @@ class CommonShortcuts:
         num_evs = dict()
         for model, datafiles in probability_dict.items():
             if isinstance(datafiles, list):
-                if len(datafiles) == 0:   # if no k-points are calculated
+                if len(datafiles) == 0:
+                    warnings.warn(f"No k-points were calculated for model = {model}")
                     num_evs[model] = 0
                 else:
                     df = datafiles[0]
@@ -1452,6 +1456,10 @@ class CommonShortcuts:
         skip_annotation = False
         for cnt, stateIndex in enumerate(state_indices):
             if model == 'kp8':
+                if scalarmappable is None:
+                    raise ValueError("scalarmappable is None! Cannot draw probabilities with colors")
+                if compositions is None:
+                    raise ValueError("Spinor compositions are None!")
                 # color according to spinor compositions
                 if color_by_fraction_of == 'conduction_band':
                     plot_color = scalarmappable.to_rgba(compositions['kp8'][stateIndex, kIndex, 0])

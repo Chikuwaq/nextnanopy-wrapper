@@ -11,7 +11,7 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 import warnings
-# import logging
+import logging
 
 # nextnanopy includes
 from nnShortcuts.common import CommonShortcuts, NextnanopyScriptError, NextnanoInputFileError, NextnanoInputFileWarning
@@ -161,6 +161,7 @@ class nn3Shortcuts(CommonShortcuts):
         for df in datafiles:
             filename = os.path.split(df.fullpath)[1]
             quantum_model = self.detect_quantum_model(filename)
+            logging.debug(f"Found quantum model {quantum_model} in file {filename}")
             probability_dict[quantum_model].append(df)
 
         # delete quantum model keys whose probabilities do not exist in output folder
