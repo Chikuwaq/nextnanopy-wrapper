@@ -933,7 +933,7 @@ class CommonShortcuts:
         raise NotImplementedError("There is no common implementation")
     
 
-    def __get_num_evs(probability_dict):
+    def __get_num_evs(self, probability_dict):
         """ number of eigenvalues for each quantum model """
         num_evs = dict()
         for model, datafiles in probability_dict.items():
@@ -1449,9 +1449,9 @@ class CommonShortcuts:
 
 
     def draw_probabilities(self, ax, state_indices, x, psiSquared, model, kIndex, show_state_index, color_by_fraction_of, scalarmappable, compositions):
-        if model != 'kp8' and color_by_fraction_of:
+        if model != 'kp8' and color_by_fraction_of is not None:
             warnings.warn(f"Option 'color_by_fraction_of' is only effective in 8kp simulations, but {model} results are being used")
-        if model == 'kp8' and not color_by_fraction_of:
+        if model == 'kp8' and color_by_fraction_of is None:
             color_by_fraction_of = 'conduction_band'  # default
         skip_annotation = False
         for cnt, stateIndex in enumerate(state_indices):
@@ -1640,7 +1640,7 @@ class CommonShortcuts:
         """
         if labelsize is None: labelsize = self.labelsize_default
         if ticksize is None: ticksize = self.ticksize_default
-        if color_by_fraction_of not in ['conduction_band', 'heavy_hole']:
+        if color_by_fraction_of is not None and color_by_fraction_of not in ['conduction_band', 'heavy_hole']:
             raise ValueError(f"color_by_fraction_of '{color_by_fraction_of}' is not supported")
 
         from matplotlib import colors
@@ -1757,6 +1757,8 @@ class CommonShortcuts:
                         compositions[model][stateIndex, kIndex, 1] = datafiles_spinor[model][kIndex].variables['hh1'].value[stateIndex] + datafiles_spinor[model][kIndex].variables['hh2'].value[stateIndex]
                         compositions[model][stateIndex, kIndex, 2] = datafiles_spinor[model][kIndex].variables['lh1'].value[stateIndex] + datafiles_spinor[model][kIndex].variables['lh2'].value[stateIndex]
                         compositions[model][stateIndex, kIndex, 3] = datafiles_spinor[model][kIndex].variables['so1'].value[stateIndex] + datafiles_spinor[model][kIndex].variables['so2'].value[stateIndex]
+        else:
+            compositions = None
 
         # define plot title
         title = CommonShortcuts.adjust_plot_title(plot_title)
@@ -1794,7 +1796,7 @@ class CommonShortcuts:
                 else:
                     ax_probability.set_title(f'{title} (quantum model: {model}), k index: {kIndex}', color=self.default_colors.bands[model])
                 want_valence_band = (model != 'Gamma')
-                self.draw_bandedges(ax_probability, title, model, x, CBBandedge, want_valence_band, HHBandedge, LHBandedge)
+                self.draw_bandedges(ax_probability, title, model, x, CBBandedge, want_valence_band, HHBandedge, LHBandedge, True)
 
 
                 if model == 'kp8':
@@ -1804,8 +1806,10 @@ class CommonShortcuts:
                     cbar = fig.colorbar(scalarmappable)
                     cbar.set_label("Electron fraction", fontsize=labelsize)
                     cbar.ax.tick_params(labelsize=ticksize)
+                else:
+                    scalarmappable = None
 
-                self.draw_probabilities(ax_probability, state_indices, model, kIndex, show_state_index, color_by_fraction_of)
+                self.draw_probabilities(ax_probability, state_indices, x, psiSquared, model, kIndex, show_state_index, color_by_fraction_of, scalarmappable, compositions)
 
                 if show_spinor and (model == 'kp6' or model == 'kp8'):
                     draw_spinor_pie_charts(grid_spinor, state_indices, model, stateIndex, kIndex, show_state_index)
@@ -1825,11 +1829,11 @@ class CommonShortcuts:
             fig, ax_combi = plt.subplots()
             ax_combi.set_title(f"{title} ({calculated_e_models}+{calculated_h_models}), zone-center")
             want_valence_band = True
-            self.draw_bandedges(ax_probability, title, model, x, CBBandedge, want_valence_band, HHBandedge, LHBandedge)
+            self.draw_bandedges(ax_probability, title, model, x, CBBandedge, want_valence_band, HHBandedge, LHBandedge, True)
             # TODO: Do we need to draw SO band edge?
 
             for model in calculated_e_models + calculated_h_models:
-                self.draw_probabilities(ax_combi, states_toBePlotted[model], model, 0, show_state_index, color_by_fraction_of)
+                self.draw_probabilities(ax_combi, states_toBePlotted[model], x, psiSquared, model, 0, show_state_index, color_by_fraction_of, scalarmappable, compositions)
             fig.tight_layout()
 
         return fig
