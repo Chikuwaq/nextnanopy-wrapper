@@ -15,16 +15,39 @@ import warnings
 
 # nextnanopy includes
 from nnShortcuts.common import CommonShortcuts, NextnanopyScriptError, NextnanoInputFileError, NextnanoInputFileWarning
+from nnShortcuts.default_colors import DefaultColors
 
 
 class nn3Shortcuts(CommonShortcuts):
     # nextnano solver
     product_name = 'nextnano3'
     
-    model_names = ['cb1', 'vb1', 'vb2', 'vb3', 'kp6', 'kp8']  # in nextnano3
+    model_names = ['cb1', 'vb1', 'vb2', 'vb3', 'kp6', 'kp8']
     model_names_conduction = ['cb1']
     model_names_valence    = ['vb1', 'vb2', 'vb3', 'kp6', 'kp8']
 
+
+
+    def __init__(self, loglevel=logging.INFO):
+        super().__init__(loglevel)
+        self.position_axis_key = 'position'
+        self.bandedge_filename = 'BandEdges'
+        self.conduction_bandedge_key = 'Gamma_bandedge'
+        self.heavy_hole_bandedge_key = 'hh_bandedge'
+        self.light_hole_bandedge_key = 'lh_bandedge'
+        self.SO_hole_bandedge_key = 'so_bandedge'
+        self.wavefunction_name = 'psi'
+
+        self.band_names = {
+            'Gamma': 'cb1', 
+            'CB': 'cb1', 
+            'HH': 'vb1', 
+            'LH': 'vb2', 
+            'SO': 'vb3',
+            'kp6': 'kp6', 
+            'kp8': 'kp8'
+        }
+        self.default_colors = DefaultColors(self.band_names)
 
 
     def detect_quantum_model(self, filename):
@@ -360,7 +383,7 @@ class nn3Shortcuts(CommonShortcuts):
                     df_h = df_LH
                     h_state_basis = ['LH']
             
-        x = df_e.coords['position'].value
+        x = df_e.coords[self.position_axis_key].value
         iLowestElectron = self.find_lowest_conduction_state_atK0(output_folder, threshold=0.5)
         iHighestHole    = self.find_highest_valence_state_atK0(output_folder, threshold=0.5)
         

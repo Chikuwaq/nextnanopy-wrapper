@@ -111,7 +111,6 @@ class SweepManager:
 
         default_colors : DefaultColors object
     """
-    default_colors = DefaultColors()
     n_characters_uuid = 5
 
     def __init__(self, sweep_ranges, master_input_file, eigenstate_range=None, round_decimal=8, abbreviate_if_too_long=True, loglevel=logging.INFO):
@@ -167,9 +166,8 @@ class SweepManager:
         self.sweep_space = SweepSpace.create_from_sweep_ranges(sweep_ranges, round_decimal)
 
         # prepare shortcuts for the nextnano solver used
-        self.shortcuts = CommonShortcuts.get_shortcut(master_input_file)
-        if self.shortcuts.product_name not in ['nextnano3', 'nextnano++', 'nextnano.NEGF', 'nextnano.NEGF++']:
-            raise NotImplementedError("class SweepManager currently supports only nextnano++ and nextnano.NEGF++ simulations.")
+        self.shortcuts = CommonShortcuts.get_shortcut(master_input_file, loglevel=loglevel)
+        self.default_colors = DefaultColors(self.shortcuts.band_names)
 
         if eigenstate_range is not None:
             if not isinstance(eigenstate_range, dict): raise TypeError(f"__init__(): argument 'eigenstate_range' must be a dict, but is {type(eigenstate_range)}")

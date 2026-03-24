@@ -13,15 +13,15 @@ class DefaultColors:
     current_under_illumination = ''
     responsivity = ''
 
-    def __init__(self) -> None:
+    def __init__(self, band_names) -> None:
         self.bands = {
-            'Gamma': 'tomato',
-            'CB': 'tomato',
-            'HH': 'royalblue',
-            'LH': 'forestgreen',
-            'SO': 'goldenrod',
-            'kp6': 'blueviolet',
-            'kp8': 'black'
+            band_names['Gamma']: 'tomato',
+            band_names['CB']: 'tomato',
+            band_names['HH']: 'royalblue',
+            band_names['LH']: 'forestgreen',
+            band_names['SO']: 'goldenrod',
+            band_names['kp6']: 'blueviolet',
+            band_names['kp8']: 'black'
         }
         # self.bands_dark_background = {
         #     'Gamma': 'darkgreen',
@@ -33,13 +33,13 @@ class DefaultColors:
         #     'kp8': 'silver'
         # }
         self.bands_dark_background = {
-            'Gamma': '#999999',  # (NextnanoColor.r_in_nnblue, NextnanoColor.g_in_nnblue, NextnanoColor.b_in_nnblue),
-            'CB': '#999999',  # (NextnanoColor.r_in_nnblue, NextnanoColor.g_in_nnblue, NextnanoColor.b_in_nnblue),
-            'HH': '#999999',
-            'LH': '#999999',
-            'SO': 'wheat',
-            'kp6': 'magenta',
-            'kp8': 'silver'
+            band_names['Gamma']: '#999999',  # (NextnanoColor.r_in_nnblue, NextnanoColor.g_in_nnblue, NextnanoColor.b_in_nnblue),
+            band_names['CB']: '#999999',  # (NextnanoColor.r_in_nnblue, NextnanoColor.g_in_nnblue, NextnanoColor.b_in_nnblue),
+            band_names['HH']: '#999999',
+            band_names['LH']: '#999999',
+            band_names['SO']: 'wheat',
+            band_names['kp6']: 'magenta',
+            band_names['kp8']: 'silver'
         }
         self.bandgap_fill = '#333333'  # 'grey' in the scale from 0 to f
 

@@ -16,6 +16,7 @@ import logging
 # nextnanopy includes
 import nextnanopy as nn
 from nnShortcuts.common import CommonShortcuts, NextnanopyScriptError, NextnanoInputFileError, NextnanoInputFileWarning
+from nnShortcuts.default_colors import DefaultColors
 from nnShortcuts.scientific_plotter import ScientificPlotter
 from nnShortcuts.path_handler import PathHandler
 
@@ -31,6 +32,25 @@ class nnpShortcuts(CommonShortcuts):
 
     def __init__(self, loglevel=logging.INFO):
         super().__init__(loglevel)
+        self.position_axis_key = 'x'
+        self.bandedge_filename = 'bandedges'
+        self.conduction_bandedge_key = 'Gamma'
+        self.heavy_hole_bandedge_key = 'HH'
+        self.light_hole_bandedge_key = 'LH'
+        self.SO_hole_bandedge_key = 'SO'
+        self.wavefunction_name = 'Psi'
+
+        self.band_names = {
+            'Gamma': 'Gamma', 
+            'CB': 'CB', 
+            'HH': 'HH', 
+            'LH': 'LH', 
+            'SO': 'SO',
+            'kp6': 'kp6', 
+            'kp8': 'kp8'
+        }
+        self.default_colors = DefaultColors(self.band_names)
+
 
     def get_bandgap_atPosition(self, filename, position):
         df = self.get_DataFile('bandgap.dat', filename)

@@ -90,6 +90,26 @@ class CommonShortcuts:
     # Constructor
     # -------------------------------------------------------
     def __init__(self, loglevel=logging.INFO):
+        self.position_axis_key = None
+        self.bandedge_filename = None
+        self.conduction_bandedge_key = None
+        self.heavy_hole_bandedge_key = None
+        self.light_hole_bandedge_key = None
+        self.SO_hole_bandedge_key = None
+        self.wavefunction_name = None
+
+        self.band_names = {
+            'Gamma': 'Gamma', 
+            'CB': 'CB', 
+            'HH': 'HH', 
+            'LH': 'LH', 
+            'SO': 'SO',
+            'kp6': 'kp6', 
+            'kp8': 'kp8'
+        }
+        self.default_colors = DefaultColors(self.band_names)
+
+        print("loglevel = ", loglevel)
         # log setting
         fmt = '[%(levelname)s] %(message)s'
         logging.basicConfig(level=loglevel, format=fmt)
@@ -103,7 +123,6 @@ class CommonShortcuts:
         warnings.formatwarning = warning_on_one_line
         logging.getLogger('matplotlib.font_manager').disabled = True  # suppress excessive 'findfont' warnings
 
-        self.default_colors = DefaultColors()
 
         logging.info(f'{self.product_name} shortcuts initialized.')
 
@@ -920,10 +939,10 @@ class CommonShortcuts:
                     num_evs[model] = 0
                 else:
                     df = datafiles[0]
-                    num_evs[model] = sum(1 for var in df.variables if ('Psi' in var.name))   # this conditional counting is necessary because probability output may contain also eigenvalues and/or bandedges.
+                    num_evs[model] = sum(1 for var in df.variables if (self.wavefunction_name in var.name))   # this conditional counting is necessary because probability output may contain also eigenvalues and/or bandedges.
                     logging.debug(f"Number of eigenvalues for {model}: {num_evs[model]}")
             elif isinstance(datafiles, nn.DataFile):
-                num_evs[model] = sum(1 for var in datafiles.variables if ('Psi' in var.name))   # this conditional counting is necessary because probability output may contain also eigenvalues and/or bandedges.
+                num_evs[model] = sum(1 for var in datafiles.variables if (self.wavefunction_name in var.name))   # this conditional counting is necessary because probability output may contain also eigenvalues and/or bandedges.
         return num_evs
 
 
@@ -959,7 +978,7 @@ class CommonShortcuts:
             raise ValueError("Only one of 'states_range_dict' or 'states_list_dict' is allowed as an argument")
 
         # get number of eigenvalues
-        num_evs = CommonShortcuts.__get_num_evs(datafiles_probability_dict)
+        num_evs = self.__get_num_evs(datafiles_probability_dict)
 
         # TODO: nn3 has two output files '_el' and '_hl' also in 8kp calculation
         states_toBePlotted = dict.fromkeys(datafiles_probability_dict.keys())
@@ -1625,18 +1644,18 @@ class CommonShortcuts:
                 continue
 
             datafile_probability = datafiles[0]
-            x_probability  = datafile_probability.coords['x'].value
+            x_probability  = datafile_probability.coords[self.position_axis_key].value
         if not datafile_probability:
             raise NextnanoInputFileError('Probabilities are not output! Modify the input file.')
 
 
         # store data in arrays (independent of quantum models)
-        datafile_bandedge = self.get_DataFile('bandedges', output_folder_path)  # TODO: is the path correct?
-        x             = datafile_bandedge.coords['x'].value
-        CBBandedge    = datafile_bandedge.variables['Gamma'].value
-        LHBandedge    = datafile_bandedge.variables['LH'].value
-        HHBandedge    = datafile_bandedge.variables['HH'].value
-        SOBandedge    = datafile_bandedge.variables['SO'].value
+        datafile_bandedge = self.get_DataFile_in_folder([self.bandedge_filename], output_folder_path)
+        x             = datafile_bandedge.coords[self.position_axis_key].value
+        CBBandedge    = datafile_bandedge.variables[self.conduction_bandedge_key].value
+        LHBandedge    = datafile_bandedge.variables[self.light_hole_bandedge_key].value
+        HHBandedge    = datafile_bandedge.variables[self.heavy_hole_bandedge_key].value
+        SOBandedge    = datafile_bandedge.variables[self.SO_hole_bandedge_key].value
 
         states_toBePlotted, num_evs = self.get_states_to_be_plotted(datafiles_probability_dict, states_range_dict=states_range_dict, states_list_dict=states_list_dict)
 
@@ -1663,7 +1682,7 @@ class CommonShortcuts:
 
             for cnt, stateIndex in enumerate(states_toBePlotted[model]):
                 for kIndex in range(num_kPoints[model]):
-                    psiSquared_oldgrid = dfs[kIndex].variables[f'Psi^2_{stateIndex+1}'].value
+                    psiSquared_oldgrid = dfs[kIndex].variables[self.wavefunction_name + f'^2_{stateIndex+1}'].value
                     psiSquared[model][cnt][kIndex] = CommonShortcuts.convert_grid(psiSquared_oldgrid, x_probability, x)   # grid interpolation needed because of 'output_bandedges{ averaged=no }'
 
 

@@ -19,6 +19,7 @@ import logging
 # nextnanopy includes
 import nextnanopy as nn
 from nnShortcuts.common import CommonShortcuts, NextnanopyScriptError, NextnanoInputFileError, NextnanoInputFileWarning
+from nnShortcuts.default_colors import DefaultColors
 from nnShortcuts.scientific_plotter import ScientificPlotter
 from nnShortcuts.path_handler import PathHandler
 
@@ -32,11 +33,32 @@ class NEGFShortcuts(CommonShortcuts):
     wannierStarkFolder = "EnergyEigenstates"
 
     def __init__(self, is_xml, loglevel=logging.INFO):
+        super().__init__(loglevel)
+
         if is_xml:
             self.product_name = 'nextnano.NEGF'
         else:
             self.product_name = 'nextnano.NEGF++'
-        super().__init__(loglevel)
+
+        self.position_axis_key = 'Position'
+        self.bandedge_filename = 'BandEdges.dat'
+        self.conduction_bandedge_key = 'Gamma'
+        self.heavy_hole_bandedge_key = 'HH'
+        self.light_hole_bandedge_key = 'LH'
+        self.SO_hole_bandedge_key = 'SO'
+        self.wavefunction_name = 'Psi'
+
+        self.band_names = {
+            'Gamma': 'Gamma', 
+            'CB': 'CB', 
+            'HH': 'HH', 
+            'LH': 'LH', 
+            'SO': 'SO',
+            'kp6': 'kp6', 
+            'kp8': 'kp8'
+        }
+        self.default_colors = DefaultColors(self.band_names)
+
 
     def get_IV(self, input_file_name=None, output_folder=None):
         """
@@ -468,13 +490,13 @@ class NEGFShortcuts(CommonShortcuts):
                         # print('Found ConductionBandEdge.dat')
                     except FileNotFoundError:
                         try:
-                            datafile = self.get_DataFile_NEGF_atBias('BandEdges.dat', input_file_name, bias, allow_folder_name_suffix=False)
+                            datafile = self.get_DataFile_NEGF_atBias(self.bandedge_filename, input_file_name, bias, allow_folder_name_suffix=False)
                         except FileNotFoundError:
                             raise
         else:
             datafile = self.get_DataFile_NEGF_atBias("BandEdges.dat", output_folder, bias, allow_folder_name_suffix=allow_folder_name_suffix, is_fullpath=True)
 
-        position = datafile.coords['Position']
+        position = datafile.coords[self.position_axis_key]
         try:
             bandedge = datafile.variables['Conduction Band Edge']
         except KeyError:
@@ -503,7 +525,7 @@ class NEGFShortcuts(CommonShortcuts):
                 datafile = self.get_DataFile_NEGF_atBias("EigenStates.dat", input_file_name, bias, allow_folder_name_suffix=allow_folder_name_suffix, is_fullpath=False)
             except FileNotFoundError:
                 try:
-                    datafile = self.get_DataFile_NEGF_atBias('BandEdges.dat', input_file_name, bias, allow_folder_name_suffix=allow_folder_name_suffix, is_fullpath=False)
+                    datafile = self.get_DataFile_NEGF_atBias(self.bandedge_filename, input_file_name, bias, allow_folder_name_suffix=allow_folder_name_suffix, is_fullpath=False)
                 except FileNotFoundError:
                     raise
         else:
@@ -512,7 +534,7 @@ class NEGFShortcuts(CommonShortcuts):
             except FileNotFoundError:
                 raise
 
-        position = datafile.coords['Position']
+        position = datafile.coords[self.position_axis_key]
         try:
             bandedge = datafile.variables['Light-Hole Band Edge']
         except KeyError:
@@ -541,13 +563,13 @@ class NEGFShortcuts(CommonShortcuts):
                 datafile = self.get_DataFile_NEGF_atBias("EigenStates.dat", input_file_name, bias, allow_folder_name_suffix=allow_folder_name_suffix, is_fullpath=False)
             except FileNotFoundError:
                 try:
-                    datafile = self.get_DataFile_NEGF_atBias('BandEdges.dat', input_file_name, bias, allow_folder_name_suffix=allow_folder_name_suffix, is_fullpath=False)
+                    datafile = self.get_DataFile_NEGF_atBias(self.bandedge_filename, input_file_name, bias, allow_folder_name_suffix=allow_folder_name_suffix, is_fullpath=False)
                 except FileNotFoundError:
                     raise
         else:
             datafile = self.get_DataFile_NEGF_atBias("BandEdges.dat", output_folder, bias, allow_folder_name_suffix=allow_folder_name_suffix, is_fullpath=True)
 
-        position = datafile.coords['Position']
+        position = datafile.coords[self.position_axis_key]
         try:
             bandedge = datafile.variables['Heavy-Hole Band Edge']
         except KeyError:
@@ -573,11 +595,11 @@ class NEGFShortcuts(CommonShortcuts):
             datafile = self.get_DataFile_NEGF_atBias("EigenStates.dat", input_file_name, bias)
         except FileNotFoundError:
             try:
-                datafile = self.get_DataFile_NEGF_atBias('BandEdges.dat', input_file_name, bias)
+                datafile = self.get_DataFile_NEGF_atBias(self.bandedge_filename, input_file_name, bias)
             except FileNotFoundError:
                 raise
 
-        position = datafile.coords['Position']
+        position = datafile.coords[self.position_axis_key]
         try:
             bandedge = datafile.variables['Split-Off-Hole Band Edge']
         except KeyError:
@@ -611,7 +633,7 @@ class NEGFShortcuts(CommonShortcuts):
         else:
             raise ValueError("Either 'input_file_name' or 'output_folder' must be specified!")
         
-        position = datafile.coords['Position']
+        position = datafile.coords[self.position_axis_key]
         try:
             return position, datafile.variables['Fermi level'], datafile.variables['Fermi level'], CommonShortcuts.DUMMYVALUE
         except KeyError:
@@ -623,7 +645,7 @@ class NEGFShortcuts(CommonShortcuts):
             datafile = self.get_DataFile_NEGF_atBias("CarrierDensity_ElectronHole.dat", input_file_name, bias=bias, allow_folder_name_suffix=allow_folder_name_suffix, is_fullpath=False)
         else:
             datafile = self.get_DataFile_NEGF_atBias("CarrierDensity_ElectronHole.dat", output_folder, bias=bias, allow_folder_name_suffix=allow_folder_name_suffix, is_fullpath=True)
-        return datafile.coords['Position'], datafile.variables['Electron density'], datafile.variables['Hole density']
+        return datafile.coords[self.position_axis_key], datafile.variables['Electron density'], datafile.variables['Hole density']
 
 
     def get_WannierStarkStates_init(self, filename_no_extension):
@@ -638,7 +660,7 @@ class NEGFShortcuts(CommonShortcuts):
             if NEGFShortcuts.wannierStarkFolder in df.fullpath:
                 datafile = df
 
-        position = datafile.coords['Position']
+        position = datafile.coords[self.position_axis_key]
         conduction_bandedge = datafile.variables['ConductionBandEdge']
 
         Psi_squareds = []
@@ -660,7 +682,7 @@ class NEGFShortcuts(CommonShortcuts):
         """
         datafile = self.get_DataFile_NEGF_atBias('EigenStates.dat', input_file, bias)
 
-        position = datafile.coords['Position']
+        position = datafile.coords[self.position_axis_key]
         conduction_bandedge = datafile.variables['ConductionBandEdge']
 
         Psi_squareds = []
@@ -2320,13 +2342,13 @@ class NEGFShortcuts(CommonShortcuts):
             else:
                 raise RuntimeError("Data type of 'datafile_probability' " + type(datafile_probability) + " is unknown!")
             
-            x_probability  = datafile_probability.coords['Position'].value
+            x_probability  = datafile_probability.coords[self.position_axis_key].value
         if not datafile_probability:
             raise NextnanoInputFileError('Probabilities are not output! Modify the input file.')
 
         # store data in arrays (independent of quantum models)
         kIndex = 0  # TODO: currently we only support only_k0 output
-        x             = datafile_probability.coords['Position'].value
+        x             = datafile_probability.coords[self.position_axis_key].value
         CBBandedge    = datafile_probability.variables['ConductionBandEdge'].value
 
         if want_valence_band:
@@ -2590,10 +2612,10 @@ class NEGFShortcuts(CommonShortcuts):
         # load output data files
         datafile_RRSModes = self.get_DataFile(['ReducedRealSpaceModes.dat'], input_file.fullpath)
 
-        x_RRSModes  = datafile_RRSModes.coords['Position'].value
+        x_RRSModes  = datafile_RRSModes.coords[self.position_axis_key].value
         
         # store data in arrays (independent of quantum models)
-        x             = datafile_RRSModes.coords['Position'].value
+        x             = datafile_RRSModes.coords[self.position_axis_key].value
         CBBandedge    = datafile_RRSModes.variables['ConductionBandEdge'].value
         
         if want_valence_band:
@@ -2941,7 +2963,7 @@ class NEGFShortcuts(CommonShortcuts):
         datafile_amplitude_at_k0 = self.get_DataFile_amplitudesK0_in_folder(output_folder)   # returns a dict of nn.DataFile
         
         # extract amplitude of electron- and hole-like states
-        x = datafile_amplitude_at_k0['kp8'][0].coords['Position'].value  # real space coords are common for all amplitude outputs
+        x = datafile_amplitude_at_k0['kp8'][0].coords[self.position_axis_key].value  # real space coords are common for all amplitude outputs
         amplitude_e = np.zeros((len(self.kp8_basis), len(x)), dtype=np.cdouble)  # psi of lowest CB state
         amplitude_h = np.zeros((len(self.kp8_basis), len(x)), dtype=np.cdouble)  # psi of highest VB state
         for iBand, band in enumerate(self.kp8_basis):
