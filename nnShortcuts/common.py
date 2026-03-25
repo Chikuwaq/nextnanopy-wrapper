@@ -1506,6 +1506,7 @@ class CommonShortcuts:
                 show_state_index    = False,
                 color_by_fraction_of = '',
                 plot_title          = '',
+                verbose_title       = True,
                 labelsize           = None,
                 ticksize            = None,
             ):
@@ -1531,6 +1532,7 @@ class CommonShortcuts:
                 show_state_index,
                 color_by_fraction_of,
                 plot_title,
+                verbose_title,
                 labelsize,
                 ticksize,
             )
@@ -1549,6 +1551,7 @@ class CommonShortcuts:
                 show_state_index    = False,
                 color_by_fraction_of = '',
                 plot_title          = '',
+                verbose_title       = True,
                 labelsize           = None,
                 ticksize            = None,
             ):
@@ -1581,6 +1584,7 @@ class CommonShortcuts:
                 show_state_index,
                 color_by_fraction_of,
                 plot_title,
+                verbose_title,
                 labelsize,
                 ticksize,
             )
@@ -1599,6 +1603,7 @@ class CommonShortcuts:
             show_state_index,
             color_by_fraction_of,
             plot_title,
+            verbose_title,
             labelsize,
             ticksize,
             ):
@@ -1637,6 +1642,8 @@ class CommonShortcuts:
             If 8-band k.p simulation, colour the probabilities by the spinor fraction of the specified band. The default is 'conduction_band'.
         plot_title : str, optional
             title of the probability plot. The default is ''.
+        verbose_title : bool
+            If True, print the quantum models used and in-plane k information in the plot title.
         labelsize : int, optional
             font size of xlabel, ylabel and colorbar label
         ticksize : int, optional
@@ -1770,7 +1777,8 @@ class CommonShortcuts:
             compositions = None
 
         # define plot title
-        title = CommonShortcuts.adjust_plot_title(plot_title)
+        # title = CommonShortcuts.adjust_plot_title(plot_title)
+        title = plot_title
 
         def draw_spinor_pie_charts(gs_spinor, state_indices, model, stateIndex, kIndex, show_state_index):
             num_rows, num_columns = self.get_rowColumn_for_display(len(state_indices))  # determine arrangement of spinor composition plots
@@ -1836,7 +1844,11 @@ class CommonShortcuts:
 
         if len(calculated_e_models) >= 1 and len(calculated_h_models) >= 1:
             fig, ax_combi = plt.subplots()
-            ax_combi.set_title(f"{title} ({calculated_e_models}+{calculated_h_models}), zone-center")
+            if verbose_title:
+                title_str = f"{title} ({calculated_e_models}+{calculated_h_models}), zone-center"
+            else:
+                title_str = title
+            ax_combi.set_title(title_str)
             want_valence_band = True
             self.draw_bandedges(ax_combi, title, self.band_names['kp8'], x, CBBandedge, want_valence_band, HHBandedge, LHBandedge, True)
             # TODO: Do we need to draw SO band edge?
