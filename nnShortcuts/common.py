@@ -1435,6 +1435,10 @@ class CommonShortcuts:
             #     ax.plot(x, VBTop, label='VB top without strain', linewidth=0.6, color=self.default_colors.bands['LH'])
 
 
+    def plot_inplaneK(self):
+        raise NotImplementedError("There is no common implementation")
+
+
     @staticmethod
     def get_linestyle_bandedges():
         linestyle_CB = (0, (3, 3)) # (offset, (on_off_seq)) # more distinguishable than 'dashed' from 'solid'
