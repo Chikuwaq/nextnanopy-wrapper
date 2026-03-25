@@ -89,7 +89,7 @@ class ScientificPlotter:
 
 
     @staticmethod
-    def format_number_for_axis(number, round_decimal, abs_min, abs_max) -> str:
+    def format_number_for_axis(number, round_decimal, abs_max) -> str:
             too_many_digits = (abs_max > 1e4 or abs_max < 0.1)
             if too_many_digits:
                 return ScientificPlotter.format_number_in_power_notation(number, round_decimal)
@@ -124,7 +124,7 @@ class ScientificPlotter:
                 super().__init__()
 
             def __call__(self, x, pos=None):
-                return ScientificPlotter.format_number_for_axis(x, round_decimal, abs_min, abs_max)
+                return ScientificPlotter.format_number_for_axis(x, round_decimal, abs_max)
             
         # Apply to MAJOR ticks only
         formatter = MajorFormatter()
@@ -144,7 +144,7 @@ class ScientificPlotter:
             def __call__(self, y, pos=None):
                 if abs(y - self.first) < 1e-10 or abs(y - self.last) < 1e-10:
                     abs_min, abs_max = ScientificPlotter.__get_abs_min_max(ax)
-                    return ScientificPlotter.format_number_for_axis(y, round_decimal, abs_min, abs_max)
+                    return ScientificPlotter.format_number_for_axis(y, round_decimal, abs_max)
                 return ''
 
             # def format_ticks(self, values):
