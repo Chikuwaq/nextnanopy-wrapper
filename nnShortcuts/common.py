@@ -1406,20 +1406,24 @@ class CommonShortcuts:
         linestyle_CB, linestyle_HH, linestyle_LH = CommonShortcuts.get_linestyle_bandedges()
         lw_CB, lw_HH, lw_LH = CommonShortcuts.get_linewidths_bandedges(0.6)
 
-        if model == 'Gamma' or model == 'kp8':
+        if model == self.band_names['Gamma'] or model == self.band_names['kp8']:
             if shorten_data_label:
                 CBLabel = 'CB'
             else:
                 CBLabel = 'Conduction band'
+            if len(CBBandedge) == 0:
+                raise ValueError("CBBandedge is empty!")
             ax.plot(x, CBBandedge, label=CBLabel, linewidth=lw_CB, color=color_CB, linestyle=linestyle_CB)
         if want_valence_band:
-            if model == 'HH' or model == 'kp6' or model == 'kp8':
+            if model == self.band_names['HH'] or model == self.band_names['kp6'] or model == self.band_names['kp8']:
                 if shorten_data_label:
                     HHLabel = 'HH'
                 else:
                     HHLabel = 'Heavy hole'
+                if len(HHBandedge) == 0:
+                    raise ValueError("HHBandedge is empty!")
                 ax.plot(x, HHBandedge, label=HHLabel, linewidth=lw_HH, color=color_HH, linestyle=linestyle_HH)
-            if model == 'LH' or model == 'kp6' or model == 'kp8':
+            if model == self.band_names['LH'] or model == self.band_names['kp6'] or model == self.band_names['kp8']:
                 if shorten_data_label:
                     LHLabel = 'HH'
                 else:
@@ -1534,6 +1538,7 @@ class CommonShortcuts:
 
     def plot_probabilities_by_folderpath(self,
                 output_folder_path,
+                shift_by_eigenvalue,
                 states_range_dict   = None,
                 states_list_dict    = None,
                 start_position      = None,
@@ -1550,6 +1555,10 @@ class CommonShortcuts:
         """
         output_folder_path : str
             Location of simulation outputs.
+
+        Returns
+        -------
+            matplotlib Figure object
         """
         if start_position is None:
             start_position = CommonShortcuts.position_min
@@ -1557,7 +1566,7 @@ class CommonShortcuts:
             end_position = CommonShortcuts.position_max
             
         # load output data files
-        datafiles_probability_dict = self.get_DataFile_probabilities_in_folder(output_folder_path, bias=None)  # TODO: 'allow_folder_name_suffix' option not yet supported by derived classes 'nnpShortcuts' and 'nn3Shortcuts'
+        datafiles_probability_dict = self.get_DataFile_probabilities_in_folder(output_folder_path, shift_by_eigenvalue, bias=None)  # TODO: 'allow_folder_name_suffix' option not yet supported by derived classes 'nnpShortcuts' and 'nn3Shortcuts'
         
         return self.plot_probabilities_core(
                 output_folder_path,
@@ -1829,7 +1838,7 @@ class CommonShortcuts:
             fig, ax_combi = plt.subplots()
             ax_combi.set_title(f"{title} ({calculated_e_models}+{calculated_h_models}), zone-center")
             want_valence_band = True
-            self.draw_bandedges(ax_probability, title, model, x, CBBandedge, want_valence_band, HHBandedge, LHBandedge, True)
+            self.draw_bandedges(ax_combi, title, self.band_names['kp8'], x, CBBandedge, want_valence_band, HHBandedge, LHBandedge, True)
             # TODO: Do we need to draw SO band edge?
 
             for model in calculated_e_models + calculated_h_models:

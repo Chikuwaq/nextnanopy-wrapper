@@ -137,7 +137,7 @@ class nn3Shortcuts(CommonShortcuts):
         return fig
 
 
-    def get_DataFile_probabilities_in_folder(self, folder_path, bias=None):
+    def get_DataFile_probabilities_in_folder(self, folder_path, shift_by_eigenvalue, bias=None):
         """
         Get single nextnanopy.DataFile of probability_shift data in the specified folder.
 
@@ -145,12 +145,17 @@ class nn3Shortcuts(CommonShortcuts):
         ----------
         folder_path : str
             output folder path in which the datafile should be sought
+        shift_by_eigenvalue : bool
+            If True, get the data shifted by eigenenergies
 
         Returns
         -------
         dictionary { quantum model key: corresponding list of nn.DataFile() objects for probability_shift }
         """
-        datafiles = self.get_DataFiles_in_folder('_psi_squared', folder_path)  # TODO: is this finding the correct files?
+        keywords = [ '_'+self.wavefunction_name+'_squared' ]
+        if shift_by_eigenvalue:
+            keywords.append('shift')
+        datafiles = self.get_DataFiles_in_folder(keywords, folder_path)
 
         # probability_dict = {
         #     'Gamma': list(),
