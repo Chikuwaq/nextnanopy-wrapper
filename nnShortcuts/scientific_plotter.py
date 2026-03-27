@@ -321,12 +321,14 @@ class ScientificPlotter:
             X,
             Y,
             Z,
-            contour_value,
+            contour_values,
             color,
             should_annotate=True,
             contour_symbol=None
             ):
-        contour = ax.contour(X, Y, Z, levels=[contour_value], colors=color)
+        if not isinstance(contour_values, list):
+            raise TypeError("'contour_values' must be a list!")
+        contour = ax.contour(X, Y, Z, levels=contour_values, colors=color)
         if should_annotate:
             if contour_symbol is None:
                 ax.clabel(contour, inline=True)
