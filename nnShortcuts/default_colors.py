@@ -49,6 +49,11 @@ class DefaultColors:
         self.colormap['linear_dark_bg'] = NextnanoColor.cmap['linear'].reversed()  # 'cividis'
         self.lines_on_colormap['dark_bg'] = ['white', 'yellow']
 
+        # cividis runs from dark blue‑black to bright yellow‑white and is perceptually uniform, 
+        # so a high‑luminance line stands out across the full range 
+        # while remaining legible in grayscale and for color‑blind viewers.
+        self.lines_on_colormap['cividis'] = [(0.95, 0.95, 0.95), (0.7, 0, 0.7)] 
+
 
         # TODO: load the CSV file at root of this repo and implement 'Fast' color map, which is divergent and Color Vision Deficiency (https://www.kennethmoreland.com/color-advice/)
         self.colormap['divergent_bright'] = 'bwr'  # 'seismic'
