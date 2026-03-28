@@ -52,7 +52,7 @@ class DefaultColors:
         # cividis runs from dark blue‑black to bright yellow‑white and is perceptually uniform, 
         # so a high‑luminance line stands out across the full range 
         # while remaining legible in grayscale and for color‑blind viewers.
-        self.lines_on_colormap['cividis'] = [(0.95, 0.95, 0.95), (0.7, 0, 0.7)] 
+        self.lines_on_colormap['cividis'] = [(0.95, 0.95, 0.95), 'black'] 
 
 
         # TODO: load the CSV file at root of this repo and implement 'Fast' color map, which is divergent and Color Vision Deficiency (https://www.kennethmoreland.com/color-advice/)
