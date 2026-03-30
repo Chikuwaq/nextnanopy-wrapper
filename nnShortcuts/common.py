@@ -1476,7 +1476,7 @@ class CommonShortcuts:
             else:
                 # color according to the quantum model that yielded the solution
                 plot_color = self.default_colors.bands[model]
-            ax.plot(x, psiSquared[model][cnt][kIndex], color=plot_color, lw=0.8)
+            ax.plot(x, psiSquared[model][cnt][kIndex], color=plot_color, lw=2)
 
             if show_state_index:
                 xmax, ymax = ScientificPlotter.get_maximum_points(psiSquared[model][cnt][kIndex], x)
@@ -1666,7 +1666,6 @@ class CommonShortcuts:
         from matplotlib import colors
         from matplotlib.gridspec import GridSpec
 
-        
         for model, datafiles in datafiles_probability_dict.items():
             if len(datafiles) == 0: 
                 continue
