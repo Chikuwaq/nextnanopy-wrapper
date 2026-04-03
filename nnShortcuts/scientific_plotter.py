@@ -65,7 +65,12 @@ class ScientificPlotter:
             return rf"${base}\times 10^{{{exponent}}}$"
         else:
             return base
-            
+
+
+    @staticmethod
+    def format_number_in_power_notation_fixed_exponent(number, desired_exponent) -> str:
+        mantissa = number / (10 ** desired_exponent)
+        return rf"${mantissa:g}\times 10^{{{desired_exponent}}}$"  # ':g' removes trailing zeros
 
     @staticmethod
     def __polish_nonscientific_number(nonscientific):
