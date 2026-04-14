@@ -105,7 +105,7 @@ class ScientificPlotter:
 
 
     @staticmethod
-    def __get_abs_min_max(ax):
+    def get_abs_min_max(ax):
         min_value, max_value = ax.get_ylim()
         abs_min = min(abs(min_value), abs(max_value))
         abs_max = max(abs(min_value), abs(max_value))
@@ -121,7 +121,7 @@ class ScientificPlotter:
             ax: matplotlib Axes object
             round_decimal: argument for CommonShortcuts.format_number()
         """
-        abs_min, abs_max = ScientificPlotter.__get_abs_min_max(ax)
+        abs_min, abs_max = ScientificPlotter.get_abs_min_max(ax)
 
         # Customize formatter 
         class MajorFormatter(ticker.Formatter):
@@ -148,7 +148,7 @@ class ScientificPlotter:
 
             def __call__(self, y, pos=None):
                 if abs(y - self.first) < 1e-10 or abs(y - self.last) < 1e-10:
-                    abs_min, abs_max = ScientificPlotter.__get_abs_min_max(ax)
+                    abs_min, abs_max = ScientificPlotter.get_abs_min_max(ax)
                     return ScientificPlotter.format_number_for_axis(y, round_decimal, abs_max)
                 return ''
 
