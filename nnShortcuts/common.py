@@ -742,13 +742,26 @@ class CommonShortcuts:
         nextnanopy.DataFile object of the simulation data
 
         """
-        folder_path = PathHandler.expect_single_folder_to_exist(folder_path, allow_folder_name_suffix)
+        file = self.find_filepath_in_folder(keywords, folder_path, exclude_keywords, exclude_folders, allow_folder_name_suffix)
 
+        try:
+            return nn.DataFile(file, product=self.product_name)
+        except NotImplementedError as e:
+            raise Exception(f'Nextnanopy does not support datafile for {file}') from e
+
+
+    def find_filepath_in_folder(self, keywords, folder_path, exclude_keywords, exclude_folders, allow_folder_name_suffix):
+        folder_path_polished = PathHandler.expect_single_folder_to_exist(folder_path, allow_folder_name_suffix)
+        
+        # if only one keyword is provided, make a list with single element to simplify code
+        if isinstance(keywords, str):
+            keywords = [keywords]
+        
         CommonShortcuts.__validate_search_keywords(keywords, exclude_keywords, exclude_folders)
         CommonShortcuts.__log_datafile_search_paths(keywords, exclude_keywords, exclude_folders)
 
         # Search output data using nn.DataFolder.find(). If multiple keywords are provided, find the intersection of files found with each keyword.
-        list_of_sets = [set(nn.DataFolder(folder_path).find(keyword, deep=True)) for keyword in keywords]
+        list_of_sets = [set(nn.DataFolder(folder_path_polished).find(keyword, deep=True)) for keyword in keywords]
         candidates = list_of_sets[0]
         for s in list_of_sets:
             candidates = s.intersection(candidates)
@@ -760,7 +773,7 @@ class CommonShortcuts:
 
         # validate the search result
         if len(list_of_files) == 0:
-            raise FileNotFoundError(f"No output file found in the folder {folder_path}")
+            raise FileNotFoundError(f"No output file found in the folder {folder_path_polished}")
         elif len(list_of_files) == 1:
             file = list_of_files[0]
         else:
@@ -768,20 +781,15 @@ class CommonShortcuts:
             choice = PathHandler.ask_user_to_choose_one(list_of_files)
             file = list_of_files[choice]
 
-        logging.debug(f"Found:\n{file}")
-
-        try:
-            return nn.DataFile(file, product=self.product_name)
-        except NotImplementedError as e:
-            raise Exception(f'Nextnanopy does not support datafile for {file}') from e
+        logging.info(f"Found {self.product_name} output:\n{file}")
+        return file
 
 
     @staticmethod
     def __validate_search_keywords(keywords, exclude_keywords, exclude_folders):
-        # if only one keyword is provided, make a list with single element to simplify code
-        if isinstance(keywords, str):
-            keywords = [keywords]
-        elif not isinstance(keywords, list):
+        if not isinstance(keywords, list):
+            raise TypeError("'keywords' must be a list!")
+        if not isinstance(keywords, list):
             raise TypeError(f"Argument 'keywords' must be either str or list, but is {type(keywords)}")
         if isinstance(exclude_keywords, str):
             exclude_keywords = [exclude_keywords]
@@ -795,16 +803,17 @@ class CommonShortcuts:
 
     @staticmethod
     def __log_datafile_search_paths(keywords, exclude_keywords, exclude_folders):
+        keywords_str = "', '".join(keywords)
         if exclude_keywords is None:
             if exclude_folders is None:
-                message = " '" + "', '".join(keywords) + "'"
+                message = " '" + keywords_str + "'"
             else:
-                message = " '" + "', '".join(keywords) + "', excluding keyword(s) '" + "', '".join(exclude_folders) + "'"
+                message = " '" + keywords_str + "', excluding keyword(s) '" + "', '".join(exclude_folders) + "'"
         else:
             if exclude_folders is None:
-                message = " '" + "', '".join(keywords) + "', excluding keyword(s) '" + "', '".join(exclude_keywords) + "'"
+                message = " '" + keywords_str + "', excluding keyword(s) '" + "', '".join(exclude_keywords) + "'"
             else:
-                message = " '" + "', '".join(keywords) + "', excluding keyword(s) '" + "', '".join(exclude_keywords + exclude_folders) + "'"
+                message = " '" + keywords_str + "', excluding keyword(s) '" + "', '".join(exclude_keywords + exclude_folders) + "'"
 
         logging.info(f'Searching for output data {message}...')
 
