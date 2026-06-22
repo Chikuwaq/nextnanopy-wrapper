@@ -744,32 +744,8 @@ class CommonShortcuts:
         """
         folder_path = PathHandler.expect_single_folder_to_exist(folder_path, allow_folder_name_suffix)
 
-        # if only one keyword is provided, make a list with single element to simplify code
-        if isinstance(keywords, str):
-            keywords = [keywords]
-        elif not isinstance(keywords, list):
-            raise TypeError(f"Argument 'keywords' must be either str or list, but is {type(keywords)}")
-        if isinstance(exclude_keywords, str):
-            exclude_keywords = [exclude_keywords]
-        elif exclude_keywords is not None and not isinstance(exclude_keywords, list):
-            raise TypeError(f"Argument 'exclude_keywords' must be either str or list, but is {type(exclude_keywords)}")
-        if isinstance(exclude_folders, str):
-            exclude_folders = [exclude_folders]
-        elif exclude_folders is not None and not isinstance(exclude_folders, list):
-            raise TypeError(f"Argument 'exclude_subfolders' must be either str or list, but is {type(exclude_folders)}")
-
-        if exclude_keywords is None:
-            if exclude_folders is None:
-                message = " '" + "', '".join(keywords) + "'"
-            else:
-                message = " '" + "', '".join(keywords) + "', excluding keyword(s) '" + "', '".join(exclude_folders) + "'"
-        else:
-            if exclude_folders is None:
-                message = " '" + "', '".join(keywords) + "', excluding keyword(s) '" + "', '".join(exclude_keywords) + "'"
-            else:
-                message = " '" + "', '".join(keywords) + "', excluding keyword(s) '" + "', '".join(exclude_keywords + exclude_folders) + "'"
-
-        logging.info(f'Searching for output data {message}...')
+        CommonShortcuts.__validate_search_keywords(keywords, exclude_keywords, exclude_folders)
+        CommonShortcuts.__log_datafile_search_paths(keywords, exclude_keywords, exclude_folders)
 
         # Search output data using nn.DataFolder.find(). If multiple keywords are provided, find the intersection of files found with each keyword.
         list_of_sets = [set(nn.DataFolder(folder_path).find(keyword, deep=True)) for keyword in keywords]
@@ -778,20 +754,8 @@ class CommonShortcuts:
             candidates = s.intersection(candidates)
         list_of_files = list(candidates)
 
-        def should_be_excluded(filepath):
-            folder, filename = os.path.split(filepath)
-            if exclude_folders is not None:
-                contain_folder_name = any(key in folder for key in exclude_folders)
-            else:
-                contain_folder_name = False
-            if exclude_keywords is not None:
-                contain_keyword = any(key in filename for key in exclude_keywords)
-            else:
-                contain_keyword = False
-            return (contain_keyword or contain_folder_name)
-
         if (exclude_keywords is not None) or (exclude_folders is not None):
-            list_of_files = [file for file in list_of_files if not should_be_excluded(file)]
+            list_of_files = [file for file in list_of_files if not CommonShortcuts.__should_be_excluded_from_search(file, exclude_keywords, exclude_folders)]
 
 
         # validate the search result
@@ -810,6 +774,53 @@ class CommonShortcuts:
             return nn.DataFile(file, product=self.product_name)
         except NotImplementedError as e:
             raise Exception(f'Nextnanopy does not support datafile for {file}') from e
+
+
+    @staticmethod
+    def __validate_search_keywords(keywords, exclude_keywords, exclude_folders):
+        # if only one keyword is provided, make a list with single element to simplify code
+        if isinstance(keywords, str):
+            keywords = [keywords]
+        elif not isinstance(keywords, list):
+            raise TypeError(f"Argument 'keywords' must be either str or list, but is {type(keywords)}")
+        if isinstance(exclude_keywords, str):
+            exclude_keywords = [exclude_keywords]
+        elif not isinstance(exclude_keywords, list) and exclude_keywords is not None:
+            raise TypeError(f"Argument 'exclude_keywords' must be either str or list, but is {type(exclude_keywords)}")
+        if isinstance(exclude_folders, str):
+            exclude_folders = [exclude_folders]
+        elif exclude_folders is not None and not isinstance(exclude_folders, list):
+            raise TypeError(f"Argument 'exclude_subfolders' must be either str or list, but is {type(exclude_folders)}")
+
+
+    @staticmethod
+    def __log_datafile_search_paths(keywords, exclude_keywords, exclude_folders):
+        if exclude_keywords is None:
+            if exclude_folders is None:
+                message = " '" + "', '".join(keywords) + "'"
+            else:
+                message = " '" + "', '".join(keywords) + "', excluding keyword(s) '" + "', '".join(exclude_folders) + "'"
+        else:
+            if exclude_folders is None:
+                message = " '" + "', '".join(keywords) + "', excluding keyword(s) '" + "', '".join(exclude_keywords) + "'"
+            else:
+                message = " '" + "', '".join(keywords) + "', excluding keyword(s) '" + "', '".join(exclude_keywords + exclude_folders) + "'"
+
+        logging.info(f'Searching for output data {message}...')
+
+
+    @staticmethod
+    def __should_be_excluded_from_search(filepath, exclude_keywords, exclude_folders):
+        folder, filename = os.path.split(filepath)
+        if exclude_folders is not None:
+            contain_folder_name = any(key in folder for key in exclude_folders)
+        else:
+            contain_folder_name = False
+        if exclude_keywords is not None:
+            contain_keyword = any(key in filename for key in exclude_keywords)
+        else:
+            contain_keyword = False
+        return (contain_keyword or contain_folder_name)
 
 
     def __compose_output_subfolder_path(self, name):
