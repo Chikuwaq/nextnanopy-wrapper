@@ -36,9 +36,9 @@ class NEGFShortcuts(CommonShortcuts):
         super().__init__(loglevel)
 
         if is_xml:
-            self.product_name = 'nextnano.NEGF'
+            self.product_name = 'nextnano.NEGF_classic'
         else:
-            self.product_name = 'nextnano.NEGF++'
+            self.product_name = 'nextnano.NEGF'
 
         self.position_axis_key = 'Position'
         self.bandedge_filename = 'BandEdges.dat'
