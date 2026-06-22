@@ -33,12 +33,11 @@ class NEGFShortcuts(CommonShortcuts):
     wannierStarkFolder = "EnergyEigenstates"
 
     def __init__(self, is_xml, loglevel=logging.INFO):
-        super().__init__(loglevel)
-
         if is_xml:
             self.product_name = 'nextnano.NEGF_classic'
         else:
             self.product_name = 'nextnano.NEGF'
+        super().__init__(loglevel)
 
         self.position_axis_key = 'Position'
         self.bandedge_filename = 'BandEdges.dat'
