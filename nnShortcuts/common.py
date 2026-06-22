@@ -847,7 +847,7 @@ class CommonShortcuts:
         return self.get_DataFiles_in_folder(keywords, output_subfolder, exclude_keywords=exclude_keywords)
 
 
-    def get_DataFiles_in_folder(self, keywords, folder_path, exclude_keywords=None, allow_folder_name_suffix=False):
+    def get_DataFiles_in_folder(self, keywords, folder_path, exclude_keywords=None, exclude_folders=None, allow_folder_name_suffix=False):
         """
         Get multiple nextnanopy.DataFiles of output data with the given string keyword(s) in the specified folder.
 
@@ -859,6 +859,8 @@ class CommonShortcuts:
             absolute path of output folder in which the datafile should be sought
         exclude_keywords : str or list of str, optional
             Files containing these keywords in the file name are excluded from search.
+        exclude_folders : str or list of str, optional
+            Files with these folder names in their paths are excluded from search.
         allow_folder_name_suffix : bool, optional
             If True, search for the folder name starting with 'folder_path'.
             If False, search for exact match of the folder name with 'folder_path'.
@@ -871,22 +873,8 @@ class CommonShortcuts:
         # validate the path
         folder_path = PathHandler.expect_single_folder_to_exist(folder_path, allow_folder_name_suffix)
 
-        # if only one keyword is provided, make a list with single element to simplify code
-        if isinstance(keywords, str):
-            keywords = [keywords]
-        elif not isinstance(keywords, list):
-            raise TypeError(f"Argument 'keywords' must be either str or list, but is {type(keywords)}")
-        if isinstance(exclude_keywords, str):
-            exclude_keywords = [exclude_keywords]
-        elif not isinstance(exclude_keywords, list) and exclude_keywords is not None:
-            raise TypeError(f"Argument 'exclude_keywords' must be either str or list, but is {type(exclude_keywords)}")
-
-        if exclude_keywords is None:
-            message = "with keyword(s) '" + "', '".join(keywords) + "'"
-        else:
-            message = "with keyword(s) '" + "', '".join(keywords) + "', excluding '" + "', '".join(exclude_keywords) + "'"
-
-        logging.info(f'Searching for output data {message}...')
+        CommonShortcuts.__validate_search_keywords(keywords, exclude_keywords, exclude_folders)
+        CommonShortcuts.__log_datafile_search_paths(keywords, exclude_keywords, exclude_folders)
 
         # Search output data using nn.DataFolder.find(). If multiple keywords are provided, find the intersection of files found with each keyword.
         list_of_sets = [set(nn.DataFolder(folder_path).find(keyword, deep=True)) for keyword in keywords]
@@ -900,7 +888,7 @@ class CommonShortcuts:
             return any(key in filename for key in exclude_keywords)
 
         if exclude_keywords is not None:
-            list_of_files = [file for file in list_of_files if not should_be_excluded(file)]
+            list_of_files = [file for file in list_of_files if not CommonShortcuts.__should_be_excluded_from_search(file, exclude_keywords, exclude_folders)]
 
         # validate the search result
         if len(list_of_files) == 0:
