@@ -96,7 +96,7 @@ class NEGFShortcuts(CommonShortcuts):
             else:
                 raise RuntimeError(f"Desired bias {bias} wasn't found for:\n {output_folder}")
         return current_density_at_bias
-    
+
     def extract_threshold_voltage(self, folder):
         # nextnanopy.DataFile constructor fails with 0-d array error, presumably because NEGF output doesn't conform to the expected format
         # df = self.get_DataFile_in_folder(["Threshold"], folder, exclude_keywords=None, exclude_folders=None)
@@ -106,7 +106,8 @@ class NEGFShortcuts(CommonShortcuts):
             contents = f.read()
             for element in contents.split('\n'):
                 if '.' not in element: continue
-                return element.rstrip(' ').lstrip(' ')
+                value = element.rstrip(' ').lstrip(' ')
+                return float(value)
         raise RuntimeError("Threshold voltage could not be extracted")
 
 
