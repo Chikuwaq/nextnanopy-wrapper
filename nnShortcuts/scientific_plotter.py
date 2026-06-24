@@ -464,7 +464,7 @@ class ScientificPlotter:
         ax.set_ylim(ymin, ymax)
 
         if showBias:
-            ax.set_title(f'bias={bias}mV', fontsize=titlesize)
+            ax.set_title(rf'bias$= {bias}\,\mathrm{{mV}}$', fontsize=titlesize)
         else:
             ax.set_title(label, fontsize=titlesize)
         ax.tick_params(labelsize=ticksize)
