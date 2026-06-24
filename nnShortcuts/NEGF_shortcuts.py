@@ -48,12 +48,12 @@ class NEGFShortcuts(CommonShortcuts):
         self.wavefunction_name = 'Psi'
 
         self.band_names = {
-            'Gamma': 'Gamma', 
-            'CB': 'CB', 
-            'HH': 'HH', 
-            'LH': 'LH', 
+            'Gamma': 'Gamma',
+            'CB': 'CB',
+            'HH': 'HH',
+            'LH': 'LH',
             'SO': 'SO',
-            'kp6': 'kp6', 
+            'kp6': 'kp6',
             'kp8': 'kp8'
         }
         self.default_colors = DefaultColors(self.band_names)
@@ -224,7 +224,7 @@ class NEGFShortcuts(CommonShortcuts):
                 raise NextnanopyScriptError(f"Number of input files ({len(output_folders)}) do not match that of temperatures ({len(temperatures)})")
         else:
             raise ValueError("Either 'input file name' or 'output folder' must be specified!")
-        
+
         # fig, ax = plt.subplots(layout='constrained')  # not supported by matplotlib 3.3
         fig, ax = plt.subplots()
         ax.set_ylabel("Current density [$\mathrm{A}/\mathrm{cm}^{2}$]", fontsize=labelsize)
@@ -271,7 +271,7 @@ class NEGFShortcuts(CommonShortcuts):
                     raise ValueError("'coeffs', 'effective_gaps_meV', and 'temperature_separator' must not be specified simultaneously")
                 if len(biases) > 1:
                     raise NotImplementedError("Automatic linear fit not yet supporting multiple bias points")
-                
+
                 effective_gaps_meV = list()
                 coeffs = list()
 
@@ -280,7 +280,7 @@ class NEGFShortcuts(CommonShortcuts):
                         if f"T_{T}_" in foldername:
                             return T > temperature_separator
                     raise ValueError("Temperature could not be deduced from output folder path!")
-                
+
                 # find linear fits to two temperature regions
                 # I = C*exp(-Delta/kT)
                 # log(I) = -Delta/kT + log(C)
@@ -311,7 +311,7 @@ class NEGFShortcuts(CommonShortcuts):
                 effective_gaps_meV.append(-1000 * CommonShortcuts.Boltzmann * slope_cold / CommonShortcuts.elementary_charge * CommonShortcuts.scale1ToMilli)
                 coeffs.append(math.exp(intercept_hot))
                 coeffs.append(math.exp(intercept_cold))
-                
+
 
             colors = ['red', 'lime', 'blue']
             index = 0
@@ -347,7 +347,7 @@ class NEGFShortcuts(CommonShortcuts):
         """
         if search_raw_solution_folder and search_WannierStark_folder:
             raise ValueError("Invalid input")
-        
+
         if os.path.isdir(folder):
             subfolder = folder
         else:
@@ -363,10 +363,10 @@ class NEGFShortcuts(CommonShortcuts):
             if 'Init' in folder_name:
                 # listOfFiles = d.go_to(folder_name).find(keyword, deep=True)
                 init_folder = d.go_to(folder_name)
-        
+
         if init_folder is None:
             raise RuntimeError(f"'Init' folder not found under\n{subfolder}")
-        
+
         if search_raw_solution_folder:
             search_folder = os.path.join(init_folder.fullpath, NEGFShortcuts.SchrodingerRawSolutionFolder)
         elif search_WannierStark_folder:
@@ -376,7 +376,7 @@ class NEGFShortcuts(CommonShortcuts):
 
         return self.get_DataFiles_in_folder(keywords, search_folder, exclude_keywords)  # TODO: add options available
 
-        
+
     def get_DataFile_amplitudesK0_in_folder(self, folder_path, bias):
         """
         Get single nextnanopy.DataFile of zone-center amplitude data in the folder of specified name.
@@ -514,7 +514,7 @@ class NEGFShortcuts(CommonShortcuts):
                 raise
 
         return position, bandedge
-    
+
 
     def get_lightHole_bandedge(self, bias, allow_folder_name_suffix, input_file_name=None, output_folder=None):
         """
@@ -617,7 +617,7 @@ class NEGFShortcuts(CommonShortcuts):
                 raise
 
         return position, bandedge
-    
+
 
     def get_Fermi_levels(self, input_file_name, output_folder, bias, allow_folder_name_suffix):
         """
@@ -627,7 +627,7 @@ class NEGFShortcuts(CommonShortcuts):
             bias value
 
         RETURN
-        ------ 
+        ------
         nn.DataFile() attributes
             z coordinates
             electron Fermi level
@@ -640,13 +640,13 @@ class NEGFShortcuts(CommonShortcuts):
             datafile = self.get_DataFile_in_folder("FermiLevel.dat", PathHandler.append_bias_to_path(output_folder, bias), allow_folder_name_suffix=allow_folder_name_suffix)
         else:
             raise ValueError("Either 'input_file_name' or 'output_folder' must be specified!")
-        
+
         position = datafile.coords[self.position_axis_key]
         try:
             return position, datafile.variables['Fermi level'], datafile.variables['Fermi level'], CommonShortcuts.DUMMYVALUE
         except KeyError:
             return position, datafile.variables['Electron Fermi level'], datafile.variables['Hole Fermi level'], datafile.variables['Electron-hole border']
-        
+
 
     def get_carrier_density_deviation(self, input_file_name, output_folder, bias, allow_folder_name_suffix):
         if output_folder is None:
@@ -717,7 +717,7 @@ class NEGFShortcuts(CommonShortcuts):
 
         Parameters
         ----------
-            
+
         labelsize : int, optional
             font size of xlabel and ylabel
         ticksize : int, optional
@@ -758,12 +758,12 @@ class NEGFShortcuts(CommonShortcuts):
     def get_gain_atBias(self, input_file, bias):
         datafile = self.get_DataFile_NEGF_atBias(['Gain', 'vs_Energy'], input_file, bias)
         return datafile.coords['Photon Energy'], datafile.variables['Gain']
-    
+
 
     def get_SCGain_atBias(self, input_file, bias):
         datafile = self.get_DataFile_NEGF_atBias(['SemiClassical_', 'vs_Energy'], input_file, bias)
         return datafile.coords['Photon Energy'], datafile.variables['Gain']
-    
+
 
     def get_SCGainDecomposed_atBias(self, input_file, bias):
         datafile = self.get_DataFile_NEGF_atBias(['SemiClassicalDecomposed', 'vs_Energy'], input_file, bias)
@@ -786,7 +786,7 @@ class NEGFShortcuts(CommonShortcuts):
 
         Parameters
         ----------
-            
+
         labelsize : int, optional
             font size of xlabel and ylabel
         ticksize : int, optional
@@ -816,7 +816,7 @@ class NEGFShortcuts(CommonShortcuts):
         fig.tight_layout()
 
         return fig
-    
+
 
     def plot_SCGain(self,
             input_file_name,
@@ -834,7 +834,7 @@ class NEGFShortcuts(CommonShortcuts):
 
         Parameters
         ----------
-            
+
         labelsize : int, optional
             font size of xlabel and ylabel
         ticksize : int, optional
@@ -845,7 +845,7 @@ class NEGFShortcuts(CommonShortcuts):
         """
         EPhoton, gain = self.get_SCGain_atBias(input_file_name, bias)
         # EPhoton, gain_decomposed = self.get_SCGainDecomposed_atBias(input_file_name, bias)
-        
+
         # Store data arrays.
         # Cut off edges of the simulation region if needed.
         gain_trimmed = CommonShortcuts.cutOff_edges1D(gain.value, EPhoton.value, start_position, end_position)
@@ -855,7 +855,7 @@ class NEGFShortcuts(CommonShortcuts):
         if flip_sign:
             gain_trimmed = - gain_trimmed
             # gain_decomposed_trimmed = - gain_decomposed_trimmed
-            
+
         fig, ax = plt.subplots()
         ax.set_xlabel(EPhoton.label, fontsize=labelsize)
         ax.set_ylabel("Gain ($\mathrm{cm}^{-1}$)", fontsize=labelsize)
@@ -867,7 +867,7 @@ class NEGFShortcuts(CommonShortcuts):
         fig.tight_layout()
 
         return fig
-    
+
 
     def get_2Ddata_atBias(self, bias, data='carrier', allow_folder_name_suffix=False, input_file_name=None, output_folder=None):
         """
@@ -928,21 +928,21 @@ class NEGFShortcuts(CommonShortcuts):
 
         if datafile is None:
             raise FileNotFoundError(f"NEGF 2D data '{data}' not found!")
-        
+
         x = datafile.coords['x']
         y = datafile.coords['y']
         quantity = datafile.variables[variableKey]
         return x, y, quantity, is_divergent
 
 
-    def draw_bandedges_on_2DPlot(self, 
-                                ax, 
-                                bias, 
-                                allow_folder_name_suffix, 
-                                shadowBandgap, 
-                                dark_mode, 
+    def draw_bandedges_on_2DPlot(self,
+                                ax,
+                                bias,
+                                allow_folder_name_suffix,
+                                shadowBandgap,
+                                dark_mode,
                                 linewidth=1.0,
-                                input_file_name=None, 
+                                input_file_name=None,
                                 output_folder=None
                                 ):
         CB = None
@@ -965,9 +965,9 @@ class NEGFShortcuts(CommonShortcuts):
         lw_CB, lw_HH, lw_LH = CommonShortcuts.get_linewidths_bandedges(linewidth)
 
         ax.plot(position.value, CB.value, color=color_CB, linestyle=linestyle_CB, linewidth=lw_CB, label=CB.label)
-        if HH is not None: 
+        if HH is not None:
             ax.plot(position.value, HH.value, color=color_HH, linestyle=linestyle_HH, linewidth=lw_HH, label=HH.label)
-        if LH is not None: 
+        if LH is not None:
             ax.plot(position.value, LH.value, color=color_LH, linestyle=linestyle_LH, linewidth=lw_LH, label=LH.label)
 
         if shadowBandgap:
@@ -978,16 +978,16 @@ class NEGFShortcuts(CommonShortcuts):
                 else:
                     VBTop = HH.value
                 ax.fill_between(position.value, VBTop, CB.value, color=self.default_colors.bandgap_fill)
-            
 
-    def draw_Fermi_levels_on_2DPlot(self, 
-                                    ax, 
-                                    input_file_name, 
-                                    output_folder, 
-                                    bias, 
-                                    allow_folder_name_suffix, 
-                                    annotatesize, 
-                                    is_divergent, 
+
+    def draw_Fermi_levels_on_2DPlot(self,
+                                    ax,
+                                    input_file_name,
+                                    output_folder,
+                                    bias,
+                                    allow_folder_name_suffix,
+                                    annotatesize,
+                                    is_divergent,
                                     dark_mode,
                                     in_electron_picture
                                     ):
@@ -1065,14 +1065,14 @@ class NEGFShortcuts(CommonShortcuts):
             # if ElectronHoleBorder != CommonShortcuts.DUMMYVALUE:
             #     ax.annotate("e-h border", color=color, fontsize=labelsize, xy=(0.9 * zmax, ElectronHoleBorder), xytext=(0.9 * zmax, E_border + 0.03))
         return E_FermiElectron, E_FermiHole
-        
+
 
     def draw_1D_carrier_densities_on_2DPlot(self, ax, input_file_name, output_folder, bias, allow_folder_name_suffix, E_FermiElectron, E_FermiHole, dark_mode, scaling_factor=None):
         position, electron_density, hole_density = self.get_carrier_density_deviation(input_file_name, output_folder, bias, allow_folder_name_suffix)
         # max_density = np.amax(electron_density.value)
         # min_density = np.amin(hole_density.value)
         min_energy, max_energy = ax.get_ylim()
-        
+
         # rescale the density deviation so it fits within the energy range of ax
         if scaling_factor is None:
             scaling_factor = 0.05 * (max_energy - min_energy)  # NOTE: important to make it independent of carrier density data when visualizing carrier rebalancing
@@ -1116,7 +1116,7 @@ class NEGFShortcuts(CommonShortcuts):
             datafiles_dispersion = self.get_DataFiles_NEGFInit_in_folder('InplaneDispersionReduced_Corrected', output_folder, search_raw_solution_folder=True)
         else:
             raise ValueError("Either 'input_file_name' or 'output_folder' must be specified!")
-        
+
         if len(datafiles_dispersion) == 0:
             raise RuntimeError("No output found for in-plane dispersion!")
         if len(datafiles_dispersion) > 1:
@@ -1147,7 +1147,7 @@ class NEGFShortcuts(CommonShortcuts):
             datafile_dispersion = self.get_DataFile_in_folder('InplaneDispersion', PathHandler.append_bias_to_path(output_folder, bias), exclude_keywords=[], allow_folder_name_suffix=allow_folder_name_suffix)
         else:
             raise ValueError("Either 'input_file_name' or 'output_folder' must be specified!")
-        
+
         return self.__get_inplane_dispersion_core(datafile_dispersion, startIdx, stopIdx)
 
 
@@ -1294,7 +1294,7 @@ class NEGFShortcuts(CommonShortcuts):
         """
         Overlay bandedge with energy-resolved carrier density. Loads the following output data:
         CarrierDensity_WithDispersion.vtr or ElectronDensity_WithDispersion.vtr
-        
+
         The plot is saved as a png image file.
 
         Parameters
@@ -1352,7 +1352,7 @@ class NEGFShortcuts(CommonShortcuts):
 
             if texts is not None:
                 ScientificPlotter.place_texts(ax2, texts)
-                
+
             # dispersion plot
             kPoints, dispersions, states_toBePlotted = self.get_inplane_dispersion_atBias(input_file_name, output_folder, bias, allow_folder_name_suffix, 0, 0)  # TODO: implement user-defined state index range (see nnpShortcuts.plot_dispersion)
             CommonShortcuts.draw_inplane_dispersion(ax1, kPoints, dispersions, states_toBePlotted, True, True, labelsize, titlesize, ticksize, annotatesize, markersize=markersize, Emin=Emin, Emax=Emax, title='Dispersion', lattice_temperature=lattice_temperature, show_kBT_at_energy=show_kBT_at_energy)  # dispersions[iState, ik]
@@ -1368,7 +1368,7 @@ class NEGFShortcuts(CommonShortcuts):
                     self.draw_1D_carrier_densities_on_2DPlot(ax, input_file_name, output_folder, bias, allow_folder_name_suffix, E_FermiElectron, E_FermiHole, dark_mode, scaling_factor)
             if texts is not None:
                 ScientificPlotter.place_texts(ax, texts)
-            
+
         fig.tight_layout()
 
         # export to an image file
@@ -1465,7 +1465,7 @@ class NEGFShortcuts(CommonShortcuts):
 
             # if texts is not None:
             #     ScientificPlotter.place_texts(ax2, texts)
-                
+
             # # dispersion plot
             # kPoints, dispersions, states_toBePlotted = self.get_inplane_dispersion_atBias(input_file_name, output_folder, bias, allow_folder_name_suffix, 0, 0)  # TODO: implement user-defined state index range (see nnpShortcuts.plot_dispersion)
             # CommonShortcuts.draw_inplane_dispersion(ax1, kPoints, dispersions, states_toBePlotted, True, True, labelsize, titlesize, ticksize, annotatesize, markersize=markersize, Emin=Emin, Emax=Emax, title='Dispersion', lattice_temperature=lattice_temperature, show_kBT_at_energy=show_kBT_at_energy)  # dispersions[iState, ik]
@@ -1476,7 +1476,7 @@ class NEGFShortcuts(CommonShortcuts):
             ScientificPlotter.draw_2D_color_plot(fig, ax, x.value, y.value, quantity.value, is_divergent, colormap, title, unit, bias, labelsize, titlesize, ticksize, Emin, Emax, zmin, zmax, showBias, xlabel=xlabel)
             if texts is not None:
                 ScientificPlotter.place_texts(ax, texts)
-            
+
         fig.tight_layout()
 
         # export to an image file
@@ -1524,7 +1524,7 @@ class NEGFShortcuts(CommonShortcuts):
             x, y, quantity, is_divergent = self.get_2Ddata_atBias(bias, 'current', allow_folder_name_suffix=False, input_file_name=input_file_name)
         else:
             x, y, quantity, is_divergent = self.get_2Ddata_atBias(bias, 'current', allow_folder_name_suffix=allow_folder_name_suffix, output_folder=output_folder)
-            
+
         if is_divergent:
             if dark_mode:
                 colormap = self.default_colors.colormap['divergent_dark']
@@ -1972,7 +1972,7 @@ class NEGFShortcuts(CommonShortcuts):
         filename_no_extension = PathHandler.separate_extension(name)[0]
         outputSubfolder = os.path.join(outputFolder, filename_no_extension)
         df = self.get_DataFile_in_folder('L-I-V.dat', outputSubfolder)
-        
+
         data = np.loadtxt(df.fullpath, skiprows=1)
 
         current_density_LV = np.array(data[:, 0])
@@ -2326,7 +2326,7 @@ class NEGFShortcuts(CommonShortcuts):
         savePNG : str, optional
             save the plot in the PNG format. The default is False.
         bias : float, optional
-            If set, spinor composition data is sought in this bias folder. 
+            If set, spinor composition data is sought in this bias folder.
             # TODO: I guess plot_probabilities_core() should receive spinor data in the form of nextnanopy datafile like datafiles_probability_dict
 
         Returns
@@ -2349,7 +2349,7 @@ class NEGFShortcuts(CommonShortcuts):
                 datafile_probability = datafiles
             else:
                 raise RuntimeError("Data type of 'datafile_probability' " + type(datafile_probability) + " is unknown!")
-            
+
             x_probability  = datafile_probability.coords[self.position_axis_key].value
         if not datafile_probability:
             raise NextnanoInputFileError('Probabilities are not output! Modify the input file.')
@@ -2394,14 +2394,14 @@ class NEGFShortcuts(CommonShortcuts):
 
             if len(dfs) == 0:
                 continue
-            
+
             for cnt, stateIndex in enumerate(states_toBePlotted[model]):
                 for kIndex in range(num_kPoints[model]):
                     # psiSquared_oldgrid = dfs[kIndex].variables[f"Psi^2_{stateIndex+1} (lev.{stateIndex+1} per.0)"].value  # TODO: generalize. nPeriod is not always 1
                     lis = list(dfs[kIndex].variables.keys())  # workaround: get the keys
                     if stateIndex+1 > len(dfs[kIndex].variables) - nBandEdgeOutputs:
                         raise NextnanopyScriptError("Specified state range is out of the range of calculated states.")
-                    
+
                     psiSquared_oldgrid = dfs[kIndex].variables[lis[nBandEdgeOutputs + stateIndex]].value # first five data are bandedges
                     psiSquared[model][cnt][kIndex] = CommonShortcuts.convert_grid(psiSquared_oldgrid, x_probability, x)   # grid interpolation needed because of 'output_bandedges{ averaged=no }'
 
@@ -2448,7 +2448,7 @@ class NEGFShortcuts(CommonShortcuts):
             for df in datafiles:
                 datafiles_spinor['kp8'].append(df)
             del datafiles
-            
+
             # dictionary containing quantum model keys and 1-dimensional np.ndarrays for each key that stores spinor composition for all (eigenstate, kIndex)
             compositions = dict()
 
@@ -2501,7 +2501,7 @@ class NEGFShortcuts(CommonShortcuts):
                     ax_probability.set_title(f'{title} (quantum model: {model})', color=self.default_colors.bands[model])
                 else:
                     ax_probability.set_title(f'{title} (quantum model: {model}), k index: {kIndex}', color=self.default_colors.bands[model])
-                
+
                 if start_position != CommonShortcuts.position_min:
                     xmin = start_position
                 else:
@@ -2566,7 +2566,7 @@ class NEGFShortcuts(CommonShortcuts):
             ):
         """
         Plot the Reduced Real Space modes on top of bandedges.
-        
+
         The Reduced Real Space modes are coloured according to
         electron fraction (for kp8 model).
 
@@ -2616,23 +2616,23 @@ class NEGFShortcuts(CommonShortcuts):
             raise ValueError(f"color_by_fraction_of '{color_by_fraction_of}' is not supported")
 
         from matplotlib import colors
-        
+
         # load output data files
         datafile_RRSModes = self.get_DataFile(['ReducedRealSpaceModes.dat'], input_file.fullpath)
 
         x_RRSModes  = datafile_RRSModes.coords[self.position_axis_key].value
-        
+
         # store data in arrays (independent of quantum models)
         x             = datafile_RRSModes.coords[self.position_axis_key].value
         CBBandedge    = datafile_RRSModes.variables['ConductionBandEdge'].value
-        
+
         if want_valence_band:
             LHBandedge    = datafile_RRSModes.variables['LightHoleBandEdge'].value
             HHBandedge    = datafile_RRSModes.variables['HeavyHoleBandEdge'].value
             SOBandedge    = datafile_RRSModes.variables['SplitOffHoleBandEdge'].value
             # VBTop         = datafile_RRSModes.variables['ValenceBandTopWithoutStrain'].value
-            
-        
+
+
 
         # dictionary containing quantum model keys and 2-dimensional list for each key that stores psi^2 for all (eigenstate, kIndex)
         nStates = len(datafile_RRSModes.variables) - 5
@@ -2668,7 +2668,7 @@ class NEGFShortcuts(CommonShortcuts):
         # define plot title
         title = CommonShortcuts.adjust_plot_title(plot_title)
 
-        
+
 
         # instantiate matplotlib subplot objects for bandedge & probability distribution & spinor pie charts
         fig, ax_probability = plt.subplots()
@@ -2722,7 +2722,7 @@ class NEGFShortcuts(CommonShortcuts):
         bias : real, optional
             If not None, that bias is used to search for the energy eigenstates output folder.
             If None, output is sought in the Init folder.
-        
+
         Returns
         -------
         dictionary { quantum model key: corresponding list of nn.DataFile() objects for probability_shift }
@@ -2843,7 +2843,7 @@ class NEGFShortcuts(CommonShortcuts):
         """
             From spinor composition data, determine the highest heavy-hole state in an 8-band k.p simulation.
             This method should be able to detect it properly even when the effective bandgap is negative.
-            
+
             Parameters
             ----------
             output_folder : str
@@ -2893,13 +2893,13 @@ class NEGFShortcuts(CommonShortcuts):
             raise RuntimeError(f"No heavy-hole states found in: {output_folder}")
         elif want_second_highest and (secondStateIndex is None):
             raise RuntimeError(f"Second heavy-hole state wasn't found in: {output_folder}")
-    
+
 
     def find_highest_LH_state_atK0(self, output_folder, threshold=0.5):
         """
             From spinor composition data, determine the highest light-hole state in an 8-band k.p simulation.
             This method should be able to detect it properly even when the effective bandgap is negative.
-            
+
             Parameters
             ----------
             output_folder : str
@@ -2934,11 +2934,11 @@ class NEGFShortcuts(CommonShortcuts):
                 return stateIndex
 
         raise RuntimeError(f"No light-hole states found in: {output_folder}")
-    
+
 
     ################ optics analysis #############################################
     kp8_basis = ['cb1', 'cb2', 'hh1', 'hh2', 'lh1', 'lh2', 'so1', 'so2']
-    
+
     def calculate_overlap(self, output_folder, force_lightHole=False):
         """
         Calculate envelope overlap (complex absolute value |z|) between the lowest electron and highest valence band states from wavefunction output data
@@ -2969,7 +2969,7 @@ class NEGFShortcuts(CommonShortcuts):
 
         # load amplitude data
         datafile_amplitude_at_k0 = self.get_DataFile_amplitudesK0_in_folder(output_folder)   # returns a dict of nn.DataFile
-        
+
         # extract amplitude of electron- and hole-like states
         x = datafile_amplitude_at_k0['kp8'][0].coords[self.position_axis_key].value  # real space coords are common for all amplitude outputs
         amplitude_e = np.zeros((len(self.kp8_basis), len(x)), dtype=np.cdouble)  # psi of lowest CB state
@@ -3005,8 +3005,8 @@ class NEGFShortcuts(CommonShortcuts):
         E_hole = self.__get_highest_hole_energy(output_folder)
 
         return E_electron - E_hole
-    
-    
+
+
     def get_HH1_LH1_energy_difference(self, output_folder):
         """
         Get the energy separation between the highest HH and highest LH states.
@@ -3019,7 +3019,7 @@ class NEGFShortcuts(CommonShortcuts):
             return E_HH - E_LH
         else:
             return None
-    
+
 
     def get_HH1_HH2_energy_difference(self, output_folder):
         """
@@ -3038,7 +3038,7 @@ class NEGFShortcuts(CommonShortcuts):
         datafile = self.get_DataFile_in_folder(["EnergySpectrum"], output_folder, exclude_folders=["kResolved"])
         iLowestElectron = self.find_lowest_conduction_state_atK0(output_folder, threshold=0.5)
         return datafile.variables[0].value[iLowestElectron]
-    
+
 
     def __get_highest_hole_energy(self, output_folder):
         """
@@ -3073,7 +3073,7 @@ class NEGFShortcuts(CommonShortcuts):
         except RuntimeError as e:
             logging.warning(f"{e}")
             return None
-        
+
         return datafile.variables[0].value[iHighestLH]
 
 
@@ -3093,7 +3093,7 @@ class NEGFShortcuts(CommonShortcuts):
             return (self.calc_absorption_at_transition_energy(output_folder, '1.0,0.0,0.0', bias) + self.calc_absorption_at_transition_energy(output_folder, '0.0,1.0,0.0', bias)) / 2.
         else:
             raise RuntimeError(f"Unknown light polarization '{polarization}'")
-        
+
 
     def calc_absorption_at_transition_energy(self, output_folder, polarization_vector, bias):
         """
@@ -3101,18 +3101,18 @@ class NEGFShortcuts(CommonShortcuts):
         Unit: 1/cm
         """
         transition_E_meV = self.get_transition_energy(output_folder) * CommonShortcuts.scale1ToMilli
-        
+
         datafile = self.get_DataFile_NEGF_atBias(['SemiClassical_vs_Energy', polarization_vector], output_folder, bias, is_fullpath=True)
         photon_energies = datafile.coords['Photon Energy'].value
         gain = datafile.variables['Gain'].value
-        
+
         for i_energy in range(len(photon_energies)): # energy is ascending
             if photon_energies[i_energy] <= transition_E_meV and transition_E_meV < photon_energies[i_energy + 1]:
                 # linear interpolation
                 tangent = (gain[i_energy + 1] - gain[i_energy]) / (photon_energies[i_energy + 1] - photon_energies[i_energy])
                 gain = tangent * (transition_E_meV - photon_energies[i_energy]) + gain[i_energy]
                 return -gain
-            
+
         logging.warning("calc_absorption_at_transition_energy(): Gain spectrum does not cover the transition energy. Returning gain = None")
         return None
 
