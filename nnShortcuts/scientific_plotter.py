@@ -391,6 +391,12 @@ class ScientificPlotter:
             cbar_label=None
             ):
         """
+        X : 
+            one-dimensional numpy.ndarray or two-dimensional array-like representing the coordinates of the mesh
+        Y : 
+            one-dimensional numpy.ndarray or two-dimensional array-like representing the coordinates of the mesh
+        Z : 
+            two-dimensional array-like representing the values f(x, y)
         ymin : float
             lower bound of y values. If None, it is automatically set to the minimum of the data 'Y'.
         ymax : float
@@ -402,6 +408,14 @@ class ScientificPlotter:
         cbar_label : str, optional
             If not None, this overwrites the colorbar label.
         """
+        if np.ndim(X) == 1:
+            if np.ndim(Y) == 1:
+                X, Y = np.meshgrid(X, Y)
+            else:
+                raise ValueError("X and Y have inconsistent dimensionalities")
+        else:
+            if np.ndim(Y) == 1:
+                raise ValueError("X and Y have inconsistent dimensionalities")
         ScientificPlotter.__validate_data_shape_XYZ(X, Y, Z)
 
         from matplotlib import colors
