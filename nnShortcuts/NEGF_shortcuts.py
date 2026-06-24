@@ -651,8 +651,10 @@ class NEGFShortcuts(CommonShortcuts):
     def get_carrier_density_deviation(self, input_file_name, output_folder, bias, allow_folder_name_suffix):
         if output_folder is None:
             datafile = self.get_DataFile_NEGF_atBias("CarrierDensity_ElectronHole.dat", input_file_name, bias=bias, allow_folder_name_suffix=allow_folder_name_suffix, is_fullpath=False)
-        else:
+        elif isinstance(output_folder, str):
             datafile = self.get_DataFile_NEGF_atBias("CarrierDensity_ElectronHole.dat", output_folder, bias=bias, allow_folder_name_suffix=allow_folder_name_suffix, is_fullpath=True)
+        else:
+            raise ValueError(f"'output_folder' must be a string, but is {type(output_folder)}")
         return datafile.coords[self.position_axis_key], datafile.variables['Electron density'], datafile.variables['Hole density']
 
 
@@ -1234,7 +1236,7 @@ class NEGFShortcuts(CommonShortcuts):
             if showFermiLevel:
                 E_FermiElectron, E_FermiHole = self.draw_Fermi_levels_on_2DPlot(ax2, input_file_name, output_folder, bias, allow_folder_name_suffix, labelsize, is_divergent, dark_mode, False)
                 if showDensityDeviation:
-                    self.draw_1D_carrier_densities_on_2DPlot(ax2, input_file_name, bias, allow_folder_name_suffix, E_FermiElectron, E_FermiHole, dark_mode, scaling_factor)
+                    self.draw_1D_carrier_densities_on_2DPlot(ax2, input_file_name, output_folder, bias, allow_folder_name_suffix, E_FermiElectron, E_FermiHole, dark_mode, scaling_factor)
                 show_kBT_at_energy = (E_FermiElectron + E_FermiHole)/2.
             else:
                 show_kBT_at_energy = None
