@@ -109,7 +109,7 @@ class CommonShortcuts:
         }
         self.default_colors = DefaultColors(self.band_names)
 
-        print("loglevel = ", loglevel)
+        # print("loglevel = ", loglevel)
         # log setting
         fmt = '[%(levelname)s] %(message)s'
         logging.basicConfig(
