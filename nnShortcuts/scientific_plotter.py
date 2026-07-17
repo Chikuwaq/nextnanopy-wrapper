@@ -397,6 +397,8 @@ class ScientificPlotter:
             one-dimensional numpy.ndarray or two-dimensional array-like representing the coordinates of the mesh
         Z : 
             two-dimensional array-like representing the values f(x, y)
+        cbar_unit : str
+            Unit string for the z axis
         ymin : float
             lower bound of y values. If None, it is automatically set to the minimum of the data 'Y'.
         ymax : float

@@ -871,11 +871,21 @@ class NEGFShortcuts(CommonShortcuts):
         return fig
 
 
-    def get_2Ddata_atBias(self, bias, data='carrier', allow_folder_name_suffix=False, input_file_name=None, output_folder=None):
+    def get_2Ddata_atBias(self, 
+                          bias, 
+                          data='carrier', 
+                          allow_folder_name_suffix=False, 
+                          input_file_name=None, 
+                          output_folder=None
+                          ):
         """
         INPUT:
-            data
+            data : str
                 one of the following strings: ['LDOS_zone_center', 'LDOS', 'carrier', 'carrier_inplane_resolved', 'current', 'current_with_dispersion']
+            input_file_name : str
+                Specifies the output folder
+            output_folder : str
+                Specifies the output folder
 
         RETURN: nn.DataFile() attributes
             x = datafile.coords['x']
