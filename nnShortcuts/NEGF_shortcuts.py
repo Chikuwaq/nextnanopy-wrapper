@@ -1,11 +1,10 @@
 """
 Created: 2022/03/22
-Updated: 2026/03/20
+Updated: 2026/09/20
 
 Useful shortcut functions for nextnano.NEGF postprocessing.
 get_* methods return nn.DataFile() attribute (output data)
 plot_* methods plot & save figures
-animate_NEGF method generates animation
 
 @author: takuma.sato@nextnano.com (inspired by scripts of David Stark)
 """
@@ -1878,80 +1877,6 @@ class NEGFShortcuts(CommonShortcuts):
         biases = [int(folder_name.replace('mV', '')) for folder_name in datafolder.folders.keys() if ('mV' in folder_name) and ('Init' not in folder_name)]
         biases.sort()   # ascending order
         return biases
-
-
-    def animate_NEGF(self, input_file_name, leftFig='DOS', rightFig='carrier'):
-        """
-        Generate gif animation from simulation results at different bias points. Loads two of the following output data:
-        - energy-resolved local density of states
-        - energy-resolved carrier density
-        - energy-resolved current density
-        - emitted power
-        INPUT:
-            two strings among ['DOS', 'carrier', 'current', 'power']
-
-        TODO: integrate more recent script 'T2SL_animation.py' to this method
-        """
-        quantity_names = ['DOS', 'carrier', 'current', 'power']   # TODO: should be global variables in this file
-        unit = r'$\mathrm{nm}^{-1} \mathrm{eV}^{-1}$'   # TODO: make a list of units for 2D data
-        label = 'Density of states (' + unit + ')'   # TODO: make a list of labels for 2D data
-
-        if leftFig not in quantity_names:
-            raise KeyError(f"Entry must be {quantity_names}!")
-        if rightFig not in quantity_names:
-            raise KeyError(f"Entry must be {quantity_names}!")
-
-        input_file_name = PathHandler.separate_extension(input_file_name)[0]
-
-        array_of_biases = np.array(self.get_biases(input_file_name))
-
-        # get 2D data at the largest bias
-        x_last, y_last, quantity_last, is_divergent = self.get_2Ddata_atBias(array_of_biases[-1], leftFig, allow_folder_name_suffix=False, input_file_name=input_file_name)
-
-        # define a map from (xIndex, yIndex, biasIndex) to scalar value
-        F = np.zeros((len(x_last.value), len(y_last.value), len(array_of_biases)))
-
-        # store data to F
-        for i, bias in enumerate(array_of_biases):
-            position, CB = self.get_conduction_bandedge(bias, allow_folder_name_suffix=False, input_file_name=input_file_name)
-            x, y, quantity, is_divergent = self.get_2Ddata_atBias(bias, leftFig, allow_folder_name_suffix=False, input_file_name=input_file_name)
-            F[:, :, i] = quantity.value
-
-        fig, ax = plt.subplots()
-        ax.set_xlabel('x label')
-        ax.set_ylabel('y label')
-        ax.set_title('title')
-        ax.set_xlim(np.amin(x_last.value), np.amax(x_last.value))
-        ax.set_ylim(np.amin(y_last.value), np.amax(y_last.value))
-
-        # Plot colormap for the initial bias.
-        # F[:-1, :-1, 0] gives the values on the x-y plane at initial bias.
-        cax = ax.pcolormesh(x.value, y.value, F[:-1, :-1, 0], vmin=-1, vmax=1, cmap=self.default_colors.colormap['linear_dark_bg'])
-        cbar = fig.colorbar(cax)
-        cbar.set_label(label)
-
-
-        def animate_2D_plots(bias):
-            # update plot title
-            ax.set_title('{}, bias={:.1f} mV'.format(input_file_name, array_of_biases[i]))
-            # update 2D color plot
-            cax.set_array(F[:-1, :-1, i].flatten())
-            # update conduction bandedge plot
-            ax.plot(x.value, CB.value, color=self.default_colors.lines_on_colormap['dark_bg'][0], linewidth=0.7, label=CB.label)
-
-
-        # ax.legend(loc='upper left')
-
-        # generate GIF animation
-        from matplotlib import animation
-
-        cwd = os.getcwd()
-        # os.chdir(output_folder_path)
-        logging.info(f'Exporting GIF animation to: {os.getcwd()}\n')
-        anim = animation.FuncAnimation(fig, animate_2D_plots, frames=len(array_of_biases)-1, interval=700)
-        anim.save(f'{input_file_name}.gif', writer='pillow')
-        # os.chdir(cwd)
-
 
 
     def get_LIV(self, name):

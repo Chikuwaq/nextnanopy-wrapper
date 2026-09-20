@@ -1,5 +1,6 @@
 """
 Created: 2021/05/27
+Updated: 2026/09/20
 
 Basic toolbox (shortcut, module) for nextnanopy. 
 Applicable to all nextnano products.
@@ -15,7 +16,8 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
 import warnings
 import logging
-# from PIL import Image   # for gif
+import io
+from PIL import Image   # for gif
 # from celluloid import Camera   # for gif
 # from IPython.display import HTML   # for HTML display of gif
 
@@ -1956,3 +1958,59 @@ class CommonShortcuts:
             fig.savefig(export_fullpath, dpi=dpi, facecolor='w', bbox_inches='tight')  # 'tight' bbox ensures that legends outside of axes frame is included in the image
 
 
+    def generate_gif(self,
+            plot_function,
+            sweep_var_values : list,
+            output_path: str = None,
+            durationMsPerFrame: int = 800,
+        ):
+        """
+        Generate an animated GIF by sweeping a parameter and calling plot_function.
+
+        Parameters
+        ----------
+        plot_function : callable
+            A function that creates a plot. It should accept one argument for the sweep value
+        sweep_var_values : iterable
+            Iterable of values to sweep over; one frame per value.
+        output_path : str
+            Path to save the resulting GIF.
+        durationMsPerFrame : int
+            Duration of each frame in milliseconds.
+        """
+
+        frames = []
+
+        for value in sweep_var_values:
+            # Clear any existing figure
+            plt.clf()
+            plt.cla()
+
+            plot_function(value)
+            
+            # Render the current figure to an in-memory image
+            buf = io.BytesIO()
+            plt.savefig(buf, format="png")
+            buf.seek(0)
+
+            # Convert to PIL Image and append to frames
+            img = Image.open(buf)
+            frames.append(img.copy())  # copy to avoid reference issues
+
+            # Close buffer and clear figure for next iteration
+            buf.close()
+            plt.close("all")
+
+        # Save all frames as an animated GIF
+        if output_path is None:
+            output_root_dir = nn.config.get(self.product_name, 'outputdirectory')
+            output_path = os.path.join(output_root_dir, "animation.gif")
+        logging.info(f"Exporting GIF to:\n{output_path}")
+
+        frames[0].save(
+            output_path,
+            save_all=True,
+            append_images=frames[1:],
+            duration=durationMsPerFrame,
+            loop=0,  # 0 = infinite loop
+        )
