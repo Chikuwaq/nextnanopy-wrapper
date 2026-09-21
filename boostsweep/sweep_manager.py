@@ -1207,11 +1207,11 @@ class SweepManager:
 
         cbar = fig.colorbar(pcolor, ax=ax)
         if unit == 'meV':
-            cbar.set_label("Transition energy ($\mathrm{meV}$)")
+            cbar.set_label("Transition energy ($\\mathrm{meV}$)")
         elif unit == 'micron' or unit == 'um':
-            cbar.set_label("Wavelength ($\mathrm{μm}$)")
+            cbar.set_label("Wavelength ($\\mathrm{μm}$)")
         elif unit == 'nm':
-            cbar.set_label("Wavelength ($\mathrm{nm}$)")
+            cbar.set_label("Wavelength ($\\mathrm{nm}$)")
         fig.tight_layout()
         plt.show()
 
@@ -1253,11 +1253,11 @@ class SweepManager:
         self.__setup_1D_plot(ax, x_axis, x_label, plot_title, x_values)
 
         if unit == 'meV':
-            ax.set_ylabel("Transition energy ($\mathrm{meV}$)")
+            ax.set_ylabel("Transition energy ($\\mathrm{meV}$)")
         elif unit == 'micron' or unit == 'um':
-            ax.set_ylabel("Wavelength ($\mathrm{μm}$)")
+            ax.set_ylabel("Wavelength ($\\mathrm{μm}$)")
         elif unit == 'nm':
-            ax.set_ylabel("Wavelength ($\mathrm{nm}$)")
+            ax.set_ylabel("Wavelength ($\\mathrm{nm}$)")
         ax.plot(x_values, transition_energies_scaled)
         fig.tight_layout()
         plt.show()
@@ -1339,7 +1339,7 @@ class SweepManager:
             ScientificPlotter.draw_contour(ax, x_values, y_values, EDifference * CommonShortcuts.scale1ToMilli, contour_energy_meV, contour_color)
             
         cbar = fig.colorbar(pcolor, ax=ax)
-        cbar.set_label("Hole energy difference HH1-LH1 ($\mathrm{meV}$)")
+        cbar.set_label("Hole energy difference HH1-LH1 ($\\mathrm{meV}$)")
         fig.tight_layout()
         plt.show()
 
@@ -1424,7 +1424,7 @@ class SweepManager:
             ScientificPlotter.draw_contour(ax, x_values, y_values, EDifference * CommonShortcuts.scale1ToMilli, contour_energy_meV, contour_color)
             
         cbar = fig.colorbar(pcolor, ax=ax)
-        cbar.set_label("Hole energy difference HH1-HH2 ($\mathrm{meV}$)")
+        cbar.set_label("Hole energy difference HH1-HH2 ($\\mathrm{meV}$)")
         fig.tight_layout()
         plt.show()
 
@@ -1520,7 +1520,7 @@ class SweepManager:
         else:
             format_str = None
         cbar = fig.colorbar(pcolor, ax=ax, format=format_str)
-        cbar.set_label("Current density [$\mathrm{A}/\mathrm{cm}^2$]")
+        cbar.set_label("Current density [$\\mathrm{A}/\\mathrm{cm}^2$]")
 
         fig.tight_layout()
         plt.show()

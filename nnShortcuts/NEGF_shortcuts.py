@@ -142,7 +142,7 @@ class NEGFShortcuts(CommonShortcuts):
             raise NextnanopyScriptError(f"Number of input files ({len(input_file_names)}) do not match that of plot labels ({len(labels)})")
 
         fig, ax = plt.subplots()
-        ax.set_ylabel("Current density [$\mathrm{kA}/\mathrm{cm}^{2}$]", fontsize=labelsize)
+        ax.set_ylabel("Current density [$\\mathrm{kA}/\\mathrm{cm}^{2}$]", fontsize=labelsize)
         # ax.set_yscale("log")
         ax.set_xlim(Vmin, Vmax)
         ax.set_ylim(Imin, Imax)
@@ -226,7 +226,7 @@ class NEGFShortcuts(CommonShortcuts):
 
         # fig, ax = plt.subplots(layout='constrained')  # not supported by matplotlib 3.3
         fig, ax = plt.subplots()
-        ax.set_ylabel("Current density [$\mathrm{A}/\mathrm{cm}^{2}$]", fontsize=labelsize)
+        ax.set_ylabel("Current density [$\\mathrm{A}/\\mathrm{cm}^{2}$]", fontsize=labelsize)
         ax.set_yscale("log")
         # ax.set_xlim(Vmin, Vmax)
         # ax.set_ylim(Imin, Imax)
@@ -241,7 +241,7 @@ class NEGFShortcuts(CommonShortcuts):
             return 1e3 / T
 
         inv_temperatures = [backward_conversion(T) for T in temperatures]
-        ax.set_xlabel("1000 / T [$\mathrm{K}^{-1}$]", fontsize=labelsize)
+        ax.set_xlabel("1000 / T [$\\mathrm{K}^{-1}$]", fontsize=labelsize)
 
         for bias in biases:
             # list of data for sweeping temperature
@@ -317,7 +317,7 @@ class NEGFShortcuts(CommonShortcuts):
             for coeff, Eg in zip(coeffs, effective_gaps_meV):
                 diffusion_limited_dark_currents = [diffusion_limited_dark_current(coeff, T, Eg) for T in temperatures]
                 # ax.plot(inv_temperatures, diffusion_limited_dark_currents, '--', color='grey', label="$T^3\mathrm{exp}(-\Delta / k_\mathrm{B}T)$")
-                ax.plot(inv_temperatures, diffusion_limited_dark_currents, '--', color=colors[index], label="$C \mathrm{exp}(-\Delta / k_\mathrm{B}T)$, " + f"$C$ = {coeff:.1e}, $\Delta$ = {Eg:.0f} meV")
+                ax.plot(inv_temperatures, diffusion_limited_dark_currents, '--', color=colors[index], label=r"$C \mathrm{exp}(-\Delta / k_\mathrm{B}T)$, " + f"$C$ = {coeff:.1e}, $\\Delta$ = {Eg:.0f} meV")
                 index += 1
 
             # coherent_dark_currents = [coherent_dark_current(C, T, effective_gap) for T in temperatures]
@@ -808,7 +808,7 @@ class NEGFShortcuts(CommonShortcuts):
 
         fig, ax = plt.subplots()
         ax.set_xlabel(EPhoton.label, fontsize=labelsize)
-        ax.set_ylabel("Gain ($\mathrm{cm}^{-1}$)", fontsize=labelsize)
+        ax.set_ylabel("Gain ($\\mathrm{cm}^{-1}$)", fontsize=labelsize)
         ax.set_title(title, fontsize=labelsize)
         ax.tick_params(axis='x', labelsize=ticksize)
         ax.tick_params(axis='y', labelsize=ticksize)
@@ -859,7 +859,7 @@ class NEGFShortcuts(CommonShortcuts):
 
         fig, ax = plt.subplots()
         ax.set_xlabel(EPhoton.label, fontsize=labelsize)
-        ax.set_ylabel("Gain ($\mathrm{cm}^{-1}$)", fontsize=labelsize)
+        ax.set_ylabel("Gain ($\\mathrm{cm}^{-1}$)", fontsize=labelsize)
         ax.set_title(title, fontsize=labelsize)
         ax.tick_params(axis='x', labelsize=ticksize)
         ax.tick_params(axis='y', labelsize=ticksize)
@@ -1056,7 +1056,7 @@ class NEGFShortcuts(CommonShortcuts):
 
         isEquilibrium = (np.amin(FermiElectron.value) == np.amin(FermiHole.value)) and (np.amax(FermiElectron.value) == np.amax(FermiHole.value))
         if isEquilibrium:
-            ax.annotate("$E_\mathrm{F}$", color=color, fontsize=annotatesize, xy=(pos_align_right, E_FermiElectron), xytext=(pos_align_right, E_FermiElectron + 0.05))
+            ax.annotate(r"$E_\mathrm{F}$", color=color, fontsize=annotatesize, xy=(pos_align_right, E_FermiElectron), xytext=(pos_align_right, E_FermiElectron + 0.05))
         else:
             ymin, ymax = ax.get_ylim()
             if (E_FermiElectron - E_FermiHole) < 0.1 * (ymax - ymin):
@@ -1066,11 +1066,11 @@ class NEGFShortcuts(CommonShortcuts):
                 E_FermiElectron_shift = +0.03 * (ymax - ymin)
                 E_FermiHole_shift = E_FermiElectron_shift
             if in_electron_picture:
-                symbol_electron = "$E_\mathrm{F}^\mathrm{c}$"
-                symbol_hole = "$E_\mathrm{F}^\mathrm{v}$"
+                symbol_electron = r"$E_\mathrm{F}^\mathrm{c}$"
+                symbol_hole = r"$E_\mathrm{F}^\mathrm{v}$"
             else:
-                symbol_electron = "$E_\mathrm{F}^\mathrm{e}$"
-                symbol_hole = "$E_\mathrm{F}^\mathrm{h}$"
+                symbol_electron = r"$E_\mathrm{F}^\mathrm{e}$"
+                symbol_hole = r"$E_\mathrm{F}^\mathrm{h}$"
             ax.annotate(symbol_electron, color=color, fontsize=annotatesize, xy=(pos_align_right, E_FermiElectron), xytext=(pos_align_right, E_FermiElectron + E_FermiElectron_shift))
             ax.annotate(symbol_hole, color=color, fontsize=annotatesize, xy=(pos_align_right, E_FermiHole), xytext=(pos_align_right, E_FermiHole + E_FermiHole_shift))
             # if ElectronHoleBorder != CommonShortcuts.DUMMYVALUE:
@@ -1686,8 +1686,8 @@ class NEGFShortcuts(CommonShortcuts):
         for current_density, p_drop in zip(illuminated_current_densities, potential_drops_illuminated):
             ax1.plot(p_drop, current_density, color=self.default_colors.current_under_illumination, ls=linetypes[cnt], label="illuminated "+labels[cnt])
             cnt += 1
-        ax1.set_xlabel('Potential drop per period [$\mathrm{mV}$]', fontsize=labelsize)
-        ax1.set_ylabel('Current density [$\mathrm{A}/\mathrm{cm}^2$]', fontsize=labelsize)
+        ax1.set_xlabel('Potential drop per period [$\\mathrm{mV}$]', fontsize=labelsize)
+        ax1.set_ylabel('Current density [$\\mathrm{A}/\\mathrm{cm}^2$]', fontsize=labelsize)
         ax1.set_yscale("log")
         ax1.tick_params(axis='y', labelsize=ticksize)
         # ax1.set_xlim(Vmin, Vmax)
@@ -1700,7 +1700,7 @@ class NEGFShortcuts(CommonShortcuts):
 
         # do we need second x-axis?
         # ax3 = ax1.secondary_xaxis('top', functions=(forward_conversion, backward_conversion))
-        # ax3.set_xlabel('Current density [$\mathrm{kA}/\mathrm{cm}^2$]', fontsize=labelsize)
+        # ax3.set_xlabel('Current density [$\\mathrm{kA}/\\mathrm{cm}^2$]', fontsize=labelsize)
 
         # responsivity curve
         scaling = 1.0
@@ -1712,7 +1712,7 @@ class NEGFShortcuts(CommonShortcuts):
             print(f"pdrop: {p_drop}, responsivity [A/W]: {responsivity}")
             ax2.plot(p_drop, responsivity * scaling, '.', color=self.default_colors.responsivity, ls=linetypes[i_bias], label=labels[i_bias])
 
-        ax2.set_ylabel("Responsivity [$\mathrm{A/W}$]", color=self.default_colors.responsivity, fontsize=labelsize)
+        ax2.set_ylabel("Responsivity [$\\mathrm{A/W}$]", color=self.default_colors.responsivity, fontsize=labelsize)
         ax2.tick_params(axis='x', labelsize=ticksize)
         ax2.tick_params(axis='y', labelcolor=self.default_colors.responsivity, labelsize=ticksize)
         ax2.set_ylim(Rmin, Rmax)
@@ -1800,7 +1800,7 @@ class NEGFShortcuts(CommonShortcuts):
         fig, ax = plt.subplots()
         ax.plot(temperatures, responsivity, 'o-', color=self.default_colors.responsivity)
         ax.set_xlabel(CommonShortcuts.axis_label_temperature, fontsize=labelsize)
-        ax.set_ylabel('Responsivity [$\mathrm{A/W}$]', color=self.default_colors.responsivity, fontsize=labelsize)
+        ax.set_ylabel('Responsivity [$\\mathrm{A/W}$]', color=self.default_colors.responsivity, fontsize=labelsize)
         ax.tick_params(axis='x', labelsize=ticksize)
         ax.tick_params(axis='y', labelcolor=self.default_colors.responsivity, labelsize=ticksize)
         # ax.set_xlim()
@@ -2045,8 +2045,8 @@ class NEGFShortcuts(CommonShortcuts):
             I = backward_conversion(current_density)
             ax1.plot(I, V, color=color, ls=linetypes[cnt], label=labels[cnt])
             cnt += 1
-        ax1.set_xlabel('Current [$\mathrm{A}$]', fontsize=labelsize)
-        ax1.set_ylabel('Voltage [$\mathrm{V}$]', color=color, fontsize=labelsize)
+        ax1.set_xlabel('Current [$\\mathrm{A}$]', fontsize=labelsize)
+        ax1.set_ylabel('Voltage [$\\mathrm{V}$]', color=color, fontsize=labelsize)
         ax1.tick_params(axis='y', labelcolor=color, labelsize=ticksize)
         ax1.set_xlim(Imin, Imax)
         ax1.set_ylim(Vmin, Vmax)
@@ -2057,7 +2057,7 @@ class NEGFShortcuts(CommonShortcuts):
         ax1.legend()
 
         ax3 = ax1.secondary_xaxis('top', functions=(forward_conversion, backward_conversion))
-        ax3.set_xlabel('Current density [$\mathrm{kA}/\mathrm{cm}^2$]', fontsize=labelsize)
+        ax3.set_xlabel('Current density [$\\mathrm{kA}/\\mathrm{cm}^2$]', fontsize=labelsize)
 
 
         # Optical power - voltage curves
@@ -2068,7 +2068,7 @@ class NEGFShortcuts(CommonShortcuts):
             I = backward_conversion(density)
             ax2.plot(I, P, '.', color=color, ls=linetypes[cnt], label=labels[cnt])
             cnt += 1
-        ax2.set_ylabel('Optical power [$\mathrm{mW}$]', color=color, fontsize=labelsize)
+        ax2.set_ylabel('Optical power [$\\mathrm{mW}$]', color=color, fontsize=labelsize)
         ax2.tick_params(axis='y', labelcolor=color, labelsize=ticksize)
         ax2.set_ylim(Pmin, Pmax)
         plt.yticks([0, 50, 100, 150])
