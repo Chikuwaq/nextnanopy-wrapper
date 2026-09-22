@@ -373,6 +373,8 @@ class NEGFShortcuts(CommonShortcuts):
         else:
             search_folder = init_folder.fullpath
 
+        if isinstance(keywords, str):
+            keywords = [keywords]
         return self.get_DataFiles_in_folder(keywords, search_folder, exclude_keywords)  # TODO: add options available
 
 
