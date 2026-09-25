@@ -22,6 +22,7 @@ import shutil
 import subprocess
 import time
 import platform
+from math import floor
 
 
 # nextnanopy includes
@@ -588,12 +589,15 @@ class SweepManager:
 
         self.save_sweep(parallel_limit)
 
+        nThreads = floor(os.process_cpu_count() / parallel_limit)
+
         # execute sweep simulations
         # this writes output to self.data['output_subfolder_short']
         # NOTE: We avoid enumeration of output folder names (see `overwrite` option of nextnanopy.inputs > Sweep.execute_sweep()) for secure output data access.
         # NOTE: Do not delete input files! Otherwise SweepManager.execute_sweep() cannot be called independently of SweepManager instantiation.
         def run_input_file(input_file):
-            input_file.execute(show_log=show_log, convergenceCheck=convergenceCheck, **kwargs)  # TODO: add option to use multiple threads in each simulation
+            logging.debug(f"Running input file with kwargs =\n{kwargs}")
+            input_file.execute(show_log=show_log, convergenceCheck=convergenceCheck, threads=nThreads, **kwargs)  # TODO: add option to use multiple threads in each simulation
 
         logging.info(f"Starting {self.get_num_simulations()} sweep simulations...")
         with concurrent.futures.ThreadPoolExecutor(max_workers=parallel_limit) as executor:
@@ -633,7 +637,7 @@ class SweepManager:
                     elif choice == 'n': raise RuntimeError('Nextnanopy terminated.')
 
         logging.info(f"Preparing {n} simulations for \n{self.master_input_file['short'].fullpath}")
-        logging.info(f"Max. {parallel_limit} simulations are run simultaneously.")
+        logging.info(f"Max. {parallel_limit} simulation(s) are run simultaneously.")
 
         # Do not repeatedly call list.append()! Slow when the number of simulations is large.
         # Shallow copy should be enough because the only change is the input variables.
