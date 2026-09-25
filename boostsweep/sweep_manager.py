@@ -637,7 +637,8 @@ class SweepManager:
                     elif choice == 'n': raise RuntimeError('Nextnanopy terminated.')
 
         logging.info(f"Preparing {n} simulations for \n{self.master_input_file['short'].fullpath}")
-        logging.info(f"Max. {parallel_limit} simulation(s) are run simultaneously.")
+        if n > 1:
+            logging.info(f"Max. {parallel_limit} simulation(s) are run simultaneously.")
 
         # Do not repeatedly call list.append()! Slow when the number of simulations is large.
         # Shallow copy should be enough because the only change is the input variables.
