@@ -1941,7 +1941,7 @@ class CommonShortcuts:
 
         # prepare output subfolder path
         if output_folder_path:
-            output_subfolder = os.path.join(output_folder_path, "nextnanopy")
+            output_subfolder = output_folder_path
         else:
             output_subfolder_name = PathHandler.separate_extension(output_subfolder_name)[0]   # chop off file extension if any
             output_subfolder = os.path.join(nn.config.get(self.product_name, 'outputdirectory'), output_subfolder_name)
