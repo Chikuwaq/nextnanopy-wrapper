@@ -1096,8 +1096,8 @@ class NEGFShortcuts(CommonShortcuts):
         hole_density_scaled = hole_density.value * scaling_factor
 
         if dark_mode:
-            # TODO
-            linecolor = self.default_colors.lines_on_colormap['dark_bg'][1]
+            linecolor_e = self.default_colors.lines_on_colormap['dark_bg'][0]
+            linecolor_h = linecolor_e
         else:
             linecolor_e = 'red'
             linecolor_h = 'blue'
