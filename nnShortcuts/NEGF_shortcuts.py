@@ -930,10 +930,12 @@ class NEGFShortcuts(CommonShortcuts):
         datafile = None
         for file in files:
             try:
-                if output_folder is None:
+                if input_file_name is not None:
                     datafile = self.get_DataFile_NEGF_atBias(file, input_file_name, bias, allow_folder_name_suffix=False)
-                else:
+                elif output_folder is not None:
                     datafile = self.get_DataFile_NEGF_atBias(file, output_folder, bias, allow_folder_name_suffix=allow_folder_name_suffix, is_fullpath=True)
+                else:
+                    raise ValueError("Either 'input_file_name' or 'output_folder' must be set")
             except FileNotFoundError:
                 continue
             else:
@@ -1222,10 +1224,12 @@ class NEGFShortcuts(CommonShortcuts):
         lattice_temperature : float
             If not None, the energy kBT is indicated inside the dispersion plot.
         """
-        if output_folder is None:
+        if input_file_name is not None:
             x, y, quantity, is_divergent = self.get_2Ddata_atBias(bias, 'LDOS', allow_folder_name_suffix=False, input_file_name=input_file_name)
-        else:
+        elif output_folder is not None:
             x, y, quantity, is_divergent = self.get_2Ddata_atBias(bias, 'LDOS', allow_folder_name_suffix=allow_folder_name_suffix, output_folder=output_folder)
+        else:
+            raise ValueError("Either 'input_file_name' or 'output_folder' must be set")
         if dark_mode:
             colormap = self.default_colors.colormap['linear_dark_bg']
         else:
@@ -1321,10 +1325,13 @@ class NEGFShortcuts(CommonShortcuts):
             data_name = 'carrier'
         else:
             data_name = 'electron'
-        if output_folder is None:
+        if input_file_name is not None:
             x, y, quantity, is_divergent = self.get_2Ddata_atBias(bias, data_name, allow_folder_name_suffix=False, input_file_name=input_file_name)
-        else:
+        elif output_folder is not None:
             x, y, quantity, is_divergent = self.get_2Ddata_atBias(bias, data_name, allow_folder_name_suffix=allow_folder_name_suffix, output_folder=output_folder)
+        else:
+            raise ValueError("Either 'input file name' or 'output folder' must be specified!")
+        
         if is_divergent:
             if dark_mode:
                 colormap = self.default_colors.colormap['divergent_dark']
