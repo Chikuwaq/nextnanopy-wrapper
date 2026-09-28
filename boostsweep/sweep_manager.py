@@ -588,8 +588,9 @@ class SweepManager:
         import concurrent.futures
 
         self.save_sweep(parallel_limit)
-
-        nThreads = floor(os.process_cpu_count() / parallel_limit)
+        num_simulations = self.get_num_simulations()
+        num_simulations_parallel = min(num_simulations, parallel_limit)
+        num_threads_per_sim = floor(os.process_cpu_count() / num_simulations_parallel)
 
         # execute sweep simulations
         # this writes output to self.data['output_subfolder_short']
@@ -597,9 +598,9 @@ class SweepManager:
         # NOTE: Do not delete input files! Otherwise SweepManager.execute_sweep() cannot be called independently of SweepManager instantiation.
         def run_input_file(input_file):
             logging.debug(f"Running input file with kwargs =\n{kwargs}")
-            input_file.execute(show_log=show_log, convergenceCheck=convergenceCheck, threads=nThreads, **kwargs)  # TODO: add option to use multiple threads in each simulation
+            input_file.execute(show_log=show_log, convergenceCheck=convergenceCheck, threads=num_threads_per_sim, **kwargs)  # TODO: add option to use multiple threads in each simulation
 
-        logging.info(f"Starting {self.get_num_simulations()} sweep simulations...")
+        logging.info(f"Starting {num_simulations} sweep simulations...")
         with concurrent.futures.ThreadPoolExecutor(max_workers=parallel_limit) as executor:
             # submit jobs
             futures = [executor.submit(run_input_file, input_file) for input_file in self.inputs['obj']]
@@ -608,7 +609,7 @@ class SweepManager:
             n_finished_jobs = 0
             for future in concurrent.futures.as_completed(futures):
                 n_finished_jobs += 1
-                logging.info(f"Completed jobs: {n_finished_jobs}/{self.get_num_simulations()}")
+                logging.info(f"Completed jobs: {n_finished_jobs}/{num_simulations}")
 
         # point to the new output in case old simulation outputs exist with original file name
         self.isFilenameAbbreviated = (self.master_input_file['short'].fullpath != self.master_input_file['original'].fullpath)
