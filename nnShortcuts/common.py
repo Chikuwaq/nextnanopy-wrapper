@@ -1403,7 +1403,7 @@ class CommonShortcuts:
             relative_position_k_text = relative_position_k + 0.35
             x_text = (1-relative_position_k_text)*kmin + relative_position_k_text*kmax
             ax.vlines(x, y_from, y_to, colors='black')
-            ax.annotate("$k_\mathrm{B}T$", xy=(x, (y_to + y_from)/2.0), xytext=(x_text, (y_to + y_from)/2.0), fontsize=annotatesize)
+            ax.annotate(r"$k_\mathrm{B}T$", xy=(x, (y_to + y_from)/2.0), xytext=(x_text, (y_to + y_from)/2.0), fontsize=annotatesize)
         # ax.legend(labels=states_toBePlotted+1, bbox_to_anchor=(1.05, 1))
         ax.set_title(title, fontsize=titlesize)
 
