@@ -717,7 +717,7 @@ class CommonShortcuts:
             Files containing these keywords in the file name are excluded from search.
 
         """
-        output_subfolder = self.__compose_output_subfolder_path(name)
+        output_subfolder = self.compose_output_subfolder_path(name)
         return self.get_DataFile_in_folder(keywords, output_subfolder, exclude_keywords=exclude_keywords)
 
 
@@ -834,7 +834,7 @@ class CommonShortcuts:
         return (contain_keyword or contain_folder_name)
 
 
-    def __compose_output_subfolder_path(self, name):
+    def compose_output_subfolder_path(self, name):
         outputFolder = nn.config.get(self.product_name, 'outputdirectory')
         filename_no_extension = PathHandler.separate_extension(name)[0]
         return os.path.join(outputFolder, filename_no_extension)
@@ -854,7 +854,7 @@ class CommonShortcuts:
             Files containing these keywords in the file name are excluded from search.
 
         """
-        output_subfolder = self.__compose_output_subfolder_path(name)
+        output_subfolder = self.compose_output_subfolder_path(name)
         return self.get_DataFiles_in_folder(keywords, output_subfolder, exclude_keywords=exclude_keywords)
 
 
@@ -917,7 +917,7 @@ class CommonShortcuts:
         return datafiles
 
 
-    def get_DataFile_probabilities_with_name(self, name, bias=None):
+    def get_DataFile_probabilities_with_name(self, name, bias=None, search_raw_solution_folder=False, search_WannierStark_folder=True):
         """
         Get single nextnanopy.DataFile of probability_shift data in the folder of specified name.
 
@@ -931,8 +931,8 @@ class CommonShortcuts:
         RETURN:
             dictionary { quantum model key: corresponding list of nn.DataFile() objects for probability_shift }
         """
-        output_subfolder = self.__compose_output_subfolder_path(name)
-        return self.get_DataFile_probabilities_in_folder(output_subfolder, bias=bias)
+        output_subfolder = self.compose_output_subfolder_path(name)
+        return self.get_DataFile_probabilities_in_folder(output_subfolder, bias=bias, search_raw_solution_folder=search_raw_solution_folder, search_WannierStark_folder=search_WannierStark_folder)
         
 
     def get_DataFile_probabilities_in_folder(self):
@@ -1531,7 +1531,7 @@ class CommonShortcuts:
 
         # load output data files
         datafiles_probability_dict = self.get_DataFile_probabilities_with_name(input_file.fullpath)
-        output_subfolder = self.__compose_output_subfolder_path(input_file.fullpath)
+        output_subfolder = self.compose_output_subfolder_path(input_file.fullpath)
 
         return self.plot_probabilities_core(
                 output_subfolder,

@@ -2097,6 +2097,8 @@ class NEGFShortcuts(CommonShortcuts):
             states_list_dict    = None,
             start_position      = CommonShortcuts.position_min,
             end_position        = CommonShortcuts.position_max,
+            Emin                = None,
+            Emax                = None,
             hide_tails          = False,
             only_k0             = True,
             show_spinor         = False,
@@ -2125,8 +2127,12 @@ class NEGFShortcuts(CommonShortcuts):
         electron fraction (for kp8 model).
         """
         # load output data files
-        datafiles_probability_dict = self.get_DataFile_probabilities_with_name(input_file.fullpath, bias=bias)
-        outputSubFolder = self.__compose_output_subfolder_path(input_file.fullpath)
+        datafiles_probability_dict = self.get_DataFile_probabilities_with_name(input_file.
+        fullpath, bias=bias, search_raw_solution_folder=False, search_WannierStark_folder=True)
+        if len(datafiles_probability_dict) == 0:
+            raise RuntimeError("Probability outputs not found!")
+        
+        outputSubFolder = self.compose_output_subfolder_path(input_file.fullpath)
 
         return self.plot_probabilities_core(
             outputSubFolder,
@@ -2135,6 +2141,8 @@ class NEGFShortcuts(CommonShortcuts):
             states_list_dict,
             start_position,
             end_position,
+            Emin,
+            Emax,
             hide_tails,
             only_k0,
             show_spinor,
@@ -2187,7 +2195,7 @@ class NEGFShortcuts(CommonShortcuts):
         electron fraction (for kp8 model).
         """
         # load output data files
-        datafiles_probability_dict = self.get_DataFile_probabilities_in_folder(output_folder_path, allow_folder_name_suffix=allow_folder_name_suffix, bias=bias)
+        datafiles_probability_dict = self.get_DataFile_probabilities_in_folder(output_folder_path, allow_folder_name_suffix=allow_folder_name_suffix, bias=bias, search_raw_solution_folder=False, search_WannierStark_folder=True)
 
         return self.plot_probabilities_core(
             output_folder_path,
@@ -2403,7 +2411,8 @@ class NEGFShortcuts(CommonShortcuts):
                     continue
 
                 compositions[model] = np.zeros((num_evs[model], num_kPoints[model], 4))   # compositions[quantum model][eigenvalue index][k index][spinor index]
-                # print(datafiles_spinor[model][0])  # TODO: nextnanopy negf parser or InputFile class has a bug, or, my output from NEGF++ is not optimal
+                print("datafiles_spinor[model][0] =", datafiles_spinor[model][0])  # TODO: nextnanopy negf parser or InputFile class has a bug, or, my output from NEGF++ is not optimal
+                print("len(state_indices)", len(state_indices))
                 for stateIndex in state_indices:
                     for kIndex in range(num_kPoints[model]):
                         # store spinor composition data
@@ -2657,7 +2666,7 @@ class NEGFShortcuts(CommonShortcuts):
         plt.show()
 
 
-    def get_DataFile_probabilities_in_folder(self, folder_path, allow_folder_name_suffix=False, bias=None):
+    def get_DataFile_probabilities_in_folder(self, folder_path, allow_folder_name_suffix=False, bias=None, search_raw_solution_folder=True, search_WannierStark_folder=False):
         """
         Get single nextnanopy.DataFile of probability_shift data in the specified folder.
 
@@ -2675,8 +2684,8 @@ class NEGFShortcuts(CommonShortcuts):
 
         """
         if bias is None:
-            # search for the raw solution in Init folder
-            datafiles = self.get_DataFiles_NEGFInit_in_folder("EigenStates.dat", folder_path, search_raw_solution_folder=True)
+            # search in the Init folder
+            datafiles = self.get_DataFiles_NEGFInit_in_folder("EigenStates.dat", folder_path, search_raw_solution_folder=search_raw_solution_folder, search_WannierStark_folder=search_WannierStark_folder)
             datafiles = [df for df in datafiles if NEGFShortcuts.SchrodingerRawSolutionFolder in df.fullpath]
             if len(datafiles) > 1: raise RuntimeError("Multiple data files found with keyword 'EigenStates.dat' in 'Init' folder!")
             probability_dict = {'kp8': list(datafiles)}  # TODO: generalize to cover 1,2,3-band cases
