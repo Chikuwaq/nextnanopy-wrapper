@@ -646,11 +646,12 @@ class NEGFShortcuts(CommonShortcuts):
                         except FileNotFoundError:
                             raise
             else:
-                datafile = self.get_DataFiles_in_folder(["DopingDensity.dat"], output_folder, allow_folder_name_suffix=allow_folder_name_suffix)
+                datafile = self.get_DataFile_in_folder(["DopingDensity.dat"], output_folder, allow_folder_name_suffix=allow_folder_name_suffix)
     
             position = datafile.coords[self.position_axis_key]
+            print(datafile.variables)
             try:
-                doping_profile = datafile.variables['Doping density ']
+                doping_profile = datafile.variables['Doping density']
             except KeyError:
                 try:
                     doping_profile = datafile.variables['']
@@ -2201,6 +2202,8 @@ class NEGFShortcuts(CommonShortcuts):
             output_folder_path,
             allow_folder_name_suffix = False,
             bias                = None,
+            search_raw_solution_folder = False,
+            search_WannierStark_folder = True,
             states_range_dict   = None,
             states_list_dict    = None,
             start_position      = CommonShortcuts.position_min,
@@ -2235,7 +2238,7 @@ class NEGFShortcuts(CommonShortcuts):
         electron fraction (for kp8 model).
         """
         # load output data files
-        datafiles_probability_dict = self.get_DataFile_probabilities_in_folder(output_folder_path, allow_folder_name_suffix=allow_folder_name_suffix, bias=bias, search_raw_solution_folder=False, search_WannierStark_folder=True)
+        datafiles_probability_dict = self.get_DataFile_probabilities_in_folder(output_folder_path, allow_folder_name_suffix=allow_folder_name_suffix, bias=bias, search_raw_solution_folder=search_raw_solution_folder, search_WannierStark_folder=search_WannierStark_folder)
 
         return self.plot_probabilities_core(
             output_folder_path,
@@ -2330,6 +2333,8 @@ class NEGFShortcuts(CommonShortcuts):
         """
         if color_by_fraction_of not in ['conduction_band', 'heavy_hole']:
             raise ValueError(f"color_by_fraction_of '{color_by_fraction_of}' is not supported")
+        if not datafiles_probability_dict:
+            raise ValueError("'datafiles_probability_dict' is empty!")
 
         from matplotlib import colors
         from matplotlib.gridspec import GridSpec
@@ -2451,8 +2456,8 @@ class NEGFShortcuts(CommonShortcuts):
                     continue
 
                 compositions[model] = np.zeros((num_evs[model], num_kPoints[model], 4))   # compositions[quantum model][eigenvalue index][k index][spinor index]
-                print("datafiles_spinor[model][0] =", datafiles_spinor[model][0])  # TODO: nextnanopy negf parser or InputFile class has a bug, or, my output from NEGF++ is not optimal
-                print("len(state_indices)", len(state_indices))
+                # print("datafiles_spinor[model][0] =", datafiles_spinor[model][0])  # TODO: nextnanopy negf parser or InputFile class has a bug, or, my output from NEGF++ is not optimal
+                # print("len(state_indices)", len(state_indices))
                 for stateIndex in state_indices:
                     for kIndex in range(num_kPoints[model]):
                         # store spinor composition data
@@ -2505,7 +2510,8 @@ class NEGFShortcuts(CommonShortcuts):
                     xmax = end_position
                 else:
                     xmax = None
-                ax_probability.set_xlim(xmin, xmax)
+                if xmin is not None or xmax is not None:
+                    ax_probability.set_xlim(xmin, xmax)
                 self.draw_bandedges(ax_probability, title, model, x, CBBandedge, want_valence_band, HHBandedge, LHBandedge, True)
 
 
@@ -2718,9 +2724,17 @@ class NEGFShortcuts(CommonShortcuts):
         """
         if bias is None:
             # search in the Init folder
-            datafiles = self.get_DataFiles_NEGFInit_in_folder("EigenStates.dat", folder_path, search_raw_solution_folder=search_raw_solution_folder, search_WannierStark_folder=search_WannierStark_folder)
-            datafiles = [df for df in datafiles if NEGFShortcuts.SchrodingerRawSolutionFolder in df.fullpath]
-            if len(datafiles) > 1: raise RuntimeError("Multiple data files found with keyword 'EigenStates.dat' in 'Init' folder!")
+            if False:
+                datafiles = self.get_DataFiles_NEGFInit_in_folder("EigenStates.dat", folder_path, search_raw_solution_folder=search_raw_solution_folder, search_WannierStark_folder=search_WannierStark_folder)
+            else:
+                if search_raw_solution_folder:
+                    excludeFolder = [NEGFShortcuts.wannierStarkFolder]
+                elif search_WannierStark_folder:
+                    excludeFolder = [NEGFShortcuts.SchrodingerRawSolutionFolder]
+            datafiles = self.get_DataFiles_in_folder(["EigenStates.dat"], folder_path, exclude_keywords=None, exclude_folders=excludeFolder, allow_folder_name_suffix=False)
+            # print("Found", datafiles)
+            if len(datafiles) == 0: raise RuntimeError(f"No data files found with keyword 'EigenStates.dat' in\n{folder_path}")
+            if len(datafiles) > 1: raise RuntimeError(f"Multiple data files found with keyword 'EigenStates.dat' in\n{folder_path}")
             probability_dict = {'kp8': list(datafiles)}  # TODO: generalize to cover 1,2,3-band cases
         else:
             # search for biased output

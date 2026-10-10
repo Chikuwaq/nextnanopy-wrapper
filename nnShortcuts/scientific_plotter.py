@@ -73,7 +73,7 @@ class ScientificPlotter:
         return rf"${mantissa:g}\times 10^{{{desired_exponent}}}$"  # ':g' removes trailing zeros
 
     @staticmethod
-    def __polish_nonscientific_number(nonscientific):
+    def polish_nonscientific_number(nonscientific):
         number_str = str(nonscientific)
         if '.' in number_str:
             number_str = number_str.rstrip('0')  # remove trailing zeros
@@ -99,7 +99,7 @@ class ScientificPlotter:
             if too_many_digits:
                 return ScientificPlotter.format_number_in_power_notation(number, round_decimal)
             else: #if abs_min > 1:
-                return ScientificPlotter.__polish_nonscientific_number(number)
+                return ScientificPlotter.polish_nonscientific_number(number)
             # else: # use scientific format if the data range is complicated
             #     return CommonShortcuts.__format_number_scientific(number, round_decimal)
 
@@ -237,7 +237,7 @@ class ScientificPlotter:
                     return ScientificPlotter.__polish_scientific_number(scientific)
                 else:
                     if should_polish:
-                        return ScientificPlotter.__polish_nonscientific_number(number)
+                        return ScientificPlotter.polish_nonscientific_number(number)
                     else:
                         return number
         else:
