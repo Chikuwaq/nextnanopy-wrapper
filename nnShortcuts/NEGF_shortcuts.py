@@ -620,6 +620,46 @@ class NEGFShortcuts(CommonShortcuts):
         return position, bandedge
 
 
+    def get_doping_profile(self, allow_folder_name_suffix=False, input_file_name=None, output_folder=None):
+            """
+            INPUT:
+                input_file_name : str
+                    Specifies the output folder
+                output_folder : str
+                    Specifies the output folder
+    
+            RETURN: nn.DataFile() attributes
+                datafile.coords['Position']
+                datafile.variables['Doping Profile']
+            """
+            if output_folder is None:
+                if input_file_name is None:
+                    raise ValueError("Either input file name or output folder must be specified")
+                try:
+                    datafile = self.get_DataFile_NEGF_atBias(".dat", input_file_name, bias, allow_folder_name_suffix=False)
+                except FileNotFoundError:
+                    try:
+                        datafile = self.get_DataFile_NEGF_atBias('.dat', input_file_name, bias, allow_folder_name_suffix=False)
+                    except FileNotFoundError:
+                        try:
+                            datafile = self.get_DataFile_NEGF_atBias('.dat', input_file_name, bias, allow_folder_name_suffix=False)
+                        except FileNotFoundError:
+                            raise
+            else:
+                datafile = self.get_DataFiles_in_folder(["DopingDensity.dat"], output_folder, allow_folder_name_suffix=allow_folder_name_suffix)
+    
+            position = datafile.coords[self.position_axis_key]
+            try:
+                doping_profile = datafile.variables['Doping density ']
+            except KeyError:
+                try:
+                    doping_profile = datafile.variables['']
+                except KeyError:
+                    raise
+    
+            return position, doping_profile
+    
+
     def get_Fermi_levels(self, input_file_name, output_folder, bias, allow_folder_name_suffix):
         """
         INPUT
