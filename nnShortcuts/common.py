@@ -1408,7 +1408,11 @@ class CommonShortcuts:
         ax.set_title(title, fontsize=titlesize)
 
 
-    def draw_bandedges(self, ax, plot_title, model, x, CBBandedge, want_valence_band, HHBandedge, LHBandedge, shorten_data_label):
+    def draw_bandedges(self, 
+                       ax, plot_title, model, 
+                       x, CBBandedge, want_valence_band, HHBandedge, LHBandedge, 
+                       shorten_data_label
+                       ):
         CommonShortcuts.set_plot_labels(ax, CommonShortcuts.axis_label_position, CommonShortcuts.axis_label_energy, plot_title)
 
         CVD_aware = True

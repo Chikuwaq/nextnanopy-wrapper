@@ -2466,7 +2466,7 @@ class NEGFShortcuts(CommonShortcuts):
                 else:
                     xmax = None
                 ax_probability.set_xlim(xmin, xmax)
-                self.draw_bandedges(ax_probability, title, model, x, CBBandedge, want_valence_band, HHBandedge, LHBandedge)
+                self.draw_bandedges(ax_probability, title, model, x, CBBandedge, want_valence_band, HHBandedge, LHBandedge, True)
 
 
                 if model == 'kp8':
