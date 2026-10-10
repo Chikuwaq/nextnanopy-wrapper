@@ -2506,7 +2506,8 @@ class NEGFShortcuts(CommonShortcuts):
 
 
     def plot_RRSWavefunctions(self,
-            input_file,
+            input_file_name     = None, 
+            output_folder       = None,
             start_position      = -10000.,
             end_position        = 10000.,
             hide_tails          = False,
@@ -2516,8 +2517,6 @@ class NEGFShortcuts(CommonShortcuts):
             plot_title          = '',
             labelsize           = CommonShortcuts.labelsize_default,
             ticksize            = CommonShortcuts.ticksize_default,
-            savePDF             = False,
-            savePNG             = False,
             ):
         """
         Plot the Reduced Real Space modes on top of bandedges.
@@ -2527,8 +2526,10 @@ class NEGFShortcuts(CommonShortcuts):
 
         Parameters
         ----------
-        input_file : nextnanopy.InputFile object
-            nextnano++ input file.
+        input_file_name : str
+            Specifies the output folder
+        output_folder : str
+            Specifies the output folder
         states_range_dict : dict, optional
             range of state indices to be plotted for each quantum model. The default is None.
         states_list_dict : dict, optional
@@ -2557,14 +2558,9 @@ class NEGFShortcuts(CommonShortcuts):
             font size of xlabel, ylabel and colorbar label
         ticksize : int, optional
             font size of xtics, ytics and colorbar tics
-        savePDF : str, optional
-            save the plot in the PDF format. The default is False.
-        savePNG : str, optional
-            save the plot in the PNG format. The default is False.
-
         Returns
         -------
-        None.
+        matplotlib Figure object
 
         """
         if color_by_fraction_of not in ['conduction_band', 'heavy_hole']:
@@ -2573,7 +2569,15 @@ class NEGFShortcuts(CommonShortcuts):
         from matplotlib import colors
 
         # load output data files
-        datafile_RRSModes = self.get_DataFile(['ReducedRealSpaceModes.dat'], input_file.fullpath)
+        try:
+            if input_file_name is not None:
+                datafile_RRSModes = self.get_DataFile(['ReducedRealSpaceModes.dat'], input_file_name)
+            elif output_folder is not None:
+                datafile_RRSModes = self.get_DataFile_in_folder(['ReducedRealSpaceModes.dat'], output_folder, exclude_keywords=None, exclude_folders=None, allow_folder_name_suffix=False)
+            else:
+                raise ValueError("Either 'input_file_name' or 'output_folder' must be set") 
+        except FileNotFoundError:
+            raise
 
         x_RRSModes  = datafile_RRSModes.coords[self.position_axis_key].value
 
@@ -2628,7 +2632,7 @@ class NEGFShortcuts(CommonShortcuts):
         # instantiate matplotlib subplot objects for bandedge & probability distribution & spinor pie charts
         fig, ax_probability = plt.subplots()
         model = 'kp8'
-        self.draw_bandedges(ax_probability, title, model, x, CBBandedge, want_valence_band, HHBandedge, LHBandedge)
+        self.draw_bandedges(ax_probability, title, model, x, CBBandedge, want_valence_band, HHBandedge, LHBandedge, True)
         # ax_probability.set_title(f'{title} (quantum model: {model})', color=self.default_colors.bands[model])
 
 
@@ -2640,30 +2644,19 @@ class NEGFShortcuts(CommonShortcuts):
         #     cbar.set_label("Conduction-band fraction", fontsize=labelsize)
         #     cbar.ax.tick_params(labelsize=ticksize)
 
-        # TODO: extend
-        kIndex = None
-        scalarmappable = None
-        compositions = None
-        CommonShortcuts.draw_probabilities(ax_probability, np.arange(nStates), x, psiSquared, model, kIndex, show_state_index, color_by_fraction_of, scalarmappable, compositions)
+        if False:
+            # TODO: extend if we want to use common.draw_probabilities()
+            kIndex = 0
+            scalarmappable = None
+            compositions = None
+            self.draw_probabilities_monocolor(ax_probability, np.arange(nStates), x, psiSquared, model, kIndex, show_state_index)
 
+        for cnt, stateIndex in enumerate(np.arange(nStates)):
+            ax_probability.plot(x, psiSquared[cnt], color='black', lw=2)
         # ax_probability.legend(loc='lower left')
         ax_probability.legend(loc='upper left', framealpha=1.)
 
-        fig.tight_layout()
-
-
-        #-------------------------------------------
-        # Plots --- save all the figures to one PDF
-        #-------------------------------------------
-        if savePDF:
-            export_filename = f'{PathHandler.separate_extension(input_file.fullpath)[0]}_RRSModes'
-            self.export_figs(export_filename, 'pdf')
-        if savePNG:
-            export_filename = f'{PathHandler.separate_extension(input_file.fullpath)[0]}_RRSModes'
-            self.export_figs(export_filename, 'png', fig=fig)   # NOTE: presumably only the last fig instance is exported
-
-        # --- display in the GUI
-        plt.show()
+        return fig
 
 
     def get_DataFile_probabilities_in_folder(self, folder_path, allow_folder_name_suffix=False, bias=None, search_raw_solution_folder=True, search_WannierStark_folder=False):

@@ -1466,6 +1466,30 @@ class CommonShortcuts:
         return linewidth, 3*linewidth, linewidth
 
 
+    def draw_probabilities_monocolor(self, ax, state_indices, x, psiSquared, model, kIndex, show_state_index):
+        skip_annotation = False
+        for cnt, stateIndex in enumerate(state_indices):
+            ax.plot(x, psiSquared[model][cnt][kIndex], color='black', lw=2)
+
+            if show_state_index:
+                xmax, ymax = ScientificPlotter.get_maximum_points(psiSquared[model][cnt][kIndex], x)
+                if skip_annotation:   # if annotation was skipped in the previous iteration, annotate
+                    # ax.annotate(f'n={stateIndex},{stateIndex+1}', xy=(xmax, ymax), xytext=(xmax-0.05*simLength, ymax+0.07))
+                    ax.annotate(f'{stateIndex},{stateIndex+1}', xy=(xmax, ymax), xytext=(xmax, ymax+0.07))
+                    skip_annotation = False   # wavefunction degeneracy is atmost 2
+                elif cnt < len(state_indices)-1:  # if not the last state
+                    xmax_next, ymax_next = ScientificPlotter.get_maximum_points(psiSquared[model][cnt][kIndex], x)  # TODO: should 'cnt' be 'cnt+1'?
+                    if abs(xmax_next - xmax) < 1.0 and abs(ymax_next - ymax) < 1e-1:
+                        skip_annotation = True
+                    else:
+                        skip_annotation = False
+                        # ax.annotate(f'n={stateIndex+1}', xy=(xmax, ymax), xytext=(xmax-0.05*simLength, ymax+0.07))
+                        ax.annotate(f'{stateIndex+1}', xy=(xmax, ymax), xytext=(xmax, ymax+0.07))
+                else:
+                    # ax.annotate(f'n={stateIndex+1}', xy=(xmax, ymax), xytext=(xmax-0.05*simLength, ymax+0.07))
+                    ax.annotate(f'{stateIndex+1}', xy=(xmax, ymax), xytext=(xmax, ymax+0.07))
+
+
     def draw_probabilities(self, ax, state_indices, x, psiSquared, model, kIndex, show_state_index, color_by_fraction_of, scalarmappable, compositions):
         if model != 'kp8' and color_by_fraction_of is not None:
             warnings.warn(f"Option 'color_by_fraction_of' is only effective in 8kp simulations, but {model} results are being used")
