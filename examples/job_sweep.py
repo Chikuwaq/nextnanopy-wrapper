@@ -22,7 +22,7 @@ input_path = r"/path/to/input_files/ICL_Vurgaftman_" + appendix + ".negf"
 
 def submit_sweep(sweep_ranges, input_path):
     manager = SweepManager(sweep_ranges, nn.InputFile(input_path), round_decimal=3)
-    manager.submit_sweep_to_slurm(suffix='', partition='zencloud', nodelist=None, email="takuma.sato@nextnano.com", num_CPU=32, memory_limit='120G', time_limit_hrs=10)
+    manager.submit_sweep_to_slurm(suffix='', partition='zencloud', nodelist=None, email="takuma.sato@nextnano.com", num_CPU=32, memory_limit='120G', time_limit_hrs=10) # custom_cmd_str='-v splitfile'
 
 
 sweep_ranges = {

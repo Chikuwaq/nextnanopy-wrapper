@@ -566,7 +566,7 @@ class SweepManager:
 
 
     ### Sweep execution #####################################################
-    def execute_sweep(self, convergenceCheck=True, show_log=False, parallel_limit=1, **kwargs):
+    def execute_sweep(self, convergenceCheck=True, show_log=False, parallel_limit=1, custom_cmd_str=None, **kwargs):
         """
         Run simulations.
 
@@ -581,6 +581,8 @@ class SweepManager:
             The default is False.
         parallel_limit : int, optional
             Maximum number of parallel execution
+        custom_cmd_str : str, optional
+            Additional commadn line parameter strings to be passed to the executable
         kwargs : optional
             other parameters accepted by nextnanopy.InputFile.execute()
 
@@ -597,8 +599,8 @@ class SweepManager:
         # NOTE: We avoid enumeration of output folder names (see `overwrite` option of nextnanopy.inputs > Sweep.execute_sweep()) for secure output data access.
         # NOTE: Do not delete input files! Otherwise SweepManager.execute_sweep() cannot be called independently of SweepManager instantiation.
         def run_input_file(input_file):
-            logging.debug(f"Running input file with kwargs =\n{kwargs}")
-            input_file.execute(show_log=show_log, convergenceCheck=convergenceCheck, threads=num_threads_per_sim, **kwargs)  # TODO: add option to use multiple threads in each simulation
+            logging.debug(f"Running input file with no_file_options = '{custom_cmd_str}' and kwargs =\n{kwargs}")
+            input_file.execute(show_log=show_log, convergenceCheck=convergenceCheck, threads=num_threads_per_sim, no_file_options=custom_cmd_str, **kwargs)
 
         logging.info(f"Starting {num_simulations} sweep simulations...")
         with concurrent.futures.ThreadPoolExecutor(max_workers=parallel_limit) as executor:
@@ -732,7 +734,7 @@ class SweepManager:
         return self.slurm_data.partition is not None
 
 
-    def submit_sweep_to_slurm(self, suffix='', partition='microcloud', nodelist=None, email=None, num_CPU=4, memory_limit='8G', time_limit_hrs=5, exe=None, output_folder=None, database=None):
+    def submit_sweep_to_slurm(self, suffix='', partition='microcloud', nodelist=None, email=None, num_CPU=4, memory_limit='8G', time_limit_hrs=5, exe=None, output_folder=None, database=None, custom_cmd_str=None):
         """
         Submit sweep simulations to Slurm workload manager.
 
@@ -750,7 +752,7 @@ class SweepManager:
                 Number of threads when hyperthreading = 2 * num_CPU
                 Optimal number of threads for omp parallelism <= (2 * num_CPU) / 2 = num_CPU
         """
-        self.generate_slurm_sbatches(suffix=suffix, partition=partition, nodelist=nodelist, email=email, num_CPU=num_CPU, memory_limit=memory_limit, time_limit_hrs=time_limit_hrs, exe=exe, output_folder=output_folder, database=database)
+        self.generate_slurm_sbatches(suffix, partition, nodelist, email, num_CPU, memory_limit, time_limit_hrs, exe, output_folder, database, custom_cmd_str)
 
         num_sbatch_scripts = len(self.slurm_data.sbatch_script_paths)
         self.save_sweep(num_sbatch_scripts)
@@ -772,7 +774,7 @@ class SweepManager:
 
 
 
-    def generate_slurm_sbatches(self, suffix='', partition='microcloud', nodelist=None, email=None, num_CPU=4, memory_limit='8G', time_limit_hrs=5, exe=None, output_folder=None, database=None):
+    def generate_slurm_sbatches(self, suffix, partition, nodelist, email, num_CPU, memory_limit, time_limit_hrs, exe, output_folder, database, custom_cmd_str):
         """
         Generate sbatch files to be submitted to Slurm workload manager.
         """
@@ -785,7 +787,7 @@ class SweepManager:
         license = nn.config.get(self.shortcuts.product_name, 'license')
 
         input_fullpaths = list(set(self.inputs['fullpaths_short']))  # avoid duplicates. For some reason, input file paths are duplicated (NOTE: set object does not preserve the order of elements!)
-        self.slurm_data.create_sbatch_scripts(input_fullpaths, exe, output_folder, database, license, self.shortcuts.product_name)
+        self.slurm_data.create_sbatch_scripts(input_fullpaths, exe, output_folder, database, license, self.shortcuts.product_name, custom_cmd_str)
 
 
     def clean_slurm(self):

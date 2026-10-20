@@ -78,7 +78,7 @@ class SlurmData:
 		self.unique_tag = "_on_" + partition + suffix  # TODO: use this to differentiate output folders, keeping consistency with SweepManager.outputs
 
 
-	def create_sbatch_scripts(self, input_file_fullpaths : list, exe, output_folder, database, license, product_name):
+	def create_sbatch_scripts(self, input_file_fullpaths : list, exe, output_folder, database, license, product_name, custom_cmd_str):
 		"""
 		Generate sbatch files to submit the sweep simulations to cloud computers by Slurm.
 
@@ -134,7 +134,7 @@ class SlurmData:
 			assert isinstance(input_file_fullpaths_for_this_sbatch, list)
 			is_last_sbatch_file = (scriptpath == self.sbatch_script_paths[-1])
 			logging.info((f"Writing sbatch file {scriptpath}..."))
-			self.write_sbatch_script(sbatch_file_count, scriptpath, input_file_fullpaths_for_this_sbatch, exe, output_folder, database, license, product_name, is_last_sbatch_file)
+			self.write_sbatch_script(sbatch_file_count, scriptpath, input_file_fullpaths_for_this_sbatch, exe, output_folder, database, license, product_name, custom_cmd_str, is_last_sbatch_file)
 			with open(metascript_path, 'a') as f_meta:
 				f_meta.write(f"sbatch {scriptpath}\n")
 
@@ -156,7 +156,7 @@ class SlurmData:
 		return random.choice(string.ascii_letters + '0123456789')
 
 
-	def write_sbatch_script(self, sbatch_file_count, scriptpath, inputpaths, exe, output_folder_path, database, license, product_name, is_last_sbatch_file):
+	def write_sbatch_script(self, sbatch_file_count, scriptpath, inputpaths, exe, output_folder_path, database, license, product_name, custom_cmd_str, is_last_sbatch_file):
 		"""
 		Write a sbatch script for a single nextnano simulation.
 		Stores output subfolder paths.
@@ -224,11 +224,11 @@ class SlurmData:
 
 
 				if product_name == 'nextnano.NEGF++':
-					f.write(f"{exe} -i \"{inputpath}\" -o \"{output_subfolder_path}\" -m \"{database}\" -c -l \"{license}\" -t {self.num_CPU} \n")  # add '-v splitfile' if needed
+					f.write(f"{exe} -i \"{inputpath}\" -o \"{output_subfolder_path}\" -m \"{database}\" -c -l \"{license}\" -t {self.num_CPU} {custom_cmd_str} \n")
 				elif product_name == 'nextnano++':
-					f.write(f"{exe} -o \"{output_subfolder_path}\" -d \"{database}\" -l \"{license}\" -t {self.num_CPU} \"{inputpath}\"\n")
+					f.write(f"{exe} -o \"{output_subfolder_path}\" -d \"{database}\" -l \"{license}\" -t {self.num_CPU} {custom_cmd_str} \"{inputpath}\"\n")
 				elif product_name == 'nextnano3':
-					f.write(f"{exe} -o \"{output_subfolder_path}\" -d \"{database}\" --check -license \"{license}\" -t {self.num_CPU} -inputfile \"{inputpath}\"\n")
+					f.write(f"{exe} -o \"{output_subfolder_path}\" -d \"{database}\" --check -license \"{license}\" -t {self.num_CPU} {custom_cmd_str} -inputfile \"{inputpath}\"\n")
 
 				f.write(f"rm -f {inputpath}\n")  # delete temporary input file after simulation has ended
 
