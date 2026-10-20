@@ -285,7 +285,7 @@ class SweepManager:
             for model, plot_range in eigenstate_range.items():
                 self.states_to_be_plotted[model] = np.arange(plot_range[0]-1, plot_range[1], 1)
         else:   # default
-            self.states_to_be_plotted = None   # if this remains None, it will be set up after sweep execution. See execute_sweep().
+            self.states_to_be_plotted = None   # if this remains None, it will be set up after sweep execution. See determine_states_to_be_plotted().
             # if self.__output_subfolders_exist():   # if output data exists, set to all states in the output data   # TODO: output subfolder not found when input file is NEGF...?
             #     try:
             #         datafiles_probability = self.shortcuts.get_DataFile_probabilities_in_folder(self.data.loc[0, 'output_subfolder_original'])
@@ -614,14 +614,20 @@ class SweepManager:
         # point to the new output in case old simulation outputs exist with original file name
         self.isFilenameAbbreviated = (self.master_input_file['short'].fullpath != self.master_input_file['original'].fullpath)
 
-        # If not given at the class instantiation, determine how many eigenstates to plot (states_to_be_plotted attribute)
-        if self.states_to_be_plotted is None:   # by default, plot all states in the output data
-            if os.path.exists(self.outputs.loc[0, 'output_subfolder_short']):
-                try:
-                    datafiles_probability = self.shortcuts.get_DataFile_probabilities_in_folder(self.outputs.loc[0, 'output_subfolder_short'], False)
-                    self.states_to_be_plotted, num_evs = self.shortcuts.get_states_to_be_plotted(datafiles_probability)   # states_range_dict=None -> all states are plotted
-                except (FileNotFoundError, ValueError):  # 1,2,3-band NEGF doesn't have probability output
-                    warnings.warn("SweepManager.execute_sweep(): Probability distribution not found")
+    def determine_states_to_be_plotted(self):
+        """
+        If not given at the class instantiation, determine how many eigenstates to plot (states_to_be_plotted attribute)
+        """
+        if self.states_to_be_plotted is not None:
+            return
+
+        # by default, plot all states in the output data
+        if os.path.exists(self.outputs.loc[0, 'output_subfolder_short']):
+            try:
+                datafiles_probability = self.shortcuts.get_DataFile_probabilities_in_folder(self.outputs.loc[0, 'output_subfolder_short'], False)
+                self.states_to_be_plotted, num_evs = self.shortcuts.get_states_to_be_plotted(datafiles_probability)   # states_range_dict=None -> all states are plotted
+            except (FileNotFoundError, ValueError):  # 1,2,3-band NEGF doesn't have probability output
+                warnings.warn("SweepManager.execute_sweep(): Probability distribution not found")
 
 
     def save_sweep(self, parallel_limit):
@@ -889,6 +895,8 @@ class SweepManager:
 
         sweep_space_reduced = self.sweep_space.extract_1D_line(sweep_variable)
 
+        self.determine_states_to_be_plotted()
+
         # plot dispersions
         for model in self.states_to_be_plotted.keys():
             for coords, outfolder in zip(self.outputs['sweep_coords'], self.__get_output_subfolder_paths()):
@@ -920,6 +928,8 @@ class SweepManager:
 
         # validate argument
         self.__validate_sweep_variables(sweep_variable)
+
+        self.determine_states_to_be_plotted()
 
         # generate GIF
         self.shortcuts.generate_gif(self.master_input_file['original'], sweep_variable, self.sweep_space[sweep_variable], self.states_to_be_plotted)
