@@ -647,7 +647,7 @@ class SweepManager:
 
         logging.info(f"Preparing {n} simulations for \n{self.master_input_file['short'].fullpath}")
         if n > 1:
-            logging.info(f"Max. {parallel_limit} simulation(s) are run simultaneously.")
+            logging.info(f"Max. {min(n, parallel_limit)} simulation(s) are run simultaneously.")
 
         # Do not repeatedly call list.append()! Slow when the number of simulations is large.
         # Shallow copy should be enough because the only change is the input variables.
